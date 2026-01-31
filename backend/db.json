@@ -1,0 +1,171 @@
+{
+  "members": [
+    {
+      "id": 1,
+      "name": "Alice Smith",
+      "email": "alice@example.com",
+      "phone": "111-222-3333",
+      "address": "101 Maple St"
+    },
+    {
+      "id": 2,
+      "name": "Bob Johnson",
+      "email": "bob@example.com",
+      "phone": "444-555-6666",
+      "address": "202 Oak Ave"
+    },
+    {
+      "id": 3,
+      "name": "Carol White",
+      "email": "carol@example.com",
+      "phone": "777-888-9999",
+      "address": "303 Pine Ln"
+    },
+    {
+      "id": 4,
+      "name": "David Green",
+      "email": "david@example.com",
+      "phone": "123-123-1234",
+      "address": "404 Cedar Rd"
+    },
+    {
+      "id": 5,
+      "name": "Eve Black",
+      "email": "eve@example.com",
+      "phone": "321-321-4321",
+      "address": "505 Birch Blvd"
+    }
+  ],
+  "transactions": [
+    {
+      "id": 1,
+      "type": "contribution",
+      "amount": 250,
+      "date": "2026-02-01"
+    },
+    {
+      "id": 2,
+      "type": "expense",
+      "amount": 50,
+      "date": "2026-02-05"
+    },
+    {
+      "id": 3,
+      "type": "contribution",
+      "amount": 100,
+      "date": "2026-02-08"
+    },
+    {
+      "id": 4,
+      "type": "contribution",
+      "amount": 500,
+      "date": "2026-02-10"
+    },
+    {
+      "id": 5,
+      "type": "expense",
+      "amount": 120,
+      "date": "2026-02-12"
+    }
+  ],
+  "attendance": [
+    {
+      "id": 1,
+      "date": "2026-02-02",
+      "count": 120
+    },
+    {
+      "id": 2,
+      "date": "2026-02-09",
+      "count": 135
+    },
+    {
+      "id": 1771017444066,
+      "date": "2026-02-13",
+      "attendees": [
+        {
+          "id": 1,
+          "name": "Alice Smith",
+          "email": "alice@example.com",
+          "phone": "111-222-3333",
+          "address": "101 Maple St"
+        },
+        {
+          "id": 2,
+          "name": "Bob Johnson",
+          "email": "bob@example.com",
+          "phone": "444-555-6666",
+          "address": "202 Oak Ave"
+        },
+        {
+          "id": 3,
+          "name": "Carol White",
+          "email": "carol@example.com",
+          "phone": "777-888-9999",
+          "address": "303 Pine Ln"
+        },
+        {
+          "id": 4,
+          "name": "David Green",
+          "email": "david@example.com",
+          "phone": "123-123-1234",
+          "address": "404 Cedar Rd"
+        },
+        {
+          "id": 5,
+          "name": "Eve Black",
+          "email": "eve@example.com",
+          "phone": "321-321-4321",
+          "address": "505 Birch Blvd"
+        }
+      ]
+    },
+    {
+      "id": 1771017462373,
+      "date": "2026-02-13",
+      "attendees": [
+        {
+          "id": 1,
+          "name": "Alice Smith",
+          "email": "alice@example.com",
+          "phone": "111-222-3333",
+          "address": "101 Maple St"
+        },
+        {
+          "id": 2,
+          "name": "Bob Johnson",
+          "email": "bob@example.com",
+          "phone": "444-555-6666",
+          "address": "202 Oak Ave"
+        },
+        {
+          "id": 3,
+          "name": "Carol White",
+          "email": "carol@example.com",
+          "phone": "777-888-9999",
+          "address": "303 Pine Ln"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "name": "Sunday Service",
+      "date": "2026-02-16",
+      "time": "10:00 AM"
+    },
+    {
+      "id": 2,
+      "name": "Youth Gathering",
+      "date": "2026-02-20",
+      "time": "06:00 PM"
+    },
+    {
+      "id": 3,
+      "name": "Bible Study",
+      "date": "2026-02-22",
+      "time": "07:00 PM"
+    }
+  ]
+}
