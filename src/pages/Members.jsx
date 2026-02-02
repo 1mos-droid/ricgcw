@@ -38,7 +38,7 @@ import {
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
 
-const API_BASE_URL = 'http://localhost:3002/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
 const Members = () => {
   const theme = useTheme();

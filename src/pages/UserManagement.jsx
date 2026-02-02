@@ -60,7 +60,7 @@ const UserManagement = () => {
       await new Promise(r => setTimeout(r, 800)); // Fake network delay
       setUsers([
         { id: 1, name: "Kumesi Moses", email: "isemuk8@gmail.com", role: "Super Admin", status: "Active", lastActive: "Just now" },
-        { id: 2, name: "Sarah Jenkins", email: "sarah.j@flamecore.com", role: "Moderator", status: "Active", lastActive: "2 hours ago" },
+        { id: 2, name: "Pastor Nicholas Dobeng", email: "", role: "Moderator", status: "Active", lastActive: "2 hours ago" },
         { id: 3, name: "David Osei", email: "d.osei@church.org", role: "Viewer", status: "Inactive", lastActive: "5 days ago" },
         { id: 4, name: "System Bot", email: "bot@automation.com", role: "API Key", status: "Active", lastActive: "1 min ago" },
       ]);

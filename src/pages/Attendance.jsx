@@ -31,7 +31,9 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const API_BASE_URL = 'http://localhost:3002/api';
+// --- 🔴 UPDATED: Dynamic API URL ---
+// This line now checks the environment variables first.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
 
 const Attendance = () => {
   const theme = useTheme();
@@ -50,8 +52,6 @@ const Attendance = () => {
   // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     try {
-      // Don't set loading true here if we want a "silent" background refresh
-      // But for initial load, it is necessary.
       if (members.length === 0) setLoading(true); 
       
       const [membersRes, attendanceRes] = await Promise.all([
@@ -147,7 +147,7 @@ const Attendance = () => {
           alignItems: 'center', 
           gap: 2, 
           borderRadius: 3,
-          width: { xs: '100%', sm: 'auto' }, // Full width on mobile
+          width: { xs: '100%', sm: 'auto' }, 
           border: `1px solid ${theme.palette.divider}`
         }}>
           <Box sx={{ p: 1, bgcolor: theme.palette.primary.light, borderRadius: 2, color: theme.palette.primary.contrastText, display: 'flex' }}>
@@ -326,7 +326,7 @@ const Attendance = () => {
                       p: 2, 
                       mb: 2, 
                       borderRadius: 2, 
-                      bgcolor: theme.palette.background.default, // Using theme background
+                      bgcolor: theme.palette.background.default, 
                       border: `1px solid ${theme.palette.divider}`,
                       transition: 'transform 0.2s',
                       '&:hover': {
