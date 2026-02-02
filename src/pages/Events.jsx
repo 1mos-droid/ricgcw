@@ -13,9 +13,12 @@ import {
   IconButton,
   useTheme,
   Avatar,
-  Divider,
   CircularProgress,
-  InputAdornment
+  InputAdornment,
+  Snackbar,
+  Alert,
+  Skeleton,
+  Tooltip
 } from '@mui/material';
 import { 
   Calendar as CalendarIcon, 
@@ -23,9 +26,8 @@ import {
   MapPin, 
   Plus, 
   Trash2, 
-  Map,
-  ArrowRight,
-  Edit
+  Edit,
+  AlertCircle
 } from 'lucide-react';
 import EditEventDialog from '../components/EditEventDialog';
 
@@ -39,6 +41,9 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  
+  // Notification State
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -51,30 +56,44 @@ const Events = () => {
   // --- FETCH DATA ---
   const fetchEvents = useCallback(async () => {
     try {
-      setLoading(true);
+      // Only show full loading skeleton on first load or refresh
+      if (events.length === 0) setLoading(true);
+      
       const res = await axios.get(`${API_BASE_URL}/events`);
       // Sort by date (nearest first)
       const sorted = res.data.sort((a, b) => new Date(a.date) - new Date(b.date));
       setEvents(sorted);
     } catch (err) {
       console.error("Calendar Sync Error:", err);
+      showSnackbar("Failed to sync events.", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [events.length]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
   // --- HANDLERS ---
+  const showSnackbar = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleCreateEvent = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.date || !formData.time) return;
+    if (!formData.name || !formData.date || !formData.time) {
+      showSnackbar("Please fill in all required fields.", "warning");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -85,9 +104,11 @@ const Events = () => {
       
       // Reset & Refresh
       setFormData({ name: '', date: '', time: '', location: '' });
-      fetchEvents();
+      await fetchEvents();
+      showSnackbar("Event scheduled successfully!", "success");
     } catch (error) {
-      alert("Failed to schedule event.");
+      console.error(error);
+      showSnackbar("Failed to schedule event.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -96,10 +117,16 @@ const Events = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
       try {
+        // Optimistic update (remove from UI immediately for speed)
+        const previousEvents = [...events];
+        setEvents(events.filter(e => e.id !== id));
+        
         await axios.delete(`${API_BASE_URL}/events/${id}`);
-        fetchEvents();
+        showSnackbar("Event deleted.", "info");
       } catch (err) {
-        alert('Failed to delete event.');
+        // Revert if failed
+        fetchEvents(); 
+        showSnackbar('Failed to delete event.', "error");
       }
     }
   };
@@ -109,8 +136,9 @@ const Events = () => {
       await axios.put(`${API_BASE_URL}/events/${id}`, updatedEvent);
       fetchEvents();
       setEditingEvent(null);
+      showSnackbar("Event updated successfully.", "success");
     } catch (err) {
-      alert('Failed to update event.');
+      showSnackbar('Failed to update event.', "error");
     }
   };
 
@@ -123,9 +151,16 @@ const Events = () => {
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
       {/* --- HEADER --- */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <Box sx={{ 
+        mb: 4, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' }, 
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: 2
+      }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, color: theme.palette.text.primary, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
             Event Agenda
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -136,7 +171,7 @@ const Events = () => {
           icon={<CalendarIcon size={14} />} 
           label={format(new Date(), 'MMMM yyyy')} 
           variant="outlined" 
-          sx={{ fontWeight: 600, borderRadius: 2 }}
+          sx={{ fontWeight: 600, borderRadius: 2, height: 32 }}
         />
       </Box>
 
@@ -144,12 +179,18 @@ const Events = () => {
         
         {/* --- LEFT COL: CREATOR FORM --- */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ p: 3, position: 'sticky', top: 20 }}>
+          <Card sx={{ 
+            p: 3, 
+            position: { md: 'sticky' }, 
+            top: { md: 20 },
+            boxShadow: theme.shadows[3],
+            borderRadius: 3
+          }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 36, height: 36 }}>
-                <Plus size={20} color="#fff" />
+              <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+                <Plus size={22} color="#fff" />
               </Avatar>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>Schedule Event</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Schedule Event</Typography>
             </Box>
 
             <form onSubmit={handleCreateEvent}>
@@ -163,6 +204,7 @@ const Events = () => {
                     onChange={handleChange}
                     placeholder="e.g. Annual Gala"
                     variant="outlined"
+                    size="small"
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -175,6 +217,7 @@ const Events = () => {
                     name="date"
                     value={formData.date}
                     onChange={handleChange}
+                    size="small"
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -187,6 +230,7 @@ const Events = () => {
                     name="time"
                     value={formData.time}
                     onChange={handleChange}
+                    size="small"
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -199,6 +243,7 @@ const Events = () => {
                     value={formData.location}
                     onChange={handleChange}
                     placeholder="Main Auditorium"
+                    size="small"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -215,8 +260,8 @@ const Events = () => {
                     variant="contained" 
                     fullWidth 
                     size="large"
-                    disabled={submitting || !formData.name || !formData.date || !formData.time}
-                    sx={{ mt: 1, py: 1.5, borderRadius: 3 }}
+                    disabled={submitting}
+                    sx={{ mt: 1, py: 1.5, borderRadius: 3, fontWeight: 600 }}
                   >
                     {submitting ? <CircularProgress size={24} color="inherit" /> : 'Publish to Calendar'}
                   </Button>
@@ -228,90 +273,128 @@ const Events = () => {
 
         {/* --- RIGHT COL: AGENDA LIST --- */}
         <Grid item xs={12} md={8}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {events.length === 0 ? (
-                <Card sx={{ p: 5, textAlign: 'center', opacity: 0.7 }}>
-                  <Typography variant="h6">No upcoming events found.</Typography>
-                  <Typography variant="body2">Use the form to create your first event.</Typography>
-                </Card>
-              ) : (
-                events.map((event) => (
-                  <Card 
-                    key={event.id}
-                    sx={{ 
-                      p: 2, 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'translateY(-2px)' }
-                    }}
-                  >
-                    {/* Date Block */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {loading ? (
+               // SKELETON LOADING
+               Array.from(new Array(3)).map((_, i) => (
+                 <Card key={i} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                   <Skeleton variant="rectangular" width={60} height={60} sx={{ mr: 3, borderRadius: 1 }} />
+                   <Box sx={{ flexGrow: 1 }}>
+                     <Skeleton width="60%" height={24} sx={{ mb: 1 }} />
+                     <Skeleton width="40%" height={20} />
+                   </Box>
+                 </Card>
+               ))
+            ) : events.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6, bgcolor: theme.palette.background.paper, borderRadius: 3 }}>
+                <AlertCircle size={48} style={{ marginBottom: 16 }} />
+                <Typography variant="h6">No upcoming events found.</Typography>
+                <Typography variant="body2">Use the form to create your first event.</Typography>
+              </Box>
+            ) : (
+              events.map((event) => (
+                <Card 
+                  key={event.id}
+                  sx={{ 
+                    p: 0, // Reset padding for custom layout
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
+                    transition: 'all 0.2s',
+                    '&:hover': { transform: 'translateY(-3px)', boxShadow: theme.shadows[4] },
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Date Block */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'row', sm: 'column' }, 
+                    alignItems: 'center', 
+                    justifyContent: { xs: 'flex-start', sm: 'center' },
+                    p: { xs: 2, sm: 3 },
+                    bgcolor: theme.palette.primary.light,
+                    color: theme.palette.primary.contrastText,
+                    minWidth: { sm: 100 },
+                    gap: { xs: 2, sm: 0 }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                      {format(new Date(event.date), 'dd')}
+                    </Typography>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, opacity: 0.9 }}>
+                      {format(new Date(event.date), 'MMM')}
+                    </Typography>
+                  </Box>
+
+                  {/* Details */}
+                  <Box sx={{ flexGrow: 1, p: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: theme.palette.text.primary }}>
+                      {event.name}
+                    </Typography>
+                    
                     <Box sx={{ 
                       display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      p: 2,
-                      minWidth: 80,
-                      borderRight: `1px solid ${theme.palette.divider}`,
-                      mr: 3
+                      gap: 2, 
+                      flexWrap: 'wrap',
+                      mt: 1,
+                      color: theme.palette.text.secondary 
                     }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.primary.main, lineHeight: 1 }}>
-                        {format(new Date(event.date), 'dd')}
-                      </Typography>
-                      <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 600, color: theme.palette.text.secondary, mt: 0.5 }}>
-                        {format(new Date(event.date), 'MMM')}
-                      </Typography>
-                    </Box>
-
-                    {/* Details */}
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                        {event.name}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', gap: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: theme.palette.text.secondary }}>
-                          <Clock size={14} />
-                          <Typography variant="caption" sx={{ fontWeight: 500 }}>{event.time}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: theme.palette.text.secondary }}>
-                          <MapPin size={14} />
-                          <Typography variant="caption" sx={{ fontWeight: 500 }}>{event.location}</Typography>
-                        </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Clock size={14} />
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>{event.time}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <MapPin size={14} />
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>{event.location}</Typography>
                       </Box>
                     </Box>
+                  </Box>
 
-                    {/* Action */}
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                  {/* Actions */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1, 
+                    p: 2, 
+                    borderTop: { xs: `1px solid ${theme.palette.divider}`, sm: 'none' },
+                    justifyContent: { xs: 'flex-end', sm: 'center' }
+                  }}>
+                    <Tooltip title="Edit Event">
                       <IconButton size="small" onClick={() => setEditingEvent(event)}>
-                        <Edit size={16} />
+                        <Edit size={18} />
                       </IconButton>
-                      <IconButton size="small" onClick={() => handleDelete(event.id)}>
-                        <Trash2 size={16} />
+                    </Tooltip>
+                    <Tooltip title="Delete Event">
+                      <IconButton size="small" color="error" onClick={() => handleDelete(event.id)}>
+                        <Trash2 size={18} />
                       </IconButton>
-                    </Box>
-                  </Card>
-                ))
-              )}
-            </Box>
-          )}
+                    </Tooltip>
+                  </Box>
+                </Card>
+              ))
+            )}
+          </Box>
         </Grid>
 
       </Grid>
-
+      
+      {/* --- DIALOGS & NOTIFICATIONS --- */}
       <EditEventDialog
         open={editingEvent !== null}
         onClose={() => setEditingEvent(null)}
         onEditEvent={handleEditEvent}
         event={editingEvent}
       />
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 2 }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Box>
   );
 };

@@ -3,7 +3,7 @@
 
 /* --- 2. Base Reset --- */
 :root {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   
@@ -20,7 +20,7 @@ body {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-  /* Background color is now handled by MUI ThemeConfig */
+  /* Background color is handled by MUI CssBaseline in App.js */
 }
 
 /* Ensure React Root fills the viewport */
@@ -42,7 +42,7 @@ a:hover {
 }
 
 /* --- 4. Adaptive Scrollbar --- */
-/* This ensures the scrollbar matches whatever mode you are in */
+/* Works for both Light and Dark modes */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -53,52 +53,49 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(150, 150, 150, 0.4);
+  background-color: rgba(156, 163, 175, 0.5); /* Neutral Gray */
   border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-
-  background-color: rgba(150, 150, 150, 0.7);
-
+  background-color: rgba(156, 163, 175, 0.8);
 }
 
-
-
+/* --- 5. Print Layout Optimization --- */
+/* This ensures reports look professional on paper */
 @media print {
-
-  /* Hide everything by default */
-
+  /* Hide non-essential UI elements */
   body * {
-
     visibility: hidden;
-
   }
 
+  /* Hide Scrollbars when printing */
+  html, body {
+    height: auto;
+    overflow: visible;
+  }
 
-
-  /* Then, show only the container that we want to print and its children */
-
+  /* Show only the targeted printable area */
   .printable-area, .printable-area * {
-
     visibility: visible;
-
   }
 
-
-
-  /* Position the printable area at the top of the page */
-
+  /* Position content correctly */
   .printable-area {
-
     position: absolute;
-
     left: 0;
-
     top: 0;
-
     width: 100%;
-
+    margin: 0;
+    padding: 20px;
+    background: white; /* Always print on white background */
+    color: black;      /* Always print black text */
   }
 
+  /* Remove shadows and borders to save ink */
+  .MuiPaper-root {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
 }

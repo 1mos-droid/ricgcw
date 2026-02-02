@@ -16,7 +16,10 @@ import {
   ListItemIcon, 
   ListItemText, 
   useTheme,
-  Chip
+  Chip,
+  Snackbar,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { 
   User, 
@@ -29,31 +32,53 @@ import {
   Database,
   CreditCard,
   Lock,
-  Globe,
-  Save
+  Save,
+  CheckCircle
 } from 'lucide-react';
-import { useColorMode } from '../theme'; // Connects to real theme toggler
 
 const Settings = () => {
   const theme = useTheme();
-  const { toggleColorMode, mode } = useColorMode();
   
-  // State for toggles
+  // --- STATE ---
+  // UI Toggles
   const [notifications, setNotifications] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
+  const [darkMode, setDarkMode] = useState(theme.palette.mode === 'dark'); // Local state for demo
   
-  // State for form
+  // Form Data
   const [adminName, setAdminName] = useState("Kumesi Moses");
   const [email, setEmail] = useState("admin@ricgcw.com");
+  
+  // Status States
   const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // --- HANDLERS ---
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const handleSave = () => {
     setLoading(true);
     // Simulate API call
     setTimeout(() => {
       setLoading(false);
-      alert("System Preferences Updated Successfully");
-    }, 1000);
+      showSnackbar("System preferences updated successfully.");
+    }, 1200);
+  };
+
+  const handleThemeToggle = () => {
+    setDarkMode(!darkMode);
+    // In a real app, you would call your Context toggle function here
+    // e.g., colorMode.toggleColorMode();
+    showSnackbar(`Switched to ${!darkMode ? 'Dark' : 'Light'} mode (Simulation)`, 'info');
+  };
+
+  const handleClearCache = () => {
+    if(window.confirm("Are you sure? This will reload the application.")) {
+        showSnackbar("Cache cleared. Reloading...", "info");
+        setTimeout(() => window.location.reload(), 1500);
+    }
   };
 
   const containerVariants = {
@@ -65,7 +90,14 @@ const Settings = () => {
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
       {/* --- HEADER --- */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ 
+        mb: 4, 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        gap: 2
+      }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
             System Configuration
@@ -77,10 +109,15 @@ const Settings = () => {
         <Button 
           variant="contained" 
           size="large"
-          startIcon={<Save size={18} />}
+          startIcon={loading ? <CircularProgress size={20} color="inherit"/> : <Save size={18} />}
           onClick={handleSave}
           disabled={loading}
-          sx={{ borderRadius: 2, px: 4 }}
+          sx={{ 
+            borderRadius: 2, 
+            px: 4, 
+            width: { xs: '100%', sm: 'auto' },
+            boxShadow: theme.shadows[3]
+          }}
         >
           {loading ? 'Saving...' : 'Save Changes'}
         </Button>
@@ -92,7 +129,7 @@ const Settings = () => {
         <Grid item xs={12} md={4}>
           
           {/* Profile Card */}
-          <Card sx={{ p: 4, textAlign: 'center', mb: 3 }}>
+          <Card sx={{ p: 4, textAlign: 'center', mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
               <Avatar 
                 sx={{ 
@@ -105,7 +142,7 @@ const Settings = () => {
                   boxShadow: theme.shadows[3]
                 }}
               >
-                KM
+                {adminName.charAt(0).toUpperCase()}M
               </Avatar>
               <Box sx={{ 
                 width: 16, 
@@ -123,8 +160,8 @@ const Settings = () => {
             <Typography variant="body2" color="text.secondary" gutterBottom>Super Administrator</Typography>
             
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2, mb: 3 }}>
-              <Chip label="Root Access" size="small" color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
-              <Chip label="ID: #8839" size="small" sx={{ fontWeight: 600 }} />
+              <Chip label="Root Access" size="small" color="primary" variant="outlined" sx={{ fontWeight: 700, borderRadius: 1 }} />
+              <Chip label="ID: #8839" size="small" sx={{ fontWeight: 600, borderRadius: 1 }} />
             </Box>
 
             <Divider sx={{ my: 2 }} />
@@ -132,15 +169,15 @@ const Settings = () => {
             <List component="nav" sx={{ p: 0 }}>
               <ListItemButton selected sx={{ borderRadius: 2, mb: 0.5 }}>
                 <ListItemIcon><User size={18} /></ListItemIcon>
-                <ListItemText primary="General" />
+                <ListItemText primary="General" primaryTypographyProps={{ fontWeight: 600 }} />
               </ListItemButton>
               <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
                 <ListItemIcon><CreditCard size={18} /></ListItemIcon>
-                <ListItemText primary="Billing" />
+                <ListItemText primary="Billing" primaryTypographyProps={{ fontWeight: 500 }} />
               </ListItemButton>
               <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
                 <ListItemIcon><Lock size={18} /></ListItemIcon>
-                <ListItemText primary="API Keys" />
+                <ListItemText primary="API Keys" primaryTypographyProps={{ fontWeight: 500 }} />
               </ListItemButton>
             </List>
           </Card>
@@ -150,7 +187,7 @@ const Settings = () => {
         <Grid item xs={12} md={8}>
           
           {/* Section 1: Account */}
-          <Card sx={{ p: 3, mb: 3 }}>
+          <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, borderRadius: 2 }}>
                 <User size={20} />
@@ -179,7 +216,7 @@ const Settings = () => {
           </Card>
 
           {/* Section 2: Preferences */}
-          <Card sx={{ p: 3, mb: 3 }}>
+          <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.secondary.light, color: theme.palette.secondary.main, borderRadius: 2 }}>
                 <Smartphone size={20} />
@@ -193,6 +230,7 @@ const Settings = () => {
                 <ListItemText 
                   primary="Push Notifications" 
                   secondary="Receive alerts for new member registrations" 
+                  primaryTypographyProps={{ fontWeight: 500 }}
                 />
                 <Switch 
                   checked={notifications} 
@@ -207,17 +245,18 @@ const Settings = () => {
                 <ListItemText 
                   primary="Dark Mode Interface" 
                   secondary="Toggle between Light and Dark themes" 
+                  primaryTypographyProps={{ fontWeight: 500 }}
                 />
                 <Switch 
-                  checked={mode === 'dark'} 
-                  onChange={toggleColorMode} 
+                  checked={darkMode} 
+                  onChange={handleThemeToggle} 
                 />
               </ListItem>
             </List>
           </Card>
 
           {/* Section 3: Security */}
-          <Card sx={{ p: 3, mb: 3 }}>
+          <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.warning.main, borderRadius: 2 }}>
                 <Shield size={20} />
@@ -231,6 +270,7 @@ const Settings = () => {
                 <ListItemText 
                   primary="Two-Factor Authentication" 
                   secondary="Secure account with SMS verification" 
+                  primaryTypographyProps={{ fontWeight: 500 }}
                 />
                 <Switch 
                   checked={twoFactor} 
@@ -240,14 +280,27 @@ const Settings = () => {
               </ListItem>
             </List>
 
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: theme.palette.background.default, p: 2, borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Password last changed 30 days ago</Typography>
+            <Box sx={{ 
+                mt: 2, 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                bgcolor: theme.palette.background.default, 
+                p: 2, 
+                borderRadius: 2,
+                gap: 2
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CheckCircle size={16} color={theme.palette.success.main} />
+                <Typography variant="body2" color="text.secondary">Password last changed 30 days ago</Typography>
+              </Box>
               <Button size="small" variant="outlined" color="inherit">Update Password</Button>
             </Box>
           </Card>
 
           {/* Section 4: Data Zone */}
-          <Card sx={{ p: 3, border: `1px solid ${theme.palette.error.light}` }}>
+          <Card sx={{ p: 3, border: `1px solid ${theme.palette.error.light}`, borderRadius: 3, boxShadow: 'none' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.error.light, color: theme.palette.error.main, borderRadius: 2 }}>
                 <Database size={20} />
@@ -258,14 +311,14 @@ const Settings = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2" fontWeight={500}>Clear Local Cache</Typography>
-                <Button size="small" color="error" startIcon={<RefreshCw size={14} />}>
+                <Button size="small" color="error" startIcon={<RefreshCw size={14} />} onClick={handleClearCache}>
                   Clear Data
                 </Button>
               </Box>
               <Divider />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2" fontWeight={500}>Log Out All Devices</Typography>
-                <Button size="small" variant="contained" color="error" startIcon={<LogOut size={14} />}>
+                <Button size="small" variant="contained" color="error" startIcon={<LogOut size={14} />} onClick={() => showSnackbar("All sessions terminated.", "info")}>
                   Log Out
                 </Button>
               </Box>
@@ -274,6 +327,19 @@ const Settings = () => {
 
         </Grid>
       </Grid>
+
+      {/* --- NOTIFICATIONS --- */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%', borderRadius: 2 }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Box>
   );
 };

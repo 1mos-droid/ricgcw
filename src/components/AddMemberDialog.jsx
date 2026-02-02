@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Button,
   TextField,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Box,
   IconButton,
   Typography,
   useTheme,
-  Grid
+  Grid,
+  Slide,
+  InputAdornment
 } from '@mui/material';
-import { X, UserPlus } from 'lucide-react';
+import { X, UserPlus, User, Mail, Phone, MapPin } from 'lucide-react';
+
+// Transition for the Dialog
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const theme = useTheme();
@@ -25,71 +31,111 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     address: ''
   });
 
+  // Error State
+  const [errors, setErrors] = useState({});
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setFormData({ name: '', email: '', phone: '', address: '' });
+      setErrors({});
+    }
+  }, [open]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user types
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' });
+    }
+  };
+
+  const validate = () => {
+    let tempErrors = {};
+    if (!formData.name.trim()) tempErrors.name = "Full Name is required";
+    // Optional: Add email/phone validation regex here if needed
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
   };
 
   const handleSubmit = () => {
-    onAddMember(formData);
-    // Reset form
-    setFormData({ name: '', email: '', phone: '', address: '' });
+    if (validate()) {
+      onAddMember(formData);
+      onClose();
+    }
   };
 
   return (
     <Dialog 
       open={open} 
       onClose={onClose}
+      TransitionComponent={Transition}
+      keepMounted
       fullWidth
       maxWidth="sm"
       PaperProps={{
         sx: {
-          borderRadius: 3, // Soft corners
-          backgroundImage: 'none',
+          borderRadius: 3,
           boxShadow: theme.shadows[10],
-          bgcolor: theme.palette.background.paper
+          bgcolor: theme.palette.background.paper,
+          backgroundImage: 'none'
         }
       }}
     >
       {/* --- HEADER --- */}
       <Box sx={{ 
         px: 3, 
-        py: 2, 
+        py: 2.5, 
         borderBottom: `1px solid ${theme.palette.divider}`,
         display: 'flex', 
         justifyContent: 'space-between', 
-        alignItems: 'center' 
+        alignItems: 'center',
+        bgcolor: theme.palette.primary.main,
+        color: '#fff'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <UserPlus size={20} color={theme.palette.primary.main} />
+          <UserPlus size={22} color="#fff" />
           <Typography variant="h6" fontWeight={700}>Add New Member</Typography>
         </Box>
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
           <X size={20} />
         </IconButton>
       </Box>
 
       {/* --- CONTENT --- */}
-      <DialogContent sx={{ p: 3 }}>
+      <DialogContent sx={{ p: 4 }}>
         <Box component="form" noValidate autoComplete="off">
-          <Grid container spacing={2}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Enter the details below to register a new member into the directory.
+          </Typography>
+
+          <Grid container spacing={3}>
             
             <Grid item xs={12}>
               <TextField
                 autoFocus
-                margin="dense"
                 label="Full Name"
                 name="name"
                 fullWidth
+                required
                 variant="outlined"
                 value={formData.name}
                 onChange={handleChange}
+                error={!!errors.name}
+                helperText={errors.name}
                 placeholder="e.g. John Doe"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <User size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
-                margin="dense"
                 label="Email Address"
                 name="email"
                 type="email"
@@ -98,12 +144,18 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="john@example.com"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Mail size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
-                margin="dense"
                 label="Phone Number"
                 name="phone"
                 type="tel"
@@ -112,12 +164,18 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="+233 XX XXX XXXX"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Phone size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
 
             <Grid item xs={12}>
               <TextField
-                margin="dense"
                 label="Residential Address"
                 name="address"
                 fullWidth
@@ -125,6 +183,13 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="House No, Street Name, City"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MapPin size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
 
@@ -133,12 +198,12 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
       </DialogContent>
 
       {/* --- ACTIONS --- */}
-      <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+      <DialogActions sx={{ px: 4, pb: 4, pt: 1 }}>
         <Button 
           onClick={onClose} 
           variant="outlined" 
           color="inherit"
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, border: `1px solid ${theme.palette.divider}` }}
         >
           Cancel
         </Button>
@@ -146,9 +211,10 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           onClick={handleSubmit} 
           variant="contained"
           disableElevation
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
+          disabled={!formData.name}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 4 }}
         >
-          Add Record
+          Save Record
         </Button>
       </DialogActions>
     </Dialog>

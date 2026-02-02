@@ -1,167 +1,143 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
+// Ensure you have this file created (I've provided the code for it below)
+const { admin, db } = require('./firebaseAdmin');
 
 const app = express();
 const port = 3002;
 
 // --- Middleware ---
-app.use(cors()); // Allows your frontend to talk to this backend
-app.use(express.json()); // Parses incoming JSON data
+app.use(cors({
+  origin: true, // Allow all origins for development (restrict this in production)
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+app.use(express.json());
 
-// --- Database Configuration ---
-const DB_FILE = path.join(__dirname, 'db.json');
+// --- Helper Functions ---
 
-// Helper: Define default DB structure
-const getInitialDB = () => ({
-  members: [],
-  transactions: [],
-  attendance: [],
-  events: []
-});
+// Standardized Error Responder
+const sendError = (res, error, message = 'Internal Server Error') => {
+  console.error(`❌ ${message}:`, error);
+  res.status(500).json({ error: message, details: error.message });
+};
 
-// Helper: Read DB safely (Prevent Crashes)
-const readDB = () => {
+// Generic GET (Fetch All)
+const handleGet = async (res, collectionName) => {
   try {
-    if (!fs.existsSync(DB_FILE)) {
-      // Create file if it doesn't exist
-      const initial = getInitialDB();
-      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-
-    const fileContent = fs.readFileSync(DB_FILE, 'utf-8');
-    
-    // Handle case where file exists but is empty
-    if (!fileContent.trim()) {
-      return getInitialDB();
-    }
-
-    return JSON.parse(fileContent);
+    const snapshot = await db.collection(collectionName).get();
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`📡 GET /${collectionName} - Sent ${data.length} records`);
+    res.json(data);
   } catch (error) {
-    console.error("Database Error:", error);
-    // Return empty structure instead of crashing
-    return getInitialDB();
+    sendError(res, error, `Failed to fetch ${collectionName}`);
   }
 };
 
-// Helper: Write DB safely
-const writeDB = (db) => {
+// Generic POST (Create New)
+const handlePost = async (req, res, collectionName) => {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-  } catch (error) {
-    console.error("Failed to save to database:", error);
-  }
-};
-
-// --- Generic Request Handlers ---
-
-// Handles all GET requests
-const handleGet = (res, key) => {
-  const db = readDB();
-  res.json(db[key] || []);
-};
-
-// Handles all POST requests
-const handlePost = (req, res, key) => {
-  try {
-    const db = readDB();
+    const newItem = req.body;
     
-    // Validate that body exists
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({ error: "Request body cannot be empty" });
+    // Basic Validation
+    if (!newItem || Object.keys(newItem).length === 0) {
+      return res.status(400).json({ error: 'Request body cannot be empty' });
     }
-    
-    const newItem = { id: Date.now(), ...req.body };
-    
-    // Ensure the array exists before pushing
-    if (!db[key]) db[key] = [];
-    
-    db[key].push(newItem);
-    writeDB(db);
-    res.status(201).json(newItem);
+
+    // Add Timestamp if not present
+    if (!newItem.createdAt) {
+      newItem.createdAt = new Date().toISOString();
+    }
+
+    const docRef = await db.collection(collectionName).add(newItem);
+    console.log(`✅ POST /${collectionName} - Created ID: ${docRef.id}`);
+    res.status(201).json({ id: docRef.id, ...newItem });
   } catch (error) {
-    console.error("Post Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    sendError(res, error, `Failed to create item in ${collectionName}`);
   }
 };
+
+// Generic PUT (Update Existing)
+const handlePut = async (req, res, collectionName) => {
+  try {
+    const { id } = req.params;
+    const updatedItem = req.body;
+    
+    // Using { merge: true } ensures we don't accidentally overwrite missing fields
+    await db.collection(collectionName).doc(id).set(updatedItem, { merge: true });
+    
+    console.log(`🔄 PUT /${collectionName}/${id} - Updated`);
+    res.json({ id, ...updatedItem });
+  } catch (error) {
+    sendError(res, error, `Failed to update item in ${collectionName}`);
+  }
+};
+
+// Generic DELETE (Remove)
+const handleDelete = async (req, res, collectionName) => {
+  try {
+    const { id } = req.params;
+    await db.collection(collectionName).doc(id).delete();
+    console.log(`🗑️ DELETE /${collectionName}/${id} - Deleted`);
+    res.status(204).send();
+  } catch (error) {
+    sendError(res, error, `Failed to delete item in ${collectionName}`);
+  }
+};
+
 
 // --- API Routes ---
 
-// Root Route (Fixes "Cannot GET /" error)
+// Root Health Check
 app.get('/', (req, res) => {
   res.send(`
-    <h1>Backend is Running 🚀</h1>
-    <p>Available endpoints:</p>
-    <ul>
-      <li><a href="/api/members">/api/members</a></li>
-      <li><a href="/api/transactions">/api/transactions</a></li>
-      <li><a href="/api/attendance">/api/attendance</a></li>
-      <li><a href="/api/events">/api/events</a></li>
-    </ul>
+    <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+      <h1 style="color: #2563EB;">RICGCW Backend Online 🚀</h1>
+      <p>Server is running on port <strong>${port}</strong></p>
+      <p>Endpoints available: /members, /transactions, /events, /attendance, /users</p>
+    </div>
   `);
 });
 
-// Members API
+// 1. Members
 app.get('/api/members', (req, res) => handleGet(res, 'members'));
 app.post('/api/members', (req, res) => handlePost(req, res, 'members'));
+app.put('/api/members/:id', (req, res) => handlePut(req, res, 'members'));
+app.delete('/api/members/:id', (req, res) => handleDelete(req, res, 'members'));
 
-app.delete('/api/members/:id', (req, res) => {
-  const db = readDB();
-  db.members = db.members.filter(member => member.id !== parseInt(req.params.id));
-  writeDB(db);
-  res.status(204).send();
-});
-
-app.put('/api/members/:id', (req, res) => {
-  const db = readDB();
-  const memberIndex = db.members.findIndex(member => member.id === parseInt(req.params.id));
-  if (memberIndex === -1) {
-    return res.status(404).send('Member not found');
-  }
-  db.members[memberIndex] = { ...db.members[memberIndex], ...req.body };
-  writeDB(db);
-  res.json(db.members[memberIndex]);
-});
-
-// Transactions API
+// 2. Transactions (Financials)
 app.get('/api/transactions', (req, res) => handleGet(res, 'transactions'));
 app.post('/api/transactions', (req, res) => handlePost(req, res, 'transactions'));
+app.put('/api/transactions/:id', (req, res) => handlePut(req, res, 'transactions'));
+app.delete('/api/transactions/:id', (req, res) => handleDelete(req, res, 'transactions'));
 
-// Attendance API
+// 3. Events & Attendance
+app.get('/api/events', (req, res) => handleGet(res, 'events'));
+app.post('/api/events', (req, res) => handlePost(req, res, 'events'));
+app.put('/api/events/:id', (req, res) => handlePut(req, res, 'events'));
+app.delete('/api/events/:id', (req, res) => handleDelete(req, res, 'events'));
+
 app.get('/api/attendance', (req, res) => handleGet(res, 'attendance'));
 app.post('/api/attendance', (req, res) => handlePost(req, res, 'attendance'));
 
-// Events API
-app.get('/api/events', (req, res) => handleGet(res, 'events'));
-app.post('/api/events', (req, res) => handlePost(req, res, 'events'));
+// 4. User Management (NEW - Support for UserManagement.js)
+app.get('/api/users', (req, res) => handleGet(res, 'users'));
+app.post('/api/users', (req, res) => handlePost(req, res, 'users'));
+app.put('/api/users/:id', (req, res) => handlePut(req, res, 'users'));
+app.delete('/api/users/:id', (req, res) => handleDelete(req, res, 'users'));
 
-app.delete('/api/events/:id', (req, res) => {
-  const db = readDB();
-  db.events = db.events.filter(event => event.id !== parseInt(req.params.id));
-  writeDB(db);
-  res.status(204).send();
-});
-
-app.put('/api/events/:id', (req, res) => {
-  const db = readDB();
-  const eventIndex = db.events.findIndex(event => event.id === parseInt(req.params.id));
-  if (eventIndex === -1) {
-    return res.status(404).send('Event not found');
-  }
-  db.events[eventIndex] = { ...db.events[eventIndex], ...req.body };
-  writeDB(db);
-  res.json(db.events[eventIndex]);
-});
-
-// Bible Studies API
+// 5. Bible Studies & Resources
 app.get('/api/bible-studies', (req, res) => handleGet(res, 'bible-studies'));
-
-// Resources API
 app.get('/api/resources', (req, res) => handleGet(res, 'resources'));
+
 
 // --- Start Server ---
 app.listen(port, () => {
-  console.log(`✅ Backend server listening at http://localhost:${port}`);
+  console.log(`
+  =============================================
+  ✅ Backend Server Listening
+  🔗 URL: http://localhost:${port}
+  📂 Database: Firestore (Admin SDK)
+  =============================================
+  `);
 });

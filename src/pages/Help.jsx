@@ -8,10 +8,10 @@ import {
   Button, 
   TextField, 
   InputAdornment, 
-  Avatar, 
   useTheme,
   IconButton,
-  Chip
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
   Search, 
@@ -23,38 +23,44 @@ import {
   ChevronDown, 
   ChevronUp, 
   Mail,
-  ExternalLink
+  ExternalLink,
+  SearchX // Icon for empty state
 } from 'lucide-react';
 
 const Help = () => {
   const theme = useTheme();
+  
+  // --- STATE ---
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
-  const toggleFAQ = (id) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
-
+  // --- DATA ---
   const faqs = [
     {
       id: 1,
       question: "How do I export the annual financial report?",
-      answer: "Navigate to the 'Reports' module via the sidebar. Select 'Financial Statement' from the available options and click the 'Download CSV' button."
+      answer: "Navigate to the 'Reports' module via the sidebar. Select 'Financial Statement' from the available options, choose your date range, and click the 'Download CSV' button at the top right."
     },
     {
       id: 2,
       question: "Can I manage multiple church branches?",
-      answer: "Yes. Use the 'Quick Switch' command center to toggle between different workspace environments (e.g., Main Sanctuary vs. Youth Ministry)."
+      answer: "Yes. Use the 'Quick Switch' command center (CMD+K or Ctrl+K) to toggle between different workspace environments (e.g., Main Sanctuary vs. Youth Ministry)."
     },
     {
       id: 3,
       question: "How secure is the member data?",
-      answer: "We utilize banking-grade encryption for all personal data. Access levels are strictly controlled via the Settings panel."
+      answer: "We utilize banking-grade AES-256 encryption for all personal data. Access levels are strictly controlled via the Settings panel, and we perform daily encrypted backups."
     },
     {
       id: 4,
       question: "How do I reset my administrative PIN?",
-      answer: "For security reasons, PIN resets cannot be done automatically. Please contact the FlameCore dedicated support line or email security@flamecore.com."
+      answer: "For security reasons, PIN resets cannot be done automatically if 2FA is not enabled. Please contact the FlameCore dedicated support line or email security@flamecore.com."
+    },
+    {
+      id: 5,
+      question: "How do I add a new user to the system?",
+      answer: "Go to Settings > Team Management. Click 'Invite Member', enter their email address, and assign a role (Admin, Editor, or Viewer)."
     }
   ];
 
@@ -65,6 +71,21 @@ const Help = () => {
     { icon: <HelpCircle size={20} />, label: "FAQs" },
   ];
 
+  // --- LOGIC ---
+  const toggleFAQ = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleLiveChat = () => {
+    setSnackbar({ open: true, message: 'Connecting you to a support agent...' });
+  };
+
+  // Filter FAQs based on search
+  const filteredFaqs = faqs.filter(faq => 
+    faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
@@ -74,18 +95,28 @@ const Help = () => {
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
       {/* --- HEADER & SEARCH --- */}
-      <Box sx={{ textAlign: 'center', mb: 8, mt: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 700, mb: 2 }}>
+      <Box sx={{ 
+        textAlign: 'center', 
+        mb: { xs: 5, md: 8 }, 
+        mt: { xs: 2, md: 4 },
+        px: 2
+      }}>
+        <Typography variant="h3" sx={{ 
+          fontWeight: 800, 
+          mb: 2,
+          fontSize: { xs: '2rem', md: '3rem' },
+          color: theme.palette.text.primary
+        }}>
           How can we help?
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Search our knowledge base or browse popular topics
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500, mx: 'auto' }}>
+          Search our knowledge base for answers or browse popular topics below.
         </Typography>
         
         <Box sx={{ maxWidth: 600, mx: 'auto' }}>
           <TextField
             fullWidth
-            placeholder="Search documentation (e.g. 'Add Member')"
+            placeholder="Search documentation (e.g. 'Financial Report')"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -97,7 +128,9 @@ const Help = () => {
               sx: { 
                 borderRadius: 4, 
                 bgcolor: theme.palette.background.paper,
-                boxShadow: theme.shadows[2],
+                boxShadow: theme.shadows[3],
+                height: 56,
+                paddingLeft: 2,
                 '& fieldset': { border: 'none' } 
               }
             }}
@@ -105,7 +138,7 @@ const Help = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={6}>
+      <Grid container spacing={{ xs: 4, md: 6 }}>
         
         {/* --- LEFT COL: TOPICS & CONTACT --- */}
         <Grid item xs={12} md={4}>
@@ -123,37 +156,50 @@ const Help = () => {
                     cursor: 'pointer',
                     border: `1px solid ${theme.palette.divider}`,
                     boxShadow: 'none',
+                    borderRadius: 3,
                     transition: 'all 0.2s',
                     '&:hover': { 
-                      transform: 'translateY(-2px)',
+                      transform: 'translateY(-3px)',
                       borderColor: theme.palette.primary.main,
-                      color: theme.palette.primary.main
+                      color: theme.palette.primary.main,
+                      boxShadow: theme.shadows[2]
                     }
                   }}
                 >
-                  <Box sx={{ mb: 1, color: 'inherit' }}>{topic.icon}</Box>
-                  <Typography variant="subtitle2" fontWeight={600}>{topic.label}</Typography>
+                  <Box sx={{ mb: 1.5, color: 'inherit', display: 'flex', justifyContent: 'center' }}>
+                    {topic.icon}
+                  </Box>
+                  <Typography variant="subtitle2" fontWeight={700}>{topic.label}</Typography>
                 </Card>
               </Grid>
             ))}
           </Grid>
 
-          <Card sx={{ p: 4, bgcolor: theme.palette.primary.main, color: '#fff', textAlign: 'center' }}>
+          <Card sx={{ 
+            p: 4, 
+            bgcolor: theme.palette.primary.main, 
+            color: '#fff', 
+            textAlign: 'center',
+            borderRadius: 3,
+            boxShadow: theme.shadows[4]
+          }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Need Human Help?</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mb: 3 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, mb: 3, lineHeight: 1.6 }}>
               Our support team is available 24/7 for administrative emergencies.
             </Typography>
             
             <Button 
               variant="contained" 
               fullWidth 
+              size="large"
+              onClick={handleLiveChat}
               startIcon={<MessageCircle size={18} />}
               sx={{ 
                 bgcolor: '#fff', 
                 color: theme.palette.primary.main, 
                 fontWeight: 700, 
                 mb: 2,
-                '&:hover': { bgcolor: '#f0f0f0' }
+                '&:hover': { bgcolor: '#f5f5f5' }
               }}
             >
               Start Live Chat
@@ -169,67 +215,106 @@ const Help = () => {
         {/* --- RIGHT COL: FAQ ACCORDION --- */}
         <Grid item xs={12} md={8}>
           <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1.2, mb: 2, display: 'block' }}>
-            FREQUENTLY ASKED
+            {searchTerm ? 'SEARCH RESULTS' : 'FREQUENTLY ASKED'}
           </Typography>
           
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {faqs.map((faq) => (
-              <Card 
-                key={faq.id} 
-                sx={{ 
-                  overflow: 'hidden',
-                  border: `1px solid ${theme.palette.divider}`,
-                  boxShadow: 'none'
-                }}
-              >
-                <Box 
-                  onClick={() => toggleFAQ(faq.id)}
+            {filteredFaqs.length === 0 ? (
+              // EMPTY STATE
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 8, 
+                px: 2,
+                border: `2px dashed ${theme.palette.divider}`, 
+                borderRadius: 3 
+              }}>
+                <SearchX size={48} color={theme.palette.text.disabled} style={{ marginBottom: 16 }} />
+                <Typography variant="h6" color="text.secondary">No results found</Typography>
+                <Typography variant="body2" color="text.disabled">
+                  Try searching for keywords like "export", "user", or "security".
+                </Typography>
+                <Button 
+                  onClick={() => setSearchTerm('')}
+                  sx={{ mt: 2 }}
+                >
+                  Clear Search
+                </Button>
+              </Box>
+            ) : (
+              // FAQ LIST
+              filteredFaqs.map((faq) => (
+                <Card 
+                  key={faq.id} 
                   sx={{ 
-                    p: 3, 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: theme.palette.action.hover }
+                    overflow: 'hidden',
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow: 'none',
+                    borderRadius: 2,
+                    transition: 'border-color 0.2s',
+                    '&:hover': { borderColor: theme.palette.action.active }
                   }}
                 >
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ color: expandedId === faq.id ? 'primary.main' : 'text.primary' }}>
-                    {faq.question}
-                  </Typography>
-                  <IconButton size="small">
-                    {expandedId === faq.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </IconButton>
-                </Box>
-                
-                <AnimatePresence>
-                  {expandedId === faq.id && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      style={{ overflow: 'hidden' }}
-                    >
-                      <Box sx={{ px: 3, pb: 3, pt: 0 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                          {faq.answer}
-                        </Typography>
-                        <Button 
-                          size="small" 
-                          endIcon={<ExternalLink size={14} />} 
-                          sx={{ mt: 2 }}
-                        >
-                          Read full article
-                        </Button>
-                      </Box>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Card>
-            ))}
+                  <Box 
+                    onClick={() => toggleFAQ(faq.id)}
+                    sx={{ 
+                      p: 3, 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      cursor: 'pointer',
+                      bgcolor: expandedId === faq.id ? theme.palette.action.selected : 'transparent',
+                    }}
+                  >
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ color: expandedId === faq.id ? theme.palette.primary.main : theme.palette.text.primary }}>
+                      {faq.question}
+                    </Typography>
+                    <IconButton size="small" sx={{ ml: 2 }}>
+                      {expandedId === faq.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </IconButton>
+                  </Box>
+                  
+                  <AnimatePresence>
+                    {expandedId === faq.id && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <Box sx={{ px: 3, pb: 3, pt: 1 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                            {faq.answer}
+                          </Typography>
+                          <Button 
+                            size="small" 
+                            endIcon={<ExternalLink size={14} />} 
+                            sx={{ mt: 2, textTransform: 'none', fontWeight: 600 }}
+                          >
+                            View full documentation
+                          </Button>
+                        </Box>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+              ))
+            )}
           </Box>
         </Grid>
 
       </Grid>
+
+      {/* --- NOTIFICATIONS --- */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="info" onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

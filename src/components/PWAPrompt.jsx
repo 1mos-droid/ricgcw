@@ -1,4 +1,5 @@
 import React from 'react';
+// Ensure 'vite-plugin-pwa' is installed for this import to work
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { 
   Button, 
@@ -8,7 +9,8 @@ import {
   useTheme, 
   IconButton,
   Paper,
-  Slide
+  Slide,
+  useMediaQuery
 } from '@mui/material';
 import { Wifi, RefreshCw, X, DownloadCloud } from 'lucide-react';
 
@@ -18,6 +20,7 @@ function TransitionUp(props) {
 
 function PWAPrompt() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const {
     offlineReady: [offlineReady, setOfflineReady],
@@ -25,7 +28,7 @@ function PWAPrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered(r) {
-      console.log(`SW registered: ${r}`);
+      console.log('Service Worker Registered');
     },
     onRegisterError(error) {
       console.error('SW registration error', error);
@@ -44,12 +47,14 @@ function PWAPrompt() {
   return (
     <>
       {/* --- 1. OFFLINE READY TOAST --- */}
+      {/* Shows when the app has finished caching for offline use */}
       <Snackbar
         open={offlineReady}
         onClose={close}
         autoHideDuration={4000}
         TransitionComponent={TransitionUp}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        sx={{ bottom: { xs: 20, md: 24 }, left: { xs: 20, md: 24 } }}
       >
         <Paper 
           elevation={4}
@@ -61,8 +66,9 @@ function PWAPrompt() {
             py: 1.5, 
             borderRadius: 3, 
             bgcolor: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.success.light}`,
-            color: theme.palette.text.primary
+            borderLeft: `4px solid ${theme.palette.success.main}`,
+            color: theme.palette.text.primary,
+            minWidth: 280
           }}
         >
           <Box sx={{ 
@@ -74,7 +80,7 @@ function PWAPrompt() {
           }}>
             <Wifi size={18} />
           </Box>
-          <Box>
+          <Box sx={{ flexGrow: 1 }}>
             <Typography variant="subtitle2" fontWeight={700}>Ready for Offline</Typography>
             <Typography variant="caption" color="text.secondary">App cached successfully.</Typography>
           </Box>
@@ -85,57 +91,70 @@ function PWAPrompt() {
       </Snackbar>
 
       {/* --- 2. NEW VERSION UPDATE TOAST --- */}
+      {/* Shows when a new deployment is detected */}
       <Snackbar
         open={needRefresh}
         onClose={close}
         TransitionComponent={TransitionUp}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        sx={{ bottom: { xs: 90, md: 40 } }} // Move up on mobile to avoid nav bar
+        // Center on mobile, Bottom-Right on Desktop
+        anchorOrigin={{ 
+            vertical: 'bottom', 
+            horizontal: isMobile ? 'center' : 'right' 
+        }}
+        sx={{ 
+            bottom: { xs: 20, md: 30 }, 
+            right: { md: 30 },
+            width: { xs: '90%', md: 'auto' } // Responsive width
+        }} 
       >
         <Paper 
-          elevation={6}
+          elevation={8}
           sx={{ 
             p: 2, 
             borderRadius: 3, 
             bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#fff',
             border: `1px solid ${theme.palette.primary.main}`,
-            maxWidth: 350
+            maxWidth: { xs: '100%', md: 400 },
+            width: '100%'
           }}
         >
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
             <Box sx={{ 
-              p: 1, 
+              p: 1.5, 
               borderRadius: '50%', 
               bgcolor: theme.palette.primary.main, 
               color: '#fff',
-              display: 'flex'
+              display: 'flex',
+              mt: 0.5
             }}>
-              <DownloadCloud size={20} />
+              <DownloadCloud size={24} />
             </Box>
             
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700}>Update Available</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.4 }}>
-                A new version of FlameCore is available. Reload to apply changes.
+              <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '1rem' }}>
+                Update Available
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 0.5, lineHeight: 1.5 }}>
+                A new version of the app is available. Reload to apply changes and get the latest features.
               </Typography>
               
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={close}
+                  sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', borderColor: theme.palette.divider }}
+                >
+                  Dismiss
+                </Button>
                 <Button 
                   variant="contained" 
                   size="small" 
                   onClick={handleReload}
                   startIcon={<RefreshCw size={14} />}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: theme.shadows[2] }}
                 >
                   Reload Now
-                </Button>
-                <Button 
-                  variant="text" 
-                  size="small" 
-                  onClick={close}
-                  sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
-                >
-                  Dismiss
                 </Button>
               </Box>
             </Box>

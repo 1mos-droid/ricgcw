@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // --- PAGE IMPORTS ---
 import Dashboard from '../pages/Dashboard';
@@ -20,7 +20,7 @@ import BibleStudies from '../pages/BibleStudies';
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 10, // Reduced movement for a subtle, expensive feel
+    y: 8, // Subtle lift
   },
   in: {
     opacity: 1,
@@ -28,14 +28,14 @@ const pageVariants = {
   },
   out: {
     opacity: 0,
-    y: -10,
+    y: -8, // Subtle drop
   },
 };
 
 const pageTransition = {
   type: 'tween',
-  ease: 'easeInOut', // Silky smooth
-  duration: 0.3,     // Fast response
+  ease: 'easeInOut',
+  duration: 0.25, // Snappy response
 };
 
 // Wrapper Component to apply animations automatically
@@ -46,7 +46,7 @@ const MotionWrap = ({ children }) => (
     exit="out"
     variants={pageVariants}
     transition={pageTransition}
-    style={{ width: '100%', height: '100%' }} // Ensures full layout usage
+    style={{ width: '100%' }} // Removing fixed height prevents double scrollbars
   >
     {children}
   </motion.div>
@@ -56,21 +56,24 @@ const AppRouter = () => {
   const location = useLocation();
   
   return (
-    <Routes location={location} key={location.pathname}>
-      <Route path="/" element={<MotionWrap><Dashboard /></MotionWrap>} />
-      <Route path="/members" element={<MotionWrap><Members /></MotionWrap>} />
-      <Route path="/attendance" element={<MotionWrap><Attendance /></MotionWrap>} />
-      <Route path="/financials" element={<MotionWrap><Financials /></MotionWrap>} />
-      <Route path="/events" element={<MotionWrap><Events /></MotionWrap>} />
-      <Route path="/reports" element={<MotionWrap><Reports /></MotionWrap>} />
-      
-      {/* Utility Pages */}
-      <Route path="/user-management" element={<MotionWrap><UserManagement /></MotionWrap>} />
-      <Route path="/quick-switch" element={<MotionWrap><QuickSwitch /></MotionWrap>} />
-      <Route path="/help" element={<MotionWrap><Help /></MotionWrap>} />
-      <Route path="/settings" element={<MotionWrap><Settings /></MotionWrap>} />
-      <Route path="/bible-studies" element={<MotionWrap><BibleStudies /></MotionWrap>} />
-    </Routes>
+    // AnimatePresence is required for exit animations to work
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<MotionWrap><Dashboard /></MotionWrap>} />
+        <Route path="/members" element={<MotionWrap><Members /></MotionWrap>} />
+        <Route path="/attendance" element={<MotionWrap><Attendance /></MotionWrap>} />
+        <Route path="/financials" element={<MotionWrap><Financials /></MotionWrap>} />
+        <Route path="/events" element={<MotionWrap><Events /></MotionWrap>} />
+        <Route path="/reports" element={<MotionWrap><Reports /></MotionWrap>} />
+        
+        {/* Utility Pages */}
+        <Route path="/user-management" element={<MotionWrap><UserManagement /></MotionWrap>} />
+        <Route path="/quick-switch" element={<MotionWrap><QuickSwitch /></MotionWrap>} />
+        <Route path="/help" element={<MotionWrap><Help /></MotionWrap>} />
+        <Route path="/settings" element={<MotionWrap><Settings /></MotionWrap>} />
+        <Route path="/bible-studies" element={<MotionWrap><BibleStudies /></MotionWrap>} />
+      </Routes>
+    </AnimatePresence>
   );
 };
 

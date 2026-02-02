@@ -9,36 +9,61 @@ import {
   Chip, 
   Avatar, 
   useTheme, 
-  Divider,
-  IconButton
+  IconButton,
+  Snackbar,
+  Alert,
+  Tooltip,
+  keyframes
 } from '@mui/material';
 import { 
-  Command, 
   Layers, 
   Monitor, 
   Check, 
   ArrowRight,
-  Cpu,
   Wifi,
   Globe,
   Server,
-  Terminal
+  Terminal,
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
+
+// Pulse animation for the "Online" dot
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(76, 175, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+`;
 
 const QuickSwitch = () => {
   const theme = useTheme();
+  
+  // --- STATE ---
   const [activeWorkspace, setActiveWorkspace] = useState('main');
   const [systemStatus, setSystemStatus] = useState('Online');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   const workspaces = [
     { id: 'main', label: 'Main Sanctuary', role: 'Admin', icon: <Globe size={24}/> },
     { id: 'youth', label: 'Youth Ministry', role: 'Moderator', icon: <Layers size={24}/> },
-    { id: 'kids', label: 'Children\'s Dept', role: 'View Only', icon: <Layers size={24}/> },
+    { id: 'kids', label: "Children's Dept", role: 'View Only', icon: <Layers size={24}/> },
   ];
 
-  const handleSwitch = (id) => {
+  // --- HANDLERS ---
+  const handleSwitch = (id, label) => {
+    if (activeWorkspace === id) return;
+    
+    // Simulate context switch
     setActiveWorkspace(id);
-    // In a real app, this would trigger a global context update
+    showSnackbar(`Switched environment to: ${label}`, 'success');
+  };
+
+  const handleModeClick = (mode) => {
+    showSnackbar(`${mode} activated. Press ESC to exit.`, 'info');
+  };
+
+  const showSnackbar = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
   };
 
   const containerVariants = {
@@ -50,7 +75,14 @@ const QuickSwitch = () => {
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
       {/* --- HEADER --- */}
-      <Box sx={{ mb: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ 
+        mb: 5, 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        gap: 2
+      }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
             Command Center
@@ -61,13 +93,23 @@ const QuickSwitch = () => {
         </Box>
         
         <Chip 
-          icon={<Box sx={{ width: 8, height: 8, bgcolor: '#4CAF50', borderRadius: '50%' }} />}
+          icon={
+            <Box sx={{ 
+              width: 10, 
+              height: 10, 
+              bgcolor: '#4CAF50', 
+              borderRadius: '50%',
+              animation: `${pulse} 2s infinite`
+            }} />
+          }
           label={`System ${systemStatus}`}
           sx={{ 
             bgcolor: 'rgba(76, 175, 80, 0.1)', 
             color: '#4CAF50', 
             fontWeight: 700,
-            border: '1px solid rgba(76, 175, 80, 0.2)'
+            border: '1px solid rgba(76, 175, 80, 0.2)',
+            height: 36,
+            px: 1
           }} 
         />
       </Box>
@@ -86,7 +128,7 @@ const QuickSwitch = () => {
               return (
                 <Grid item xs={12} sm={6} key={ws.id}>
                   <Card 
-                    onClick={() => handleSwitch(ws.id)}
+                    onClick={() => handleSwitch(ws.id, ws.label)}
                     sx={{ 
                       p: 3, 
                       cursor: 'pointer',
@@ -95,7 +137,13 @@ const QuickSwitch = () => {
                       transition: 'all 0.2s',
                       position: 'relative',
                       overflow: 'hidden',
-                      '&:hover': { transform: 'translateY(-2px)' }
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      '&:hover': { 
+                        transform: 'translateY(-3px)',
+                        boxShadow: theme.shadows[4]
+                      }
                     }}
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -106,24 +154,32 @@ const QuickSwitch = () => {
                         {ws.icon}
                       </Avatar>
                       {isActive && (
-                        <Box sx={{ 
-                          bgcolor: theme.palette.primary.main, 
-                          color: '#fff', 
-                          borderRadius: '50%', 
-                          p: 0.5,
-                          display: 'flex'
-                        }}>
-                          <Check size={14} />
-                        </Box>
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                            <Box sx={{ 
+                            bgcolor: theme.palette.primary.main, 
+                            color: '#fff', 
+                            borderRadius: '50%', 
+                            p: 0.5,
+                            display: 'flex',
+                            boxShadow: theme.shadows[2]
+                            }}>
+                            <Check size={14} />
+                            </Box>
+                        </motion.div>
                       )}
                     </Box>
 
-                    <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
-                      {ws.label}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
-                      {ws.role} Access
-                    </Typography>
+                    <Box sx={{ mt: 'auto' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
+                        {ws.label}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <ShieldCheck size={14} color={theme.palette.text.secondary} />
+                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>
+                                {ws.role} Access
+                            </Typography>
+                        </Box>
+                    </Box>
                   </Card>
                 </Grid>
               );
@@ -131,14 +187,27 @@ const QuickSwitch = () => {
           </Grid>
 
           {/* Quick Stats Row */}
-          <Box sx={{ display: 'flex', gap: 3, opacity: 0.8 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', fontSize: 13 }}>
-              <Server size={14} />
-              <span>Local Server: Port 3002</span>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 3, 
+            opacity: 0.8,
+            flexDirection: { xs: 'column', sm: 'row' },
+            bgcolor: theme.palette.background.default,
+            p: 2,
+            borderRadius: 2,
+            border: `1px dashed ${theme.palette.divider}`
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary', fontSize: 13 }}>
+              <Server size={16} />
+              <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>Local Server: Port 3002</Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#4CAF50', fontSize: 13 }}>
-              <Wifi size={14} />
-              <span>Latency: 12ms</span>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: '#4CAF50', fontSize: 13 }}>
+              <Wifi size={16} />
+              <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>Latency: 12ms</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.info.main, fontSize: 13 }}>
+              <Activity size={16} />
+              <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>Uptime: 99.9%</Typography>
             </Box>
           </Box>
         </Grid>
@@ -152,24 +221,46 @@ const QuickSwitch = () => {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             
             {/* Kiosk Mode */}
-            <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-              <Avatar sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.warning.dark }}>
+            <Card 
+                onClick={() => handleModeClick('Kiosk Mode')}
+                sx={{ 
+                    p: 2, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2, 
+                    cursor: 'pointer', 
+                    transition: 'background 0.2s',
+                    '&:hover': { bgcolor: theme.palette.action.hover } 
+                }}
+            >
+              <Avatar sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.warning.dark, borderRadius: 2 }}>
                 <Monitor size={20} />
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle2" fontWeight={600}>Kiosk Mode</Typography>
+                <Typography variant="subtitle2" fontWeight={700}>Kiosk Mode</Typography>
                 <Typography variant="caption" color="text.secondary">Public check-in display</Typography>
               </Box>
               <IconButton size="small"><ArrowRight size={16} /></IconButton>
             </Card>
 
             {/* Developer Console */}
-            <Card sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-              <Avatar sx={{ bgcolor: theme.palette.info.light, color: theme.palette.info.dark }}>
+            <Card 
+                onClick={() => handleModeClick('Developer Console')}
+                sx={{ 
+                    p: 2, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2, 
+                    cursor: 'pointer',
+                    transition: 'background 0.2s', 
+                    '&:hover': { bgcolor: theme.palette.action.hover } 
+                }}
+            >
+              <Avatar sx={{ bgcolor: theme.palette.info.light, color: theme.palette.info.dark, borderRadius: 2 }}>
                 <Terminal size={20} />
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle2" fontWeight={600}>Developer Console</Typography>
+                <Typography variant="subtitle2" fontWeight={700}>Developer Console</Typography>
                 <Typography variant="caption" color="text.secondary">Raw database logs</Typography>
               </Box>
               <IconButton size="small"><ArrowRight size={16} /></IconButton>
@@ -178,16 +269,29 @@ const QuickSwitch = () => {
           </Box>
 
           <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${theme.palette.divider}`, color: 'text.secondary' }}>
-            <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
+            <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace', mb: 0.5 }}>
               !mos-droid v2.1.0 (Stable)
             </Typography>
-            <Typography variant="caption" display="block">
-              Authorized to: Kumesi Moses
+            <Typography variant="caption" display="block" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              Authorized to: <Chip label="Kumesi Moses" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', borderRadius: 1 }} />
             </Typography>
           </Box>
         </Grid>
 
       </Grid>
+
+      {/* --- NOTIFICATIONS --- */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%', borderRadius: 2 }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Box>
   );
 };
