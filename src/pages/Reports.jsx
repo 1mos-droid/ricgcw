@@ -32,7 +32,8 @@ import {
   Download
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const Reports = () => {
   const theme = useTheme();

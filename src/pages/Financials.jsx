@@ -39,8 +39,8 @@ import {
   FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const Financials = () => {
   const theme = useTheme();
@@ -216,7 +216,7 @@ const Financials = () => {
                     <Box sx={{ position: 'relative', zIndex: 1 }}>
                     <Typography variant="subtitle2" color="text.secondary" fontWeight={700} letterSpacing={0.5}>NET BALANCE</Typography>
                     <Typography variant="h3" sx={{ fontWeight: 700, mt: 1, color: theme.palette.primary.main, fontSize: { xs: '1.75rem', md: '3rem' } }}>
-                        ${balance.toLocaleString()}
+                        GHC{balance.toLocaleString()}
                     </Typography>
                     <LinearProgress 
                         variant="determinate" 
@@ -243,7 +243,7 @@ const Financials = () => {
                     </Avatar>
                     <Typography variant="subtitle2" fontWeight={600} color="text.secondary">Total Income</Typography>
                     </Box>
-                    <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>${totalIncome.toLocaleString()}</Typography>
+                    <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>GHC{totalIncome.toLocaleString()}</Typography>
                 </>
             )}
           </Card>
@@ -262,7 +262,7 @@ const Financials = () => {
                     </Avatar>
                     <Typography variant="subtitle2" fontWeight={600} color="text.secondary">Total Expenses</Typography>
                     </Box>
-                    <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>${totalExpense.toLocaleString()}</Typography>
+                    <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>GHC{totalExpense.toLocaleString()}</Typography>
                 </>
             )}
           </Card>
@@ -318,7 +318,7 @@ const Financials = () => {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                     InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      startAdornment: <InputAdornment position="start">GHC</InputAdornment>,
                     }}
                   />
                 </Grid>
@@ -418,7 +418,7 @@ const Financials = () => {
                           fontSize: '1.1rem' 
                         }}
                       >
-                        {tx.type === 'contribution' ? '+' : '-'}${Number(tx.amount).toLocaleString()}
+                        {tx.type === 'contribution' ? '+' : '-'}GHC{Number(tx.amount).toLocaleString()}
                       </Typography>
                     </ListItem>
                     {index < getFilteredTransactions().length - 1 && <Divider variant="inset" component="li" />}

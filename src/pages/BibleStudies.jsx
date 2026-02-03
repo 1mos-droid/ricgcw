@@ -32,12 +32,14 @@ import {
   FileText, 
   Headphones, 
   Bookmark,
-  Search
+  Search,
+  ExternalLink // Added icon to indicate opening external link
 } from 'lucide-react';
 import axios from 'axios';
 import StudyDetailsDialog from '../components/StudyDetailsDialog';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+// 🔴 LIVE BACKEND URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const BibleStudies = () => {
   const theme = useTheme();
@@ -61,8 +63,6 @@ const BibleStudies = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Simulate network delay if needed, or remove for production
-        // await new Promise(resolve => setTimeout(resolve, 1000)); 
         
         const [seriesRes, resourcesRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/bible-studies`),
@@ -86,6 +86,22 @@ const BibleStudies = () => {
 
   const showSnackbar = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  // --- 🟢 NEW: HANDLE GOOGLE DRIVE LINKS ---
+  const handleOpenResource = (resource) => {
+    // 1. Check if the resource has a link
+    if (!resource.link) {
+      showSnackbar("Resource link not available yet.", "warning");
+      return;
+    }
+
+    // 2. Notify user
+    showSnackbar(`Opening ${resource.title}...`, "info");
+
+    // 3. Open the Google Drive link in a new tab
+    // This allows Google to handle the PDF preview or Audio streaming automatically
+    window.open(resource.link, '_blank', 'noopener,noreferrer');
   };
 
   // Filter Logic
@@ -154,7 +170,6 @@ const BibleStudies = () => {
             </Typography>
           </Box>
           
-          {/* Decorative Icon Background */}
           <BookOpen 
             size={180} 
             color="#fff" 
@@ -194,7 +209,6 @@ const BibleStudies = () => {
           {activeTab === 0 && (
             <Grid container spacing={3}>
               {loading ? (
-                 // Loading Skeletons for Modules
                  Array.from(new Array(4)).map((_, i) => (
                    <Grid item xs={12} sm={6} key={i}>
                      <Card sx={{ p: 3, height: '100%' }}>
@@ -223,7 +237,7 @@ const BibleStudies = () => {
                         p: 3, 
                         height: '100%', 
                         display: 'flex', 
-                        flexDirection: 'column',
+                        flexDirection: 'column', 
                         border: study.active ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                         transition: 'all 0.2s',
                         '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[3] }
@@ -302,30 +316,17 @@ const BibleStudies = () => {
                   }}
                 />
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
-                  <Button 
-                    size="small"
-                    variant={filterType === 'all' ? 'contained' : 'outlined'} 
-                    onClick={() => setFilterType('all')}
-                    sx={{ flex: 1 }}
-                  >
-                    All
-                  </Button>
-                  <Button 
-                    size="small"
-                    variant={filterType === 'pdf' ? 'contained' : 'outlined'} 
-                    onClick={() => setFilterType('pdf')}
-                    sx={{ flex: 1 }}
-                  >
-                    PDF
-                  </Button>
-                  <Button 
-                    size="small"
-                    variant={filterType === 'audio' ? 'contained' : 'outlined'} 
-                    onClick={() => setFilterType('audio')}
-                    sx={{ flex: 1 }}
-                  >
-                    Audio
-                  </Button>
+                  {['all', 'pdf', 'audio'].map((type) => (
+                    <Button 
+                      key={type}
+                      size="small"
+                      variant={filterType === type ? 'contained' : 'outlined'} 
+                      onClick={() => setFilterType(type)}
+                      sx={{ flex: 1, textTransform: 'capitalize' }}
+                    >
+                      {type}
+                    </Button>
+                  ))}
                 </Box>
               </Box>
 
@@ -343,12 +344,18 @@ const BibleStudies = () => {
                             '&:hover': { bgcolor: theme.palette.action.hover },
                             cursor: 'pointer'
                           }}
+                          // 🟢 Update: Clicking the whole row opens the Google Drive link
+                          onClick={() => handleOpenResource(res)}
                           secondaryAction={
                             <IconButton 
                               edge="end" 
                               size="small" 
-                              onClick={() => showSnackbar(res.type === 'pdf' ? "Downloading PDF..." : "Playing Audio...", "success")}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent double click event
+                                handleOpenResource(res);
+                              }}
                             >
+                              {/* 🟢 Update: Icon changes based on type */}
                               {res.type === 'audio' ? <Play size={16} /> : <Download size={16} />}
                             </IconButton>
                           }
@@ -389,7 +396,6 @@ const BibleStudies = () => {
           <Card sx={{ mb: 4, maxHeight: '400px', overflowY: 'auto' }}>
             <List disablePadding>
               {loading ? (
-                // Simple loading for sidebar
                 <Box sx={{ p: 2 }}>
                   <Skeleton height={50} sx={{ mb: 1 }} />
                   <Skeleton height={50} sx={{ mb: 1 }} />
@@ -403,11 +409,17 @@ const BibleStudies = () => {
                 resources.slice(0, 5).map((res, index) => (
                   <React.Fragment key={res.id}>
                     <ListItem 
+                      // 🟢 Update: Sidebar clicks also open Drive links
+                      onClick={() => handleOpenResource(res)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}
                       secondaryAction={
                         <IconButton 
                           edge="end" 
                           size="small" 
-                          onClick={() => showSnackbar(res.type === 'audio' ? "Playing audio..." : "Downloading started...", "success")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenResource(res);
+                          }}
                         >
                           {res.type === 'audio' ? <Play size={16} /> : <Download size={16} />}
                         </IconButton>
@@ -442,7 +454,7 @@ const BibleStudies = () => {
             p: 3, 
             bgcolor: alpha(theme.palette.secondary.main, 0.05), 
             border: 'none', 
-            boxShadow: 'none',
+            boxShadow: 'none', 
             borderRadius: 3
           }}>
             <Typography variant="h2" sx={{ color: theme.palette.secondary.main, opacity: 0.2, lineHeight: 0.5, mb: 2 }}>

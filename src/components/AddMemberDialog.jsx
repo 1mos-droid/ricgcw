@@ -13,7 +13,7 @@ import {
   Slide,
   InputAdornment
 } from '@mui/material';
-import { X, UserPlus, User, Mail, Phone, MapPin } from 'lucide-react';
+import { X, UserPlus, User, Mail, Phone, MapPin, Cake } from 'lucide-react'; // 🟢 Added Cake Icon
 
 // Transition for the Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -28,7 +28,8 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    dob: '' // 🟢 Added Date of Birth state
   });
 
   // Error State
@@ -37,7 +38,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setFormData({ name: '', email: '', phone: '', address: '' });
+      setFormData({ name: '', email: '', phone: '', address: '', dob: '' });
       setErrors({});
     }
   }, [open]);
@@ -174,7 +175,34 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            {/* 🟢 NEW: Date of Birth Field */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Date of Birth"
+                name="dob"
+                type="date"
+                fullWidth
+                variant="outlined"
+                value={formData.dob}
+                onChange={handleChange}
+                InputLabelProps={{
+                  shrink: true, // Forces label to stay up
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Cake size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+
+            {/* Address adjusted to share row or full width depending on your preference. 
+                Here it shares a row if you want, or you can make Address full width. 
+                Let's make Address share the row with DOB to keep it compact, or full width. 
+                Below is sharing row (sm=6) to balance the grid. */}
+            <Grid item xs={12} sm={6}>
               <TextField
                 label="Residential Address"
                 name="address"
@@ -182,7 +210,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 variant="outlined"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="House No, Street Name, City"
+                placeholder="City / Area"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { format } from 'date-fns'; // 🟢 Added for date formatting
 import { 
   Box, 
   Typography, 
@@ -33,12 +34,14 @@ import {
   Mail, 
   Phone, 
   MapPin,
-  UserX // Icon for empty state
+  UserX,
+  Cake // 🟢 Added Icon for Birthday
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const Members = () => {
   const theme = useTheme();
@@ -116,6 +119,16 @@ const Members = () => {
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     m.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // 🟢 Helper to format DOB safely
+  const formatDOB = (dobString) => {
+    if (!dobString) return 'Not Set';
+    try {
+      return format(new Date(dobString), 'MMM do, yyyy');
+    } catch (e) {
+      return dobString;
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -232,6 +245,12 @@ const Members = () => {
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Mail size={12}/> {member.email}
                     </Typography>
+                    {/* 🟢 Mobile DOB */}
+                    {member.dob && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                            <Cake size={12}/> {formatDOB(member.dob)}
+                        </Typography>
+                    )}
                   </Box>
                   <IconButton onClick={() => setSelectedMember(member)}>
                     <MoreVertical size={18} />
@@ -250,6 +269,8 @@ const Members = () => {
                     <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Name</TableCell>
                     <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Contact Info</TableCell>
                     <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Location</TableCell>
+                    {/* 🟢 New Header */}
+                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Date of Birth</TableCell>
                     <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Status</TableCell>
                     <TableCell sx={{ bgcolor: theme.palette.background.paper }} align="right">Actions</TableCell>
                   </TableRow>
@@ -295,6 +316,14 @@ const Members = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                           <MapPin size={14} />
                           <Typography variant="body2">{member.address}</Typography>
+                        </Box>
+                      </TableCell>
+
+                      {/* 🟢 New Date of Birth Column */}
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Cake size={14} color={theme.palette.text.secondary} />
+                            <Typography variant="body2">{formatDOB(member.dob)}</Typography>
                         </Box>
                       </TableCell>
 

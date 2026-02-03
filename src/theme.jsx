@@ -1,4 +1,4 @@
-import React, { createContext, useState, useMemo, useContext } from 'react';
+import React, { createContext, useState, useMemo, useContext, useEffect } from 'react';
 import { createTheme, ThemeProvider, responsiveFontSizes } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 
@@ -83,12 +83,18 @@ const getDesignTokens = (mode) => ({
 });
 
 export default function ThemeConfig({ children }) {
-  const [mode, setMode] = useState('light'); // Default to Light Mode
+  // 🟢 FIX: Read from Local Storage directly on initialization
+  const [mode, setMode] = useState(() => localStorage.getItem('theme') || 'light');
 
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+        setMode((prevMode) => {
+          const newMode = prevMode === 'light' ? 'dark' : 'light';
+          // Save to storage immediately if toggled via context
+          localStorage.setItem('theme', newMode);
+          return newMode;
+        });
       },
       mode,
     }),

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import app from '../firebase'; // Ensure this path is correct for your project
-
+import axios from 'axios'; 
 import { 
   Box, 
   Grid, 
@@ -10,11 +8,11 @@ import {
   Typography, 
   Avatar, 
   Button, 
-  IconButton, 
   useTheme, 
   LinearProgress,
   Skeleton,
-  Chip
+  Chip,
+  IconButton
 } from '@mui/material';
 import { 
   Users, 
@@ -29,7 +27,8 @@ import {
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 
-const db = getFirestore(app);
+// 🔴 YOUR LIVE BACKEND URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -51,29 +50,33 @@ const Dashboard = () => {
     return 'Good Evening';
   };
 
+  // --- HELPER: SAFE DATE PARSER ---
+  // 🔴 CRITICAL FIX: This prevents the White Screen of Death
+  const parseDate = (dateVal) => {
+    if (!dateVal) return new Date();
+    // Handle Firestore Timestamp {_seconds: ...}
+    if (dateVal._seconds) return new Date(dateVal._seconds * 1000); 
+    // Handle Standard String
+    return new Date(dateVal); 
+  };
+
   // --- 2. DATA FETCHING ---
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Using Promise.allSettled to prevent one failure from breaking everything
+        
+        // 🔴 Fetch using Axios (Your Live API)
         const results = await Promise.allSettled([
-          getDocs(collection(db, 'members')),
-          getDocs(collection(db, 'transactions')),
-          getDocs(collection(db, 'events')),
+          axios.get(`${API_BASE_URL}/members`),
+          axios.get(`${API_BASE_URL}/transactions`),
+          axios.get(`${API_BASE_URL}/events`),
         ]);
 
-        const membersData = results[0].status === 'fulfilled' 
-          ? results[0].value.docs.map(doc => ({ id: doc.id, ...doc.data() })) 
-          : [];
-          
-        const transactionsData = results[1].status === 'fulfilled' 
-          ? results[1].value.docs.map(doc => ({ id: doc.id, ...doc.data() })) 
-          : [];
-          
-        const eventsData = results[2].status === 'fulfilled' 
-          ? results[2].value.docs.map(doc => ({ id: doc.id, ...doc.data() })) 
-          : [];
+        // Extract data safely
+        const membersData = results[0].status === 'fulfilled' ? results[0].value.data : [];
+        const transactionsData = results[1].status === 'fulfilled' ? results[1].value.data : [];
+        const eventsData = results[2].status === 'fulfilled' ? results[2].value.data : [];
 
         setData({
           members: membersData,
@@ -104,17 +107,17 @@ const Dashboard = () => {
     ? (totalExpenses / totalContributions) * 100 
     : 0;
 
-  // Events
+  // Events (Sorted Safely)
   const upcomingEvents = data.events
-    .filter(e => e.date && new Date(e.date) >= new Date()) // Filter out past events
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .filter(e => e.date && parseDate(e.date) >= new Date()) 
+    .sort((a, b) => parseDate(a.date) - parseDate(b.date))
     .slice(0, 3);
   
-  // Recent Activity Feed
+  // Recent Activity Feed (Sorted Safely)
   const recentActivity = [
-    ...data.members.map(m => ({ type: 'member', data: m, date: m.createdAt ? new Date(m.createdAt) : new Date() })),
-    ...data.transactions.map(t => ({ type: 'transaction', data: t, date: t.date ? new Date(t.date) : new Date() })),
-    ...data.events.map(e => ({ type: 'event', data: e, date: e.createdAt ? new Date(e.createdAt) : new Date() })),
+    ...data.members.map(m => ({ type: 'member', data: m, date: parseDate(m.createdAt) })),
+    ...data.transactions.map(t => ({ type: 'transaction', data: t, date: parseDate(t.date) })),
+    ...data.events.map(e => ({ type: 'event', data: e, date: parseDate(e.createdAt) })),
   ]
   .sort((a, b) => b.date - a.date)
   .slice(0, 5);
@@ -189,7 +192,7 @@ const Dashboard = () => {
               <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <TrendingUp size={16} color={theme.palette.success.main} />
                 <Typography variant="caption" color="text.secondary">
-                  <strong>+2</strong> this month
+                  <strong>Active</strong> Community
                 </Typography>
               </Box>
             )}
@@ -207,7 +210,7 @@ const Dashboard = () => {
             </Box>
             
             <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-               {loading ? <Skeleton width={120} /> : `$${(totalContributions - totalExpenses).toLocaleString()}`}
+               {loading ? <Skeleton width={120} /> : `GHC${(totalContributions - totalExpenses).toLocaleString()}`}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>Available Balance</Typography>
 
@@ -343,11 +346,12 @@ const Dashboard = () => {
                       flexDirection: 'column',
                       justifyContent: 'center'
                     }}>
+                      {/* 🔴 FIX: Use parseDate to prevent White Screen of Death */}
                       <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.7rem' }}>
-                        {format(new Date(event.date), 'MMM')}
+                        {format(parseDate(event.date), 'MMM')}
                       </Typography>
                       <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1 }}>
-                        {format(new Date(event.date), 'dd')}
+                        {format(parseDate(event.date), 'dd')}
                       </Typography>
                     </Box>
 
@@ -420,13 +424,14 @@ const Dashboard = () => {
                         {activity.type === 'event' && (<span>Event created: <strong>{activity.data.name}</strong></span>)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
+                        {/* activity.date is already parsed in the calculation above, so just format is safe here, but using parseDate anyway is extra safe */}
                         {activity.date && !isNaN(activity.date) ? format(activity.date, 'PP p') : 'Just now'}
                       </Typography>
                     </Box>
 
                     {activity.type === 'transaction' && (
                        <Typography variant="body2" sx={{ fontWeight: 700, color: activity.data.type === 'expense' ? 'error.main' : 'success.main' }}>
-                         {activity.data.type === 'expense' ? '-' : '+'}${activity.data.amount}
+                         {activity.data.type === 'expense' ? '-' : '+'}GHC{activity.data.amount}
                        </Typography>
                     )}
                   </Box>

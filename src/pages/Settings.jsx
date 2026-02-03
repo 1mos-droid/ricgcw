@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Box, 
@@ -12,7 +12,6 @@ import {
   Divider, 
   List, 
   ListItem, 
-  ListItemButton, 
   ListItemIcon, 
   ListItemText, 
   useTheme,
@@ -30,7 +29,6 @@ import {
   LogOut, 
   RefreshCw, 
   Database,
-  CreditCard,
   Lock,
   Save,
   CheckCircle
@@ -40,44 +38,65 @@ const Settings = () => {
   const theme = useTheme();
   
   // --- STATE ---
-  // UI Toggles
-  const [notifications, setNotifications] = useState(true);
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [darkMode, setDarkMode] = useState(theme.palette.mode === 'dark'); // Local state for demo
+  // 1. Load Dark Mode from Local Storage (or default to system/light)
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem('theme') === 'dark'
+  );
+
+  // 2. Other Local Preferences
+  const [notifications, setNotifications] = useState(
+    localStorage.getItem('pref_notifications') === 'true'
+  );
   
-  // Form Data
-  const [adminName, setAdminName] = useState("Kumesi Moses");
-  const [email, setEmail] = useState("admin@ricgcw.com");
+  // 3. Local Profile Data (No Authentication)
+  const [adminName, setAdminName] = useState(localStorage.getItem('admin_name') || "Admin User");
+  const [email, setEmail] = useState(localStorage.getItem('admin_email') || "admin@ricgcw.com");
   
-  // Status States
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // --- HANDLERS ---
+  
   const showSnackbar = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleSave = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      showSnackbar("System preferences updated successfully.");
-    }, 1200);
+  // 🟢 DARK MODE TOGGLE (ACTUALLY WORKS)
+  const handleThemeToggle = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    
+    // 1. Save preference to storage so theme.js can read it
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+    
+    // 2. Force reload to apply the new theme globally
+    window.location.reload(); 
   };
 
-  const handleThemeToggle = () => {
-    setDarkMode(!darkMode);
-    // In a real app, you would call your Context toggle function here
-    // e.g., colorMode.toggleColorMode();
-    showSnackbar(`Switched to ${!darkMode ? 'Dark' : 'Light'} mode (Simulation)`, 'info');
+  const handleSave = () => {
+    setLoading(true);
+    
+    // Save all current states to Local Storage
+    localStorage.setItem('admin_name', adminName);
+    localStorage.setItem('admin_email', email);
+    localStorage.setItem('pref_notifications', notifications);
+
+    // Simulate network delay for better UX
+    setTimeout(() => {
+      setLoading(false);
+      showSnackbar("Preferences saved successfully.");
+    }, 800);
   };
 
   const handleClearCache = () => {
-    if(window.confirm("Are you sure? This will reload the application.")) {
-        showSnackbar("Cache cleared. Reloading...", "info");
-        setTimeout(() => window.location.reload(), 1500);
+    if(window.confirm("Are you sure? This will clear all local data and reload.")) {
+        // Clear everything EXCEPT the theme to prevent flashing
+        const currentTheme = localStorage.getItem('theme');
+        localStorage.clear();
+        if(currentTheme) localStorage.setItem('theme', currentTheme);
+        
+        sessionStorage.clear();
+        window.location.reload();
     }
   };
 
@@ -103,7 +122,7 @@ const Settings = () => {
             System Configuration
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage global preferences and security
+            Manage local preferences and interface settings
           </Typography>
         </Box>
         <Button 
@@ -127,8 +146,6 @@ const Settings = () => {
         
         {/* --- LEFT COL: NAVIGATION & PROFILE --- */}
         <Grid item xs={12} md={4}>
-          
-          {/* Profile Card */}
           <Card sx={{ p: 4, textAlign: 'center', mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
               <Avatar 
@@ -142,7 +159,7 @@ const Settings = () => {
                   boxShadow: theme.shadows[3]
                 }}
               >
-                {adminName.charAt(0).toUpperCase()}M
+                {adminName.charAt(0).toUpperCase()}
               </Avatar>
               <Box sx={{ 
                 width: 16, 
@@ -157,49 +174,33 @@ const Settings = () => {
             </Box>
             
             <Typography variant="h6" fontWeight={700}>{adminName}</Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>Super Administrator</Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>Administrator</Typography>
             
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2, mb: 3 }}>
-              <Chip label="Root Access" size="small" color="primary" variant="outlined" sx={{ fontWeight: 700, borderRadius: 1 }} />
-              <Chip label="ID: #8839" size="small" sx={{ fontWeight: 600, borderRadius: 1 }} />
+              <Chip label="Local Admin" size="small" color="primary" variant="outlined" sx={{ fontWeight: 700, borderRadius: 1 }} />
             </Box>
 
             <Divider sx={{ my: 2 }} />
-
-            <List component="nav" sx={{ p: 0 }}>
-              <ListItemButton selected sx={{ borderRadius: 2, mb: 0.5 }}>
-                <ListItemIcon><User size={18} /></ListItemIcon>
-                <ListItemText primary="General" primaryTypographyProps={{ fontWeight: 600 }} />
-              </ListItemButton>
-              <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
-                <ListItemIcon><CreditCard size={18} /></ListItemIcon>
-                <ListItemText primary="Billing" primaryTypographyProps={{ fontWeight: 500 }} />
-              </ListItemButton>
-              <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
-                <ListItemIcon><Lock size={18} /></ListItemIcon>
-                <ListItemText primary="API Keys" primaryTypographyProps={{ fontWeight: 500 }} />
-              </ListItemButton>
-            </List>
           </Card>
         </Grid>
 
         {/* --- RIGHT COL: SETTINGS FORMS --- */}
         <Grid item xs={12} md={8}>
           
-          {/* Section 1: Account */}
+          {/* Section 1: Account (Local Only) */}
           <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, borderRadius: 2 }}>
                 <User size={20} />
               </Avatar>
-              <Typography variant="h6" fontWeight={600}>Account Details</Typography>
+              <Typography variant="h6" fontWeight={600}>Profile Details</Typography>
             </Box>
             
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField 
                   fullWidth 
-                  label="Full Name" 
+                  label="Display Name" 
                   value={adminName} 
                   onChange={(e) => setAdminName(e.target.value)} 
                 />
@@ -215,36 +216,22 @@ const Settings = () => {
             </Grid>
           </Card>
 
-          {/* Section 2: Preferences */}
+          {/* Section 2: Preferences (Dark Mode Logic) */}
           <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.secondary.light, color: theme.palette.secondary.main, borderRadius: 2 }}>
                 <Smartphone size={20} />
               </Avatar>
-              <Typography variant="h6" fontWeight={600}>App Preferences</Typography>
+              <Typography variant="h6" fontWeight={600}>Interface & App</Typography>
             </Box>
 
             <List>
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon><Bell size={20} /></ListItemIcon>
-                <ListItemText 
-                  primary="Push Notifications" 
-                  secondary="Receive alerts for new member registrations" 
-                  primaryTypographyProps={{ fontWeight: 500 }}
-                />
-                <Switch 
-                  checked={notifications} 
-                  onChange={() => setNotifications(!notifications)} 
-                />
-              </ListItem>
-              
-              <Divider variant="inset" component="li" />
-
+              {/* DARK MODE TOGGLE */}
               <ListItem sx={{ px: 0 }}>
                 <ListItemIcon><Moon size={20} /></ListItemIcon>
                 <ListItemText 
-                  primary="Dark Mode Interface" 
-                  secondary="Toggle between Light and Dark themes" 
+                  primary="Dark Mode" 
+                  secondary={darkMode ? "Dark mode is active" : "Light mode is active"} 
                   primaryTypographyProps={{ fontWeight: 500 }}
                 />
                 <Switch 
@@ -252,54 +239,25 @@ const Settings = () => {
                   onChange={handleThemeToggle} 
                 />
               </ListItem>
-            </List>
-          </Card>
+              
+              <Divider variant="inset" component="li" />
 
-          {/* Section 3: Security */}
-          <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Avatar sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.warning.main, borderRadius: 2 }}>
-                <Shield size={20} />
-              </Avatar>
-              <Typography variant="h6" fontWeight={600}>Security</Typography>
-            </Box>
-
-            <List>
               <ListItem sx={{ px: 0 }}>
-                <ListItemIcon><Lock size={20} /></ListItemIcon>
+                <ListItemIcon><Bell size={20} /></ListItemIcon>
                 <ListItemText 
-                  primary="Two-Factor Authentication" 
-                  secondary="Secure account with SMS verification" 
+                  primary="Push Notifications" 
+                  secondary="Enable local browser notifications" 
                   primaryTypographyProps={{ fontWeight: 500 }}
                 />
                 <Switch 
-                  checked={twoFactor} 
-                  onChange={() => setTwoFactor(!twoFactor)} 
-                  color="warning"
+                  checked={notifications} 
+                  onChange={() => setNotifications(!notifications)} 
                 />
               </ListItem>
             </List>
-
-            <Box sx={{ 
-                mt: 2, 
-                display: 'flex', 
-                flexDirection: { xs: 'column', sm: 'row' },
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                bgcolor: theme.palette.background.default, 
-                p: 2, 
-                borderRadius: 2,
-                gap: 2
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CheckCircle size={16} color={theme.palette.success.main} />
-                <Typography variant="body2" color="text.secondary">Password last changed 30 days ago</Typography>
-              </Box>
-              <Button size="small" variant="outlined" color="inherit">Update Password</Button>
-            </Box>
           </Card>
 
-          {/* Section 4: Data Zone */}
+          {/* Section 3: Data Zone */}
           <Card sx={{ p: 3, border: `1px solid ${theme.palette.error.light}`, borderRadius: 3, boxShadow: 'none' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Avatar sx={{ bgcolor: theme.palette.error.light, color: theme.palette.error.main, borderRadius: 2 }}>
@@ -310,15 +268,15 @@ const Settings = () => {
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" fontWeight={500}>Clear Local Cache</Typography>
+                <Typography variant="body2" fontWeight={500}>Clear App Cache</Typography>
                 <Button size="small" color="error" startIcon={<RefreshCw size={14} />} onClick={handleClearCache}>
                   Clear Data
                 </Button>
               </Box>
               <Divider />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" fontWeight={500}>Log Out All Devices</Typography>
-                <Button size="small" variant="contained" color="error" startIcon={<LogOut size={14} />} onClick={() => showSnackbar("All sessions terminated.", "info")}>
+                <Typography variant="body2" fontWeight={500}>End Session</Typography>
+                <Button size="small" variant="contained" color="error" startIcon={<LogOut size={14} />} onClick={() => window.location.reload()}>
                   Log Out
                 </Button>
               </Box>

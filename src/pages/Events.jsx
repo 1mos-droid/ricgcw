@@ -18,7 +18,9 @@ import {
   Snackbar,
   Alert,
   Skeleton,
-  Tooltip
+  Tooltip,
+  Switch, // 🟢 Added
+  FormControlLabel // 🟢 Added
 } from '@mui/material';
 import { 
   Calendar as CalendarIcon, 
@@ -27,11 +29,14 @@ import {
   Plus, 
   Trash2, 
   Edit,
-  AlertCircle
+  AlertCircle,
+  Video, // 🟢 Added for Online events
+  Wifi // 🟢 Added for Online badge
 } from 'lucide-react';
 import EditEventDialog from '../components/EditEventDialog';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const Events = () => {
   const theme = useTheme();
@@ -50,18 +55,26 @@ const Events = () => {
     name: '',
     date: '',
     time: '',
-    location: ''
+    location: '',
+    isOnline: false // 🟢 Added default state
   });
+
+  // 🔴 FIX 2: Helper to handle Firebase Timestamp Objects safely
+  const parseDate = (dateVal) => {
+    if (!dateVal) return new Date();
+    if (dateVal._seconds) return new Date(dateVal._seconds * 1000); // Firestore Timestamp
+    return new Date(dateVal); // Standard String
+  };
 
   // --- FETCH DATA ---
   const fetchEvents = useCallback(async () => {
     try {
-      // Only show full loading skeleton on first load or refresh
       if (events.length === 0) setLoading(true);
       
       const res = await axios.get(`${API_BASE_URL}/events`);
-      // Sort by date (nearest first)
-      const sorted = res.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      // 🔴 FIX 3: Sort safely using the parseDate helper
+      const sorted = res.data.sort((a, b) => parseDate(a.date) - parseDate(b.date));
       setEvents(sorted);
     } catch (err) {
       console.error("Calendar Sync Error:", err);
@@ -84,8 +97,13 @@ const Events = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // 🟢 UPDATED: Handle Checkbox/Switch logic
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleCreateEvent = async (e) => {
@@ -99,11 +117,14 @@ const Events = () => {
     try {
       await axios.post(`${API_BASE_URL}/events`, {
         ...formData,
-        location: formData.location || 'Main Auditorium'
+        date: new Date(formData.date).toISOString(), // Ensure ISO format
+        // 🟢 Logic: If location is empty, set default based on Online status
+        location: formData.location || (formData.isOnline ? 'Zoom / Online' : 'Main Auditorium'),
+        createdAt: new Date().toISOString()
       });
       
       // Reset & Refresh
-      setFormData({ name: '', date: '', time: '', location: '' });
+      setFormData({ name: '', date: '', time: '', location: '', isOnline: false });
       await fetchEvents();
       showSnackbar("Event scheduled successfully!", "success");
     } catch (error) {
@@ -117,14 +138,13 @@ const Events = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
       try {
-        // Optimistic update (remove from UI immediately for speed)
+        // Optimistic update
         const previousEvents = [...events];
         setEvents(events.filter(e => e.id !== id));
         
         await axios.delete(`${API_BASE_URL}/events/${id}`);
         showSnackbar("Event deleted.", "info");
       } catch (err) {
-        // Revert if failed
         fetchEvents(); 
         showSnackbar('Failed to delete event.', "error");
       }
@@ -235,19 +255,46 @@ const Events = () => {
                   />
                 </Grid>
 
+                {/* 🟢 NEW: Online Event Switch */}
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={formData.isOnline} 
+                        onChange={handleChange} 
+                        name="isOnline" 
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {formData.isOnline ? <Video size={16} /> : <MapPin size={16} />}
+                        <Typography variant="body2">{formData.isOnline ? "This is an Online Event" : "This is an In-Person Event"}</Typography>
+                      </Box>
+                    }
+                  />
+                </Grid>
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Location"
+                    // 🟢 Change Label based on switch
+                    label={formData.isOnline ? "Meeting Link / Platform" : "Location"}
                     name="location"
                     value={formData.location}
                     onChange={handleChange}
-                    placeholder="Main Auditorium"
+                    // 🟢 Change Placeholder based on switch
+                    placeholder={formData.isOnline ? "e.g. Zoom Link or Google Meet" : "Main Auditorium"}
                     size="small"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <MapPin size={16} color={theme.palette.text.secondary} />
+                          {/* 🟢 Change Icon based on switch */}
+                          {formData.isOnline ? (
+                            <Video size={16} color={theme.palette.text.secondary} />
+                          ) : (
+                            <MapPin size={16} color={theme.palette.text.secondary} />
+                          )}
                         </InputAdornment>
                       ),
                     }}
@@ -296,7 +343,7 @@ const Events = () => {
                 <Card 
                   key={event.id}
                   sx={{ 
-                    p: 0, // Reset padding for custom layout
+                    p: 0, 
                     display: 'flex', 
                     flexDirection: { xs: 'column', sm: 'row' },
                     alignItems: { xs: 'stretch', sm: 'center' },
@@ -318,18 +365,31 @@ const Events = () => {
                     gap: { xs: 2, sm: 0 }
                   }}>
                     <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1 }}>
-                      {format(new Date(event.date), 'dd')}
+                      {format(parseDate(event.date), 'dd')}
                     </Typography>
                     <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, opacity: 0.9 }}>
-                      {format(new Date(event.date), 'MMM')}
+                      {format(parseDate(event.date), 'MMM')}
                     </Typography>
                   </Box>
 
                   {/* Details */}
                   <Box sx={{ flexGrow: 1, p: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: theme.palette.text.primary }}>
-                      {event.name}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: theme.palette.text.primary }}>
+                        {event.name}
+                      </Typography>
+                      {/* 🟢 NEW: Online Badge */}
+                      {event.isOnline && (
+                        <Chip 
+                          icon={<Wifi size={14} />} 
+                          label="Online" 
+                          size="small" 
+                          color="success" 
+                          variant="outlined" 
+                          sx={{ height: 24 }} 
+                        />
+                      )}
+                    </Box>
                     
                     <Box sx={{ 
                       display: 'flex', 
@@ -343,7 +403,8 @@ const Events = () => {
                         <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>{event.time}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <MapPin size={14} />
+                        {/* 🟢 Icon changes based on event type */}
+                        {event.isOnline ? <Video size={14} /> : <MapPin size={14} />}
                         <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>{event.location}</Typography>
                       </Box>
                     </Box>

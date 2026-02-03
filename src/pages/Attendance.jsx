@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { 
   Box, 
   Typography, 
@@ -8,6 +8,7 @@ import {
   Card, 
   Button, 
   List, 
+  ListItem, // Imported native MUI ListItem
   ListItemButton, 
   ListItemAvatar, 
   ListItemText, 
@@ -18,7 +19,19 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  Skeleton
+  Skeleton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  IconButton // Fixed: Was missing
 } from '@mui/material';
 import { 
   Calendar, 
@@ -27,13 +40,15 @@ import {
   History, 
   Users, 
   AlertCircle,
-  Clock 
+  Clock,
+  Printer,
+  XCircle,
+  X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// --- 🔴 UPDATED: Dynamic API URL ---
-// This line now checks the environment variables first.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+// 🔴 LIVE BACKEND URL
+const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const Attendance = () => {
   const theme = useTheme();
@@ -44,29 +59,75 @@ const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedAttendees, setSelectedAttendees] = useState(new Set());
   
+  // Report / Dialog State
+  const [selectedRecord, setSelectedRecord] = useState(null); 
+  const [reportTab, setReportTab] = useState(0); 
+  
   // UI States
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+  // --- HELPER: SAFE DATE PARSER ---
+  const parseDate = (dateVal) => {
+    if (!dateVal) return new Date();
+    if (dateVal._seconds) return new Date(dateVal._seconds * 1000); 
+    const d = new Date(dateVal);
+    return isValid(d) ? d : new Date();
+  };
+
+  // --- HELPER: SAFE DATE FORMATTER ---
+  const safeFormat = (dateVal, formatStr) => {
+    try {
+      return format(parseDate(dateVal), formatStr);
+    } catch (e) {
+      return "Invalid Date";
+    }
+  };
+
+  // --- HELPER: CALCULATE ABSENT (CRASH PROOF) ---
+  const getAbsentMembers = (record) => {
+    if (!record || !members) return [];
+    
+    // 1. Safely get attendees, defaulting to empty array
+    const attendees = record.attendees || [];
+    
+    // 2. Create Set of IDs, filtering out any null/bad entries
+    const presentIds = new Set(
+        attendees
+        .filter(a => a && a.id) // Only keep valid objects with IDs
+        .map(a => a.id)
+    );
+
+    // 3. Filter members, ensuring member object exists
+    return members.filter(m => m && m.id && !presentIds.has(m.id));
+  };
+
   // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     try {
+      // Only set loading if we don't have data yet to prevent UI flickering
       if (members.length === 0) setLoading(true); 
       
       const [membersRes, attendanceRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/members`),
         axios.get(`${API_BASE_URL}/attendance`)
       ]);
-      setMembers(membersRes.data);
-      setAttendanceRecords(attendanceRes.data.reverse());
+      
+      setMembers(membersRes.data || []); 
+      
+      const sortedRecords = (attendanceRes.data || []).sort((a, b) => 
+        parseDate(b.date) - parseDate(a.date)
+      );
+      
+      setAttendanceRecords(sortedRecords);
     } catch (err) {
       console.error("Sync Error:", err);
       showSnackbar("Failed to load data. Check connection.", "error");
     } finally {
       setLoading(false);
     }
-  }, [members.length]);
+  }, []); // Fixed: Removed members.length dependency to prevent infinite loop
 
   useEffect(() => {
     fetchData();
@@ -87,15 +148,24 @@ const Attendance = () => {
     }
     
     setSubmitting(true);
-    const attendeesList = members.filter(m => selectedAttendees.has(m.id));
+    // Filter to ensure we don't save broken member data
+    const attendeesList = members.filter(m => m && m.id && selectedAttendees.has(m.id));
 
     try {
-      await axios.post(`${API_BASE_URL}/attendance`, {
-        date: selectedDate,
+      // Create a date object that respects the selected string date
+      // Appending T12:00:00 avoids timezone "previous day" issues when converting to ISO
+      const recordDate = new Date(`${selectedDate}T12:00:00`);
+
+      const recordData = {
+        date: recordDate.toISOString(),
         attendees: attendeesList,
-      });
+        createdAt: new Date().toISOString()
+      };
+
+      await axios.post(`${API_BASE_URL}/attendance`, recordData);
+      
       setSelectedAttendees(new Set());
-      await fetchData(); // Refresh logs
+      await fetchData(); 
       showSnackbar("Attendance saved successfully!", "success");
     } catch (err) {
       console.error(err);
@@ -109,11 +179,10 @@ const Attendance = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+  const handlePrint = () => {
+    window.print();
   };
 
-  // --- ANIMATION VARIANTS ---
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
@@ -122,15 +191,20 @@ const Attendance = () => {
   return (
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
+      {/* --- INJECT PRINT STYLES --- */}
+      <style>
+        {`
+          @media print {
+            body * { visibility: hidden; }
+            #printable-report, #printable-report * { visibility: visible; }
+            #printable-report { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 20px; }
+            .no-print { display: none !important; }
+          }
+        `}
+      </style>
+
       {/* --- HEADER --- */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', sm: 'center' }, 
-        mb: 3, 
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: 2
-      }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }} className="no-print">
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.text.primary, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
             Attendance Register
@@ -140,125 +214,60 @@ const Attendance = () => {
           </Typography>
         </Box>
 
-        {/* Date Picker Card */}
-        <Card sx={{ 
-          p: 1, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 2, 
-          borderRadius: 3,
-          width: { xs: '100%', sm: 'auto' }, 
-          border: `1px solid ${theme.palette.divider}`
-        }}>
-          <Box sx={{ p: 1, bgcolor: theme.palette.primary.light, borderRadius: 2, color: theme.palette.primary.contrastText, display: 'flex' }}>
+        <Card sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 3, width: { xs: '100%', sm: 'auto' }, border: `1px solid ${theme.palette.divider}` }}>
+          <Box sx={{ p: 1, bgcolor: theme.palette.primary.light, borderRadius: 2, color: theme.palette.primary.contrastText }}>
             <Calendar size={18} />
           </Box>
           <input 
             type="date" 
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              fontFamily: 'inherit',
-              fontSize: '14px',
-              color: theme.palette.text.primary,
-              outline: 'none',
-              cursor: 'pointer',
-              width: '100%'
-            }}
+            style={{ border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '14px', color: theme.palette.text.primary, outline: 'none', cursor: 'pointer', width: '100%' }}
           />
         </Card>
       </Box>
 
       {/* --- CONTENT GRID --- */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} className="no-print">
         
         {/* --- LEFT COL: MARK ATTENDANCE --- */}
         <Grid item xs={12} md={8}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 3 }}>
-            
-            {/* Card Header */}
-            <Box sx={{ 
-              p: { xs: 2, md: 3 }, 
-              borderBottom: `1px solid ${theme.palette.divider}`, 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center' 
-            }}>
+            <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
-                  <Users size={18} />
-                </Avatar>
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
-                  Mark Present
-                </Typography>
+                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}><Users size={18} /></Avatar>
+                <Typography variant="h6">Mark Present</Typography>
               </Box>
-              <Chip 
-                label={`${selectedAttendees.size} Selected`} 
-                color="primary" 
-                variant={selectedAttendees.size > 0 ? "filled" : "outlined"} 
-                size="small" 
-              />
+              <Chip label={`${selectedAttendees.size} Selected`} color="primary" variant={selectedAttendees.size > 0 ? "filled" : "outlined"} size="small" />
             </Box>
 
-            {/* Scrollable List */}
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: { xs: 1, md: 2 }, py: 1, maxHeight: { xs: '45vh', md: '60vh' }, minHeight: '300px' }}>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2, py: 1, maxHeight: '60vh', minHeight: '300px' }}>
               {loading ? (
-                 // Loading Skeleton
                  Array.from(new Array(5)).map((_, index) => (
                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 2 }}>
                      <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-                     <Box sx={{ width: '100%' }}>
-                       <Skeleton variant="text" width="60%" />
-                       <Skeleton variant="text" width="40%" />
-                     </Box>
+                     <Skeleton variant="text" width="60%" />
                    </Box>
                  ))
               ) : members.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6 }}>
-                  <Users size={48} style={{ marginBottom: 8 }} />
-                  <Typography>No members found</Typography>
-                </Box>
+                <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6 }}><Typography>No members found</Typography></Box>
               ) : (
                 <List>
-                  {members.map((member) => {
+                  {members.filter(m => m && m.name).map((member) => {
                     const isSelected = selectedAttendees.has(member.id);
                     return (
                       <ListItemButton 
                         key={member.id} 
                         onClick={() => handleToggle(member.id)}
-                        sx={{ 
-                          borderRadius: 2, 
-                          mb: 1,
-                          border: isSelected ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent',
-                          bgcolor: isSelected ? theme.palette.action.selected : 'transparent',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            bgcolor: isSelected ? theme.palette.action.selected : theme.palette.action.hover,
-                          }
-                        }}
+                        sx={{ borderRadius: 2, mb: 1, border: isSelected ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent', bgcolor: isSelected ? theme.palette.action.selected : 'transparent' }}
                       >
                         <ListItemAvatar>
-                          <Avatar sx={{ 
-                            bgcolor: isSelected ? theme.palette.primary.main : theme.palette.grey[200],
-                            color: isSelected ? '#FFF' : theme.palette.text.secondary,
-                            transition: 'all 0.2s'
-                          }}>
-                            {member.name.charAt(0).toUpperCase()}
+                          <Avatar sx={{ bgcolor: isSelected ? theme.palette.primary.main : theme.palette.grey[200], color: isSelected ? '#FFF' : theme.palette.text.secondary }}>
+                            {(member.name || "?").charAt(0).toUpperCase()}
                           </Avatar>
                         </ListItemAvatar>
-                        <ListItemText 
-                          primary={member.name} 
-                          primaryTypographyProps={{ fontWeight: isSelected ? 600 : 400 }}
-                          secondary={member.email}
-                          secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                        />
-                        {isSelected && 
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                            <CheckCircle size={20} color={theme.palette.primary.main} />
-                          </motion.div>
-                        }
+                        <ListItemText primary={member.name} secondary={member.email} />
+                        {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
                       </ListItemButton>
                     );
                   })}
@@ -266,31 +275,9 @@ const Attendance = () => {
               )}
             </Box>
 
-            {/* Footer Action */}
-            <Box sx={{ p: { xs: 2, md: 3 }, borderTop: `1px solid ${theme.palette.divider}` }}>
-              <Button 
-                variant="contained" 
-                fullWidth 
-                size="large"
-                disabled={submitting || selectedAttendees.size === 0 || loading}
-                onClick={handleSave}
-                sx={{ 
-                  borderRadius: 3, 
-                  py: 1.5,
-                  textTransform: 'none',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  boxShadow: theme.shadows[4]
-                }}
-              >
-                {submitting ? (
-                  <CircularProgress size={24} color="inherit"/>
-                ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Save size={20} />
-                    <span>Save Attendance Record</span>
-                  </Box>
-                )}
+            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+              <Button variant="contained" fullWidth size="large" disabled={submitting || selectedAttendees.size === 0 || loading} onClick={handleSave} sx={{ borderRadius: 3, py: 1.5, fontWeight: 600 }}>
+                {submitting ? <CircularProgress size={24} color="inherit"/> : <Box sx={{ display: 'flex', gap: 1 }}><Save size={20} /><span>Save Record</span></Box>}
               </Button>
             </Box>
           </Card>
@@ -299,66 +286,41 @@ const Attendance = () => {
         {/* --- RIGHT COL: HISTORY LOG --- */}
         <Grid item xs={12} md={4}>
           <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: 3, maxHeight: '80vh' }}>
-            <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
-                <History size={18} />
-              </Avatar>
-              <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
-                Recent Logs
-              </Typography>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}><History size={18} /></Avatar>
+              <Typography variant="h6">Recent Logs</Typography>
             </Box>
 
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, maxHeight: { xs: '40vh', md: '65vh' } }}>
-              {loading ? (
-                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                   <CircularProgress size={30} />
-                 </Box>
-              ) : attendanceRecords.length === 0 ? (
-                <Box sx={{ textAlign: 'center', mt: 8, opacity: 0.5, px: 2 }}>
-                  <AlertCircle size={48} style={{ marginBottom: 10 }} />
-                  <Typography variant="body2">No records found for this period.</Typography>
-                </Box>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+              {attendanceRecords.length === 0 && !loading ? (
+                <Box sx={{ textAlign: 'center', mt: 4, opacity: 0.5 }}><Typography>No records found.</Typography></Box>
               ) : (
                 attendanceRecords.map((record, index) => (
                   <Box 
                     key={record.id || index} 
+                    onClick={() => setSelectedRecord(record)}
                     sx={{ 
-                      p: 2, 
-                      mb: 2, 
-                      borderRadius: 2, 
+                      p: 2, mb: 2, borderRadius: 2, 
                       bgcolor: theme.palette.background.default, 
                       border: `1px solid ${theme.palette.divider}`,
-                      transition: 'transform 0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: theme.shadows[2]
-                      }
+                      cursor: 'pointer',
+                      '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[2] },
+                      transition: 'all 0.2s'
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: theme.palette.text.secondary }}>
                       <Clock size={14} />
-                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                        {format(new Date(record.date), 'MMM dd, yyyy')}
+                      <Typography variant="caption" fontWeight={600}>
+                        {safeFormat(record.date, 'MMM dd, yyyy')}
                       </Typography>
                     </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                        {record.attendees ? record.attendees.length : 0}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="h6" color="primary.main" fontWeight={700}>
+                        {/* 🔴 SAFE LENGTH CHECK */}
+                        {record.attendees ? record.attendees.length : 0} Present
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Present
-                      </Typography>
+                      <Button size="small" variant="text" endIcon={<Users size={14}/>}>View</Button>
                     </Box>
-
-                    <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                    
-                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', lineHeight: 1.5 }}>
-                      {record.attendees && record.attendees.length > 0 
-                        ? record.attendees.slice(0, 3).map(a => a.name).join(', ') 
-                        : 'No attendees recorded'}
-                      {record.attendees && record.attendees.length > 3 && ` +${record.attendees.length - 3} more`}
-                    </Typography>
                   </Box>
                 ))
               )}
@@ -367,16 +329,142 @@ const Attendance = () => {
         </Grid>
       </Grid>
 
-      {/* --- NOTIFICATIONS --- */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      {/* --- DETAIL DIALOG (REPORT MODAL) --- */}
+      <Dialog 
+        open={!!selectedRecord} 
+        onClose={() => setSelectedRecord(null)}
+        maxWidth="md"
+        fullWidth
+        className="no-print"
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 2 }}>
-          {snackbar.message}
-        </Alert>
+        {selectedRecord && (
+          <>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}` }}>
+              <Box>
+                <Typography variant="h6" fontWeight={700}>Attendance Report</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {safeFormat(selectedRecord.date, 'EEEE, MMMM do, yyyy')}
+                </Typography>
+              </Box>
+              {/* Fixed: Added IconButton import */}
+              <IconButton onClick={() => setSelectedRecord(null)}><X /></IconButton>
+            </DialogTitle>
+            
+            <DialogContent sx={{ p: 0 }}>
+              <Box sx={{ bgcolor: theme.palette.background.default, p: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Card sx={{ p: 2, textAlign: 'center', bgcolor: theme.palette.success.light, color: theme.palette.success.dark }}>
+                      <Typography variant="h4" fontWeight={800}>{selectedRecord.attendees ? selectedRecord.attendees.length : 0}</Typography>
+                      <Typography variant="caption" fontWeight={700}>PRESENT</Typography>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Card sx={{ p: 2, textAlign: 'center', bgcolor: theme.palette.error.light, color: theme.palette.error.dark }}>
+                      <Typography variant="h4" fontWeight={800}>{getAbsentMembers(selectedRecord).length}</Typography>
+                      <Typography variant="caption" fontWeight={700}>ABSENT</Typography>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              <Tabs value={reportTab} onChange={(e, v) => setReportTab(v)} variant="fullWidth" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tab label="Present List" icon={<CheckCircle size={16}/>} iconPosition="start" />
+                <Tab label="Absent List" icon={<XCircle size={16}/>} iconPosition="start" />
+              </Tabs>
+
+              <Box sx={{ p: 2, maxHeight: '40vh', overflowY: 'auto' }}>
+                {reportTab === 0 ? (
+                  // PRESENT LIST
+                  <List dense>
+                    {selectedRecord.attendees && selectedRecord.attendees.filter(m => m).map((m, i) => (
+                      <ListItem key={m.id || i} divider>
+                        <ListItemAvatar>
+                          <Avatar sx={{ width: 30, height: 30, bgcolor: theme.palette.success.main, fontSize: 14 }}>
+                            {(m.name || "?").charAt(0)}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText primary={m.name || "Unknown"} secondary={m.email} />
+                      </ListItem>
+                    ))}
+                    {(!selectedRecord.attendees || selectedRecord.attendees.length === 0) && <Typography sx={{p:2, opacity:0.6}}>No one marked present.</Typography>}
+                  </List>
+                ) : (
+                  // ABSENT LIST
+                  <List dense>
+                    {getAbsentMembers(selectedRecord).filter(m => m).map((m, i) => (
+                      <ListItem key={m.id || i} divider>
+                        <ListItemAvatar>
+                          <Avatar sx={{ width: 30, height: 30, bgcolor: theme.palette.error.main, fontSize: 14 }}>
+                            {(m.name || "?").charAt(0)}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText primary={m.name || "Unknown"} secondary={m.email} />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </Box>
+            </DialogContent>
+
+            <DialogActions sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+              <Button onClick={() => setSelectedRecord(null)}>Close</Button>
+              <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint}>
+                Print Report
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* --- HIDDEN PRINTABLE SECTION --- */}
+      {selectedRecord && (
+        <div id="printable-report">
+          <Box sx={{ mb: 4, textAlign: 'center', borderBottom: '2px solid #000', pb: 2 }}>
+            <Typography variant="h4" fontWeight={800}>Attendance Report</Typography>
+            <Typography variant="h6">{safeFormat(selectedRecord.date, 'EEEE, MMMM do, yyyy')}</Typography>
+          </Box>
+
+          <Grid container spacing={4} sx={{ mb: 4 }}>
+            <Grid item xs={6}>
+              <Box sx={{ border: '1px solid #ddd', p: 2, borderRadius: 2 }}>
+                <Typography variant="h6" fontWeight={700} gutterBottom>
+                  Present ({selectedRecord.attendees ? selectedRecord.attendees.length : 0})
+                </Typography>
+                <Table size="small">
+                  <TableBody>
+                    {selectedRecord.attendees && selectedRecord.attendees.filter(m => m).map((m, i) => (
+                      <TableRow key={i}><TableCell>{i+1}. {m.name || "Unknown"}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Grid>
+            <Grid item xs={6}>
+              <Box sx={{ border: '1px solid #ddd', p: 2, borderRadius: 2 }}>
+                <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: 'error.main' }}>
+                  Absent ({getAbsentMembers(selectedRecord).length})
+                </Typography>
+                <Table size="small">
+                  <TableBody>
+                    {getAbsentMembers(selectedRecord).filter(m => m).map((m, i) => (
+                      <TableRow key={i}><TableCell>{i+1}. {m.name || "Unknown"}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Grid>
+          </Grid>
+          
+          <Typography variant="caption" sx={{ mt: 4, display: 'block', textAlign: 'center', opacity: 0.6 }}>
+            Generated by The Gathering Place App
+          </Typography>
+        </div>
+      )}
+
+      {/* --- SNACKBAR --- */}
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 2 }}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );
