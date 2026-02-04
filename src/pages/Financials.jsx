@@ -36,7 +36,8 @@ import {
   CreditCard, 
   Download,
   Wallet,
-  FileText
+  FileText,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 // 🔴 FIX 1: Hardcoded to your LIVE Backend URL
@@ -143,6 +144,19 @@ const Financials = () => {
       showSnackbar("Failed to log transaction.", "error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteTransaction = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+    
+    try {
+      await axios.delete(`${API_BASE_URL}/transactions/${id}`);
+      setTransactions(transactions.filter(t => t.id !== id));
+      showSnackbar("Transaction deleted successfully.", "success");
+    } catch (error) {
+      console.error(error);
+      showSnackbar("Failed to delete transaction.", "error");
     }
   };
 
@@ -420,6 +434,15 @@ const Financials = () => {
                       >
                         {tx.type === 'contribution' ? '+' : '-'}GHC{Number(tx.amount).toLocaleString()}
                       </Typography>
+                      <Tooltip title="Delete">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDeleteTransaction(tx.id)}
+                          sx={{ ml: 1, color: theme.palette.error.main }}
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </Tooltip>
                     </ListItem>
                     {index < getFilteredTransactions().length - 1 && <Divider variant="inset" component="li" />}
                   </React.Fragment>

@@ -7,26 +7,87 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
+const { onRequest } = require("firebase-functions/v2/https");
+const admin = require("firebase-admin");
+const express = require("express");
+const cors = require("cors");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+// Initialize Firebase Admin
+admin.initializeApp();
+const db = admin.firestore();
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Initialize Express App
+const app = express();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// Automatically allow cross-origin requests (Allows your React app to talk to this)
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+// --- GENERIC CRUD HANDLER ---
+// This smart function handles GET, POST, PUT, DELETE for ANY collection
+// It saves us from writing 100 lines of code for Members, Events, etc.
+
+const createHandler = (collectionName) => {
+  const router = express.Router();
+
+  // GET ALL
+  router.get("/", async (req, res) => {
+    try {
+      const snapshot = await db.collection(collectionName).get();
+      const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      res.status(200).json(items);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // CREATE (POST)
+  router.post("/", async (req, res) => {
+    try {
+      const newItem = req.body;
+      // Add timestamp if not present
+      if (!newItem.createdAt) newItem.createdAt = new Date().toISOString();
+      
+      const docRef = await db.collection(collectionName).add(newItem);
+      res.status(201).json({ id: docRef.id, ...newItem });
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // UPDATE (PUT)
+  router.put("/:id", async (req, res) => {
+    try {
+      await db.collection(collectionName).doc(req.params.id).update(req.body);
+      res.status(200).send("Updated successfully");
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // DELETE
+  router.delete("/:id", async (req, res) => {
+    try {
+      await db.collection(collectionName).doc(req.params.id).delete();
+      res.status(200).send("Deleted successfully");
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  return router;
+};
+
+// --- ROUTES ---
+// We simply map the URL paths to the collections in your database
+app.use("/members", createHandler("members"));
+app.use("/events", createHandler("events"));
+app.use("/attendance", createHandler("attendance"));
+app.use("/transactions", createHandler("transactions"));
+app.use("/resources", createHandler("resources"));
+app.use("/bible-studies", createHandler("bible-studies"));
+
+// --- EXPORT THE FUNCTION ---
+// This is the specific line Firebase looks for. 
+// If this is missing, Firebase thinks you want to delete the function.
+exports.api = onRequest(app);

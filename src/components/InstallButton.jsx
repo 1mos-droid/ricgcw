@@ -1,99 +1,100 @@
 import { useState, useEffect } from 'react';
-import { Button, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Typography, Box, useTheme } from '@mui/material';
-import { Download } from 'lucide-react';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Download, Smartphone, Computer, Share } from 'lucide-react';
 
 export default function InstallButton() {
-  const theme = useTheme();
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true;
-    setIsInstalled(isStandalone);
-
-    const handleBeforeInstall = (e) => {
+    const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setInstallPrompt(e);
+      setIsInstallable(true);
     };
 
     const handleAppInstalled = () => {
-      setIsInstalled(true);
+      setIsInstallable(false);
+      setInstallPrompt(null);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    } else {
+    if (!installPrompt) {
       setShowDialog(true);
+      return;
+    }
+
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+      setIsInstallable(false);
     }
   };
 
-  if (isInstalled) return null;
-
-  const isDark = theme.palette.mode === 'dark';
-  const buttonColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
-  const buttonHoverColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
-  const textColor = isDark ? 'white' : 'text.primary';
-
   return (
     <>
-      <Tooltip title="Install App">
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleInstallClick}
-          startIcon={<Download size={18} />}
-          sx={{
-            borderColor: buttonColor,
-            color: textColor,
-            textTransform: 'none',
-            mr: 1,
-            fontWeight: 500,
-            '&:hover': {
-              borderColor: textColor,
-              bgcolor: buttonHoverColor,
-            },
-          }}
-        >
-          Install App
-        </Button>
-      </Tooltip>
+      <Button
+        variant="contained"
+        onClick={handleInstallClick}
+        startIcon={<Download />}
+        sx={{
+          mr: 2,
+          bgcolor: 'primary.main',
+          color: 'white',
+          textTransform: 'none',
+          fontWeight: 600,
+          '&:hover': {
+            bgcolor: 'primary.dark',
+          },
+        }}
+      >
+        Install App
+      </Button>
 
-      <Dialog open={showDialog} onClose={() => setShowDialog(false)}>
+      <Dialog open={showDialog} onClose={() => setShowDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Install RICGCW CMS</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            To install this app on your device:
+            Choose your device:
           </Typography>
-          <Box component="ol" sx={{ pl: 2, m: 0 }}>
-            <li><Typography variant="body2" sx={{ mb: 1 }}>Chrome (Desktop): Look for install icon in the address bar (right side)</Typography></li>
-            <li><Typography variant="body2" sx={{ mb: 1 }}>Chrome (Android): Tap menu (⋮) → "Install app" or "Add to Home Screen"</Typography></li>
-            <li><Typography variant="body2" sx={{ mb: 1 }}>Safari (iPhone/iPad): Tap Share button → "Add to Home Screen"</Typography></li>
-            <li><Typography variant="body2">Edge (Desktop): Look for install icon in the address bar</Typography></li>
-          </Box>
-          <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
-            Note: Install prompts require the app to be served over HTTPS.
-          </Typography>
+
+          <List>
+            <ListItem>
+              <ListItemIcon><Computer /></ListItemIcon>
+              <ListItemText 
+                primary="Desktop (Chrome/Edge)"
+                secondary="Click the install icon in the right side of the address bar"
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon><Smartphone /></ListItemIcon>
+              <ListItemText 
+                primary="Android"
+                secondary="Chrome menu → 'Install app' or 'Add to Home Screen'"
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon><Share /></ListItemIcon>
+              <ListItemText 
+                primary="iPhone/iPad"
+                secondary="Safari → Share button → 'Add to Home Screen'"
+              />
+            </ListItem>
+          </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowDialog(false)}>OK</Button>
+          <Button onClick={() => setShowDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </>
