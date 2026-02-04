@@ -34,6 +34,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import InstallButton from './InstallButton';
 
 const drawerWidth = 260; // Slightly wider for better readability
 
@@ -224,7 +225,9 @@ const Layout = ({ children }) => {
           </IconButton>
           
           <Box sx={{ flexGrow: 1 }} />
-          
+
+          <InstallButton />
+
           {/* Top Right Profile / Actions */}
           <Tooltip title="Admin Profile">
             <IconButton size="small" sx={{ ml: 2 }}>
