@@ -11,7 +11,7 @@ export default function InstallButton() {
     if (typeof window === 'undefined') return;
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
+      window.navigator.standalone === true;
     setIsInstalled(isStandalone);
 
     const handleBeforeInstall = (e) => {
