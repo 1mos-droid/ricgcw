@@ -273,7 +273,7 @@ const QuickSwitch = () => {
               !mos-droid v2.1.0 (Stable)
             </Typography>
             <Typography variant="caption" display="block" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              Authorized to: <Chip label="Kumesi Moses" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', borderRadius: 1 }} />
+              Authorized to: <Chip label="Pastor Nicholas Dobeng" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', borderRadius: 1 }} />
             </Typography>
           </Box>
         </Grid>

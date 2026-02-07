@@ -74,6 +74,7 @@ app.post('/transactions', (req, res) => handlePost(req, res, 'transactions'));
 // 3. Attendance
 app.get('/attendance', (req, res) => handleGet(res, 'attendance'));
 app.post('/attendance', (req, res) => handlePost(req, res, 'attendance'));
+app.delete('/attendance/:id', (req, res) => handleDelete(req, res, 'attendance'));
 
 // 4. Events
 app.get('/events', (req, res) => handleGet(res, 'events'));

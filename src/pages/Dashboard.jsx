@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 // 🔴 YOUR LIVE BACKEND URL
 const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
@@ -37,7 +38,8 @@ const Dashboard = () => {
   const [data, setData] = useState({
     members: [],
     transactions: [],
-    events: []
+    events: [],
+    attendance: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,17 +73,20 @@ const Dashboard = () => {
           axios.get(`${API_BASE_URL}/members`),
           axios.get(`${API_BASE_URL}/transactions`),
           axios.get(`${API_BASE_URL}/events`),
+          axios.get(`${API_BASE_URL}/attendance`).catch(() => ({ status: 'rejected', value: null })),
         ]);
 
         // Extract data safely
         const membersData = results[0].status === 'fulfilled' ? results[0].value.data : [];
         const transactionsData = results[1].status === 'fulfilled' ? results[1].value.data : [];
         const eventsData = results[2].status === 'fulfilled' ? results[2].value.data : [];
+        const attendanceDataRaw = results[3].status === 'fulfilled' ? results[3].value.data : [];
 
         setData({
           members: membersData,
           transactions: transactionsData,
-          events: eventsData
+          events: eventsData,
+          attendance: attendanceDataRaw
         });
       } catch (err) {
         console.error("Dashboard Fetch Error:", err);
@@ -121,6 +126,51 @@ const Dashboard = () => {
   ]
   .sort((a, b) => b.date - a.date)
   .slice(0, 5);
+
+  // Attendance: Most Recent Record
+  const latestRecord = data.attendance.length > 0 
+    ? data.attendance.sort((a, b) => parseDate(b.date) - parseDate(a.date))[0]
+    : null;
+
+  const presentCount = latestRecord ? (latestRecord.attendees || []).length : 0;
+  const totalMembers = data.members.length;
+  const absentCount = totalMembers > presentCount ? totalMembers - presentCount : 0;
+
+  const attendancePieData = [
+    { name: 'Present', value: presentCount, color: '#4caf50' },
+    { name: 'Absent', value: absentCount, color: '#f44336' }
+  ];
+
+
+
+  // Money Collected Pie Chart (Including All Contributions & Expenses)
+  const contributionsTotal = data.transactions
+    .filter(t => t.type === 'contribution' && t.category !== 'tithe' && t.category !== 'welfare')
+    .reduce((acc, t) => {
+      const category = t.category || 'Other';
+      acc[category] = (acc[category] || 0) + (Number(t.amount) || 0);
+      return acc;
+    }, {});
+
+  const expensesTotal = data.transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, t) => {
+      const category = t.category || 'Other Expenses';
+      acc[category] = (acc[category] || 0) + (Number(t.amount) || 0);
+      return acc;
+    }, {});
+
+  const allCategories = [
+    ...Object.entries(contributionsTotal).map(([name, value]) => ({ name, value, type: 'income' })),
+    ...Object.entries(expensesTotal).map(([name, value]) => ({ name, value, type: 'expense' }))
+  ];
+
+  const COLORS = ['#4caf50', '#2196f3', '#ff9800', '#9c27b0', '#00bcd4', '#f44336', '#e91e63', '#795548'];
+
+  const moneyCollectedData = allCategories.map((item, index) => ({
+    ...item,
+    color: item.type === 'income' ? COLORS[index % COLORS.length] : '#f44336'
+  }));
 
   // --- ANIMATION ---
   const containerVariants = {
@@ -176,7 +226,7 @@ const Dashboard = () => {
         
         {/* Card 1: Members */}
         <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: 3, boxShadow: theme.shadows[2] }}>
+          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: 3, boxShadow: theme.shadows[2], cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] } }} component={Link} to="/members">
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>TOTAL MEMBERS</Typography>
@@ -440,6 +490,88 @@ const Dashboard = () => {
             </Box>
           </Card>
         </Grid>
+      </Grid>
+
+      {/* --- CHARTS SECTION --- */}
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        
+        {/* Attendance Pie Chart */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ p: 3, borderRadius: 3, boxShadow: theme.shadows[2] }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Most Recent Attendance</Typography>
+              {latestRecord && (
+                <Typography variant="caption" color="text.secondary">
+                  {format(parseDate(latestRecord.date), 'MMMM d, yyyy')}
+                </Typography>
+              )}
+            </Box>
+            
+            {loading ? (
+              <Skeleton variant="circular" width={250} height={250} sx={{ mx: 'auto', mt: 2 }} />
+            ) : !latestRecord ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 250, color: 'text.secondary' }}>
+                <Typography>No attendance data available</Typography>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={attendancePieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {attendancePieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value} members`, name]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </Grid>
+
+        {/* Money Collected Pie Chart */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ p: 3, borderRadius: 3, boxShadow: theme.shadows[2] }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Financial Overview (Income & Expenses)</Typography>
+            {loading ? (
+              <Skeleton variant="circular" width={250} height={250} sx={{ mx: 'auto' }} />
+            ) : moneyCollectedData.length === 0 ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: 'text.secondary' }}>
+                <Typography>No financial data available</Typography>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={moneyCollectedData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {moneyCollectedData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `GHC${Number(value).toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </Grid>
+
       </Grid>
     </Box>
   );

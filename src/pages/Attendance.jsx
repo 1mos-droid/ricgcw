@@ -43,7 +43,8 @@ import {
   Clock,
   Printer,
   XCircle,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -67,6 +68,7 @@ const Attendance = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // --- HELPER: SAFE DATE PARSER ---
   const parseDate = (dateVal) => {
@@ -170,6 +172,24 @@ const Attendance = () => {
     } catch (err) {
       console.error(err);
       showSnackbar("Failed to save attendance.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRecord || !selectedRecord.id) return;
+    
+    setSubmitting(true);
+    try {
+      await axios.delete(`${API_BASE_URL}/attendance/${selectedRecord.id}`);
+      setDeleteDialogOpen(false);
+      setSelectedRecord(null);
+      await fetchData();
+      showSnackbar("Attendance record deleted successfully!", "success");
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to delete attendance record.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -408,6 +428,13 @@ const Attendance = () => {
             </DialogContent>
 
             <DialogActions sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+              <Button 
+                color="error" 
+                startIcon={<Trash2 size={18}/>} 
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                Delete
+              </Button>
               <Button onClick={() => setSelectedRecord(null)}>Close</Button>
               <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint}>
                 Print Report
@@ -466,6 +493,29 @@ const Attendance = () => {
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 2 }}>{snackbar.message}</Alert>
       </Snackbar>
+
+      {/* --- DELETE CONFIRMATION DIALOG --- */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Attendance Record?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the attendance record for {selectedRecord && safeFormat(selectedRecord.date, 'MMMM dd, yyyy')}?
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button 
+            color="error" 
+            variant="contained" 
+            onClick={handleDelete} 
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Trash2 size={18}/>}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
