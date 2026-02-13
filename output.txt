@@ -1,0 +1,24 @@
+I've added more detailed logging to `src/pages/Attendance.jsx` to help diagnose why the page is crashing after a brief display. The `console.log` statements will show the exact data received from the backend.
+
+Please follow these steps carefully to help me identify the problem:
+
+**Step 1: Ensure your backend server is running and check its console for errors.**
+
+1.  In your terminal, navigate to the `backend` directory.
+2.  Run `npm start`.
+3.  **Monitor this terminal window for any error messages or unexpected output from the backend.**
+
+**Step 2: Start your frontend development server and monitor its console for errors.**
+
+1.  In *another* terminal, navigate to your project's root directory.
+2.  Run `npm run dev`.
+
+**Step 3: Open your browser and navigate to the application, then check the Developer Tools Console.**
+
+1.  Open your web browser and navigate to the address provided by the frontend development server (e.g., `http://localhost:5173/`).
+2.  **Open the Developer Tools (F12 or Ctrl+Shift+I / Cmd+Option+I):**
+    *   Go to the "Console" tab.
+    *   **Crucially, copy and paste *any and all error messages* that appear in the console.** This includes any messages from the `console.log` statements I added, especially "Fetched Members:" and "Fetched Attendance Records:".
+    *   Also, check the "Network" tab to see if the API calls to `localhost:3001` are succeeding (200 OK) or failing.
+
+Please provide *all* output from both the backend terminal and the browser's console tab. This detailed information is essential for me to fix the "page shows for a second then it goes white" issue.
