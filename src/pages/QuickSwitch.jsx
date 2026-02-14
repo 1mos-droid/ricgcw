@@ -179,7 +179,7 @@ const QuickSwitch = () => {
 
           <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${theme.palette.divider}`, color: 'text.secondary' }}>
             <Typography variant="caption" display="block" sx={{ fontFamily: 'monospace' }}>
-              FlameCore v2.1.0 (Stable)
+              !mos-droid v2.1.0 (Stable)
             </Typography>
             <Typography variant="caption" display="block">
               Authorized to: Kumesi Moses

@@ -1,0 +1,43 @@
+type User @table {
+  email: String!
+  displayName: String!
+  createdAt: Timestamp!
+  role: String!
+  phoneNumber: String
+  address: String
+  photoUrl: String
+  membershipStatus: String
+}
+
+type Group @table {
+  name: String!
+  createdAt: Timestamp!
+  description: String
+  leader: User
+  meetingSchedule: String
+}
+
+type Event @table {
+  title: String!
+  startTime: Timestamp!
+  endTime: Timestamp!
+  createdAt: Timestamp!
+  description: String
+  location: String
+  organizer: User
+}
+
+type PrayerRequest @table {
+  requestText: String!
+  createdAt: Timestamp!
+  isPrivate: Boolean
+  answeredAt: Timestamp
+  user: User
+}
+
+type GroupMembership @table(key: ["user", "group"]) {
+  joinedAt: Timestamp!
+  roleInGroup: String
+  user: User!
+  group: Group!
+}

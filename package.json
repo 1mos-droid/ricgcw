@@ -11,12 +11,14 @@
     "test": "node src/pages/tests.js"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
+    "firebase": "^12.8.0",
     "framer-motion": "^11.3.19",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.417.0",

@@ -1,0 +1,30 @@
+mutation CreatePrayerRequest($requestText: String!, $isPrivate: Boolean) @auth(level: USER) {
+  prayerRequest_insert(data: {requestText: $requestText, isPrivate: $isPrivate, userId_expr: "auth.uid", createdAt_expr: "request.time"})
+}
+
+query GetPrayerRequests @auth(level: USER) {
+  prayerRequests(where: {userId: {eq_expr: "auth.uid"}}) {
+    id
+    requestText
+    isPrivate
+    createdAt
+    answeredAt
+  }
+}
+
+mutation JoinGroup($groupId: UUID!) @auth(level: USER) {
+  groupMembership_insert(data: {groupId: $groupId, userId_expr: "auth.uid", joinedAt_expr: "request.time"})
+}
+
+query ListGroups @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  groups {
+    id
+    name
+    description
+    meetingSchedule
+    leader {
+      id
+      displayName
+    }
+  }
+}

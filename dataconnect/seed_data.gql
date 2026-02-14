@@ -1,0 +1,82 @@
+mutation CreateDemoData @transaction @auth(level: PUBLIC, insecureReason: "This operation is for seeding data and is safe to expose to the public.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      displayName: "demouser1",
+      email: "demouser1@example.com",
+      role: "member",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      displayName: "demouser2",
+      email: "demouser2@example.com",
+      role: "member",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  group_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440000",
+      name: "demoGroup1",
+      description: "Example group 1",
+      meetingSchedule: "Weekly",
+      leaderId: "550e8400-e29b-41d4-a716-446655440000",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      name: "demoGroup2",
+      description: "Example group 2",
+      meetingSchedule: "Bi-Weekly",
+      leaderId: "550e8400-e29b-41d4-a716-446655440001",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  groupMembership_insertMany(data: [
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      groupId: "650e8400-e29b-41d4-a716-446655440000",
+      joinedAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      groupId: "650e8400-e29b-41d4-a716-446655440001",
+      joinedAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  prayerRequest_insertMany(data: [
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      requestText: "Example prayer request from demouser1",
+      isPrivate: false,
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      requestText: "Example prayer request from demouser2",
+      isPrivate: true,
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  event_insertMany(data: [
+    {
+      organizerId: "550e8400-e29b-41d4-a716-446655440000",
+      title: "Demo Event 1",
+      description: "Example event 1",
+      location: "Online",
+      startTime: "2024-04-27T10:00:00Z",
+      endTime: "2024-04-27T12:00:00Z",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      organizerId: "550e8400-e29b-41d4-a716-446655440001",
+      title: "Demo Event 2",
+      description: "Example event 2",
+      location: "In-Person",
+      startTime: "2024-04-28T14:00:00Z",
+      endTime: "2024-04-28T16:00:00Z",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+}
