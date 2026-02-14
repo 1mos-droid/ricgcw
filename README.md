@@ -127,4 +127,4 @@ Contributions are welcome! Please follow the standard fork-and-pull request work
 
 ## License
 
-(Add your project's license information here)
+This repository uses the MIT lincense
