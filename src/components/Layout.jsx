@@ -96,7 +96,7 @@ const Layout = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <img src="/ricgcw.jpeg" alt="RICGCW Logo" style={{ height: 40, marginRight: 10 }} />
+          <img src="/ricgcw.png" alt="RICGCW Logo" style={{ height: 40, marginRight: 10 }} />
           <Typography variant="h6" noWrap component="div" sx={{ color: 'inherit' }}>
             RICGCW CMS
           </Typography>
@@ -116,7 +116,7 @@ const Layout = ({ children }) => {
         open={open}
       >
         <DrawerHeader>
-          <img src="/ricgcw.jpeg" alt="RICGCW Logo" style={{ height: 40, marginLeft: 10 }} />
+          <img src="/ricgcw.png" alt="RICGCW Logo" style={{ height: 40, marginLeft: 10 }} />
           <IconButton onClick={handleDrawerClose} sx={{ color: theme.palette.text.primary }}>
             <MenuIcon />
           </IconButton>
