@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Box, 
@@ -16,7 +16,8 @@ import {
   Avatar, 
   IconButton, 
   Chip,
-  Divider
+  Divider,
+  TextField
 } from '@mui/material';
 // ✅ FIXED: Correct import for alpha utility
 import { useTheme, alpha } from '@mui/material/styles';
@@ -30,48 +31,50 @@ import {
   Headphones, 
   Bookmark
 } from 'lucide-react';
+import axios from 'axios';
+import StudyDetailsDialog from '../components/StudyDetailsDialog';
+
+const API_BASE_URL = 'http://localhost:3002/api';
 
 const BibleStudies = () => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
+  const [studySeries, setStudySeries] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStudy, setSelectedStudy] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
+  
+  const filteredResources = resources.filter(res => {
+    const termMatch = res.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const typeMatch = filterType === 'all' || res.type === filterType;
+    return termMatch && typeMatch;
+  });
 
-  // Mock Data
-  const studySeries = [
-    {
-      id: 1,
-      title: "The Book of Romans",
-      subtitle: "Understanding Grace & Law",
-      progress: 60,
-      sessions: 12,
-      active: true
-    },
-    {
-      id: 2,
-      title: "Faith in the Modern Age",
-      subtitle: "Navigating culture with truth",
-      progress: 0,
-      sessions: 4,
-      active: false
-    },
-    {
-      id: 3,
-      title: "Foundations of Prayer",
-      subtitle: "Intercession strategies",
-      progress: 0,
-      sessions: 8,
-      active: false
-    }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [seriesRes, resourcesRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/bible-studies`),
+          axios.get(`${API_BASE_URL}/resources`),
+        ]);
+        setStudySeries(seriesRes.data);
+        setResources(resourcesRes.data);
+      } catch (err) {
+        console.error("Sync Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const resources = [
-    { id: 1, type: 'pdf', title: "Weekly Study Guide - Romans Ch. 8", size: "2.4 MB" },
-    { id: 2, type: 'audio', title: "Sermon Audio: The Just Shall Live by Faith", size: "45 mins" },
-    { id: 3, type: 'pdf', title: "Prayer Points for 2026", size: "1.1 MB" },
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -152,78 +155,87 @@ const BibleStudies = () => {
           {/* Tab Panel 1: Modules */}
           {activeTab === 0 && (
             <Grid container spacing={3}>
-              {studySeries.map((study) => (
-                <Grid item xs={12} sm={6} key={study.id}>
-                  <Card 
-                    sx={{ 
-                      p: 3, 
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      border: study.active ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
-                      transition: 'transform 0.2s',
-                      '&:hover': { transform: 'translateY(-4px)' }
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                      <Avatar sx={{ 
-                        bgcolor: study.active ? theme.palette.primary.main : theme.palette.action.selected,
-                        color: study.active ? '#fff' : theme.palette.text.secondary
-                      }}>
-                        <Bookmark size={20} />
-                      </Avatar>
-                      {study.active && <Chip label="Current" color="primary" size="small" />}
-                    </Box>
-
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: theme.palette.text.primary }}>
-                      {study.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
-                      {study.subtitle}
-                    </Typography>
-
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary">{study.sessions} Sessions</Typography>
-                        {study.active && <Typography variant="caption" color="primary.main">{study.progress}% Complete</Typography>}
-                      </Box>
-                      {study.active && (
-                        <LinearProgress variant="determinate" value={study.progress} sx={{ borderRadius: 2, height: 6 }} />
-                      )}
-                    </Box>
-
-                    {study.active ? (
-                      <Button variant="outlined" endIcon={<ChevronRight size={16} />} fullWidth>
-                        Resume Study
-                      </Button>
-                    ) : (
-                      <Button color="inherit" sx={{ color: 'text.secondary' }}>View Details</Button>
-                    )}
-                  </Card>
+              {studySeries.length === 0 ? (
+                <Grid item xs={12}>
+                  <Typography variant="body1" color="text.secondary" sx={{ p: 4, textAlign: 'center' }}>
+                    No study series found.
+                  </Typography>
                 </Grid>
-              ))}
+              ) : (
+                studySeries.map((study) => (
+                  <Grid item xs={12} sm={6} key={study.id}>
+                    <Card 
+                      sx={{ 
+                        p: 3, 
+                        height: '100%', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        border: study.active ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+                        transition: 'transform 0.2s',
+                        '&:hover': { transform: 'translateY(-4px)' }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                        <Avatar sx={{ 
+                          bgcolor: study.active ? theme.palette.primary.main : theme.palette.action.selected,
+                          color: study.active ? '#fff' : theme.palette.text.secondary
+                        }}>
+                          <Bookmark size={20} />
+                        </Avatar>
+                        {study.active && <Chip label="Current" color="primary" size="small" />}
+                      </Box>
+
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: theme.palette.text.primary }}>
+                        {study.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
+                        {study.subtitle}
+                      </Typography>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary">{study.sessions} Sessions</Typography>
+                          {study.active && <Typography variant="caption" color="primary.main">{study.progress}% Complete</Typography>}
+                        </Box>
+                        {study.active && (
+                          <LinearProgress variant="determinate" value={study.progress} sx={{ borderRadius: 2, height: 6 }} />
+                        )}
+                      </Box>
+
+                      {study.active ? (
+                        <Button variant="outlined" endIcon={<ChevronRight size={16} />} fullWidth onClick={() => alert('Resume study!')}>
+                          Resume Study
+                        </Button>
+                      ) : (
+                        <Button color="inherit" sx={{ color: 'text.secondary' }} onClick={() => setSelectedStudy(study)}>View Details</Button>
+                      )}
+                    </Card>
+                  </Grid>
+                ))
+              )}
             </Grid>
           )}
 
-          {/* Tab Panel 2: Resources (Placeholder logic) */}
+          {/* Tab Panel 2: Resources */}
           {activeTab === 1 && (
-            <Typography variant="body1" color="text.secondary" sx={{ p: 4, textAlign: 'center' }}>
-              Library view content would go here.
-            </Typography>
-          )}
-        </Grid>
-
-        {/* --- RIGHT COL: SIDEBAR RESOURCES --- */}
-        <Grid item xs={12} md={4}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: theme.palette.text.primary }}>Recent Material</Typography>
-          
-          <Card sx={{ mb: 4 }}>
-            <List>
-              {resources.map((res, index) => (
-                <React.Fragment key={res.id}>
-                  <ListItem 
+            <Box>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Search resources..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Button variant={filterType === 'all' ? 'contained' : 'outlined'} onClick={() => setFilterType('all')}>All</Button>
+                <Button variant={filterType === 'pdf' ? 'contained' : 'outlined'} onClick={() => setFilterType('pdf')}>PDF</Button>
+                <Button variant={filterType === 'audio' ? 'contained' : 'outlined'} onClick={() => setFilterType('audio')}>Audio</Button>
+              </Box>
+              <List>
+                {filteredResources.map((res, index) => (
+                  <ListItem
+                    key={res.id}
                     secondaryAction={
-                      <IconButton edge="end" size="small">
+                      <IconButton edge="end" size="small" onClick={() => window.open(res.type === 'pdf' ? 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', '_blank')}>
                         {res.type === 'audio' ? <Play size={16} /> : <Download size={16} />}
                       </IconButton>
                     }
@@ -233,15 +245,53 @@ const BibleStudies = () => {
                         {res.type === 'pdf' ? <FileText size={20} /> : <Headphones size={20} />}
                       </Avatar>
                     </ListItemAvatar>
-                    <ListItemText 
-                      primary={res.title} 
+                    <ListItemText
+                      primary={res.title}
                       primaryTypographyProps={{ fontSize: 14, fontWeight: 500, color: theme.palette.text.primary }}
                       secondary={`${res.type.toUpperCase()} • ${res.size}`}
                     />
                   </ListItem>
-                  {index < resources.length - 1 && <Divider variant="inset" component="li" />}
-                </React.Fragment>
-              ))}
+                ))}
+              </List>
+            </Box>
+          )}
+        </Grid>
+
+        {/* --- RIGHT COL: SIDEBAR RESOURCES --- */}
+        <Grid item xs={12} md={4}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: theme.palette.text.primary }}>Recent Material</Typography>
+          
+          <Card sx={{ mb: 4 }}>
+            <List>
+              {resources.length === 0 ? (
+                <ListItem>
+                  <ListItemText primary="No recent materials found." />
+                </ListItem>
+              ) : (
+                resources.map((res, index) => (
+                  <React.Fragment key={res.id}>
+                    <ListItem 
+                      secondaryAction={
+                        <IconButton edge="end" size="small" onClick={() => alert(res.type === 'audio' ? 'Playing audio...' : 'Downloading...')}>
+                          {res.type === 'audio' ? <Play size={16} /> : <Download size={16} />}
+                        </IconButton>
+                      }
+                    >
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+                          {res.type === 'pdf' ? <FileText size={20} /> : <Headphones size={20} />}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText 
+                        primary={res.title} 
+                        primaryTypographyProps={{ fontSize: 14, fontWeight: 500, color: theme.palette.text.primary }}
+                        secondary={`${res.type.toUpperCase()} • ${res.size}`}
+                      />
+                    </ListItem>
+                    {index < resources.length - 1 && <Divider variant="inset" component="li" />}
+                  </React.Fragment>
+                ))
+              )}
             </List>
           </Card>
 
@@ -257,6 +307,11 @@ const BibleStudies = () => {
         </Grid>
 
       </Grid>
+      <StudyDetailsDialog
+        open={selectedStudy !== null}
+        onClose={() => setSelectedStudy(null)}
+        study={selectedStudy}
+      />
     </Box>
   );
 };

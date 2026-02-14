@@ -31,6 +31,7 @@ import {
   MapPin 
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
+import MemberDetailsDialog from '../components/MemberDetailsDialog';
 
 const API_BASE_URL = 'http://localhost:3002/api';
 
@@ -39,6 +40,7 @@ const Members = () => {
   
   // --- STATE ---
   const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +73,36 @@ const Members = () => {
     }
   };
 
+  const handleViewDetails = (member) => {
+    setSelectedMember(member);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedMember(null);
+  };
+
+  const handleEdit = async (id, updatedMember) => {
+    try {
+      await axios.put(`${API_BASE_URL}/members/${id}`, updatedMember);
+      fetchMembers();
+      handleCloseDetails();
+    } catch (err) {
+      alert('Failed to update member.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this member?')) {
+      try {
+        await axios.delete(`${API_BASE_URL}/members/${id}`);
+        fetchMembers();
+        handleCloseDetails();
+      } catch (err) {
+        alert('Failed to delete member.');
+      }
+    }
+  };
+
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     m.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -99,8 +131,9 @@ const Members = () => {
           <Button 
             variant="outlined" 
             startIcon={<Printer size={16} />}
-            onClick={() => alert("Printing feature coming soon")}
+            onClick={() => window.print()}
             sx={{ borderRadius: 2 }}
+            disabled={members.length === 0}
           >
             Print
           </Button>
@@ -142,6 +175,7 @@ const Members = () => {
         </Box>
 
         {/* Data Table */}
+        <div className="printable-area">
         <TableContainer sx={{ maxHeight: '65vh' }}>
           <Table stickyHeader>
             <TableHead>
@@ -226,7 +260,7 @@ const Members = () => {
                     {/* Actions Column */}
                     <TableCell align="right">
                       <Tooltip title="View Details">
-                        <IconButton size="small">
+                        <IconButton size="small" onClick={() => handleViewDetails(member)}>
                           <MoreVertical size={16} />
                         </IconButton>
                       </Tooltip>
@@ -237,13 +271,21 @@ const Members = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        </div>
       </Card>
 
-      {/* Dialog */}
+      {/* Dialogs */}
       <AddMemberDialog
         open={openAddMemberDialog}
         onClose={() => setOpenAddMemberDialog(false)}
         onAddMember={handleAddMember}
+      />
+      <MemberDetailsDialog
+        open={selectedMember !== null}
+        onClose={handleCloseDetails}
+        member={selectedMember}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
       />
     </Box>
   );

@@ -107,6 +107,24 @@ app.get('/', (req, res) => {
 app.get('/api/members', (req, res) => handleGet(res, 'members'));
 app.post('/api/members', (req, res) => handlePost(req, res, 'members'));
 
+app.delete('/api/members/:id', (req, res) => {
+  const db = readDB();
+  db.members = db.members.filter(member => member.id !== parseInt(req.params.id));
+  writeDB(db);
+  res.status(204).send();
+});
+
+app.put('/api/members/:id', (req, res) => {
+  const db = readDB();
+  const memberIndex = db.members.findIndex(member => member.id === parseInt(req.params.id));
+  if (memberIndex === -1) {
+    return res.status(404).send('Member not found');
+  }
+  db.members[memberIndex] = { ...db.members[memberIndex], ...req.body };
+  writeDB(db);
+  res.json(db.members[memberIndex]);
+});
+
 // Transactions API
 app.get('/api/transactions', (req, res) => handleGet(res, 'transactions'));
 app.post('/api/transactions', (req, res) => handlePost(req, res, 'transactions'));
@@ -118,6 +136,30 @@ app.post('/api/attendance', (req, res) => handlePost(req, res, 'attendance'));
 // Events API
 app.get('/api/events', (req, res) => handleGet(res, 'events'));
 app.post('/api/events', (req, res) => handlePost(req, res, 'events'));
+
+app.delete('/api/events/:id', (req, res) => {
+  const db = readDB();
+  db.events = db.events.filter(event => event.id !== parseInt(req.params.id));
+  writeDB(db);
+  res.status(204).send();
+});
+
+app.put('/api/events/:id', (req, res) => {
+  const db = readDB();
+  const eventIndex = db.events.findIndex(event => event.id === parseInt(req.params.id));
+  if (eventIndex === -1) {
+    return res.status(404).send('Event not found');
+  }
+  db.events[eventIndex] = { ...db.events[eventIndex], ...req.body };
+  writeDB(db);
+  res.json(db.events[eventIndex]);
+});
+
+// Bible Studies API
+app.get('/api/bible-studies', (req, res) => handleGet(res, 'bible-studies'));
+
+// Resources API
+app.get('/api/resources', (req, res) => handleGet(res, 'resources'));
 
 // --- Start Server ---
 app.listen(port, () => {

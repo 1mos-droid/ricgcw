@@ -192,7 +192,7 @@ const Attendance = () => {
                 size="large"
                 startIcon={submitting ? <CircularProgress size={20} color="inherit"/> : <Save size={20} />}
                 onClick={handleSave}
-                disabled={submitting}
+                disabled={submitting || selectedAttendees.size === 0}
                 sx={{ borderRadius: 3, py: 1.5 }}
               >
                 {submitting ? 'Saving Register...' : 'Save Attendance Record'}

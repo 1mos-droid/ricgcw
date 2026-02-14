@@ -58,5 +58,47 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb:hover {
+
   background-color: rgba(150, 150, 150, 0.7);
+
+}
+
+
+
+@media print {
+
+  /* Hide everything by default */
+
+  body * {
+
+    visibility: hidden;
+
+  }
+
+
+
+  /* Then, show only the container that we want to print and its children */
+
+  .printable-area, .printable-area * {
+
+    visibility: visible;
+
+  }
+
+
+
+  /* Position the printable area at the top of the page */
+
+  .printable-area {
+
+    position: absolute;
+
+    left: 0;
+
+    top: 0;
+
+    width: 100%;
+
+  }
+
 }

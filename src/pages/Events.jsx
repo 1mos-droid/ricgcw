@@ -24,8 +24,10 @@ import {
   Plus, 
   Trash2, 
   Map,
-  ArrowRight
+  ArrowRight,
+  Edit
 } from 'lucide-react';
+import EditEventDialog from '../components/EditEventDialog';
 
 const API_BASE_URL = 'http://localhost:3002/api';
 
@@ -36,6 +38,7 @@ const Events = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -87,6 +90,27 @@ const Events = () => {
       alert("Failed to schedule event.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      try {
+        await axios.delete(`${API_BASE_URL}/events/${id}`);
+        fetchEvents();
+      } catch (err) {
+        alert('Failed to delete event.');
+      }
+    }
+  };
+
+  const handleEditEvent = async (id, updatedEvent) => {
+    try {
+      await axios.put(`${API_BASE_URL}/events/${id}`, updatedEvent);
+      fetchEvents();
+      setEditingEvent(null);
+    } catch (err) {
+      alert('Failed to update event.');
     }
   };
 
@@ -191,7 +215,7 @@ const Events = () => {
                     variant="contained" 
                     fullWidth 
                     size="large"
-                    disabled={submitting}
+                    disabled={submitting || !formData.name || !formData.date || !formData.time}
                     sx={{ mt: 1, py: 1.5, borderRadius: 3 }}
                   >
                     {submitting ? <CircularProgress size={24} color="inherit" /> : 'Publish to Calendar'}
@@ -265,8 +289,13 @@ const Events = () => {
                     </Box>
 
                     {/* Action */}
-                    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                      <Chip label="Upcoming" size="small" sx={{ bgcolor: theme.palette.action.hover, fontWeight: 600 }} />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton size="small" onClick={() => setEditingEvent(event)}>
+                        <Edit size={16} />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => handleDelete(event.id)}>
+                        <Trash2 size={16} />
+                      </IconButton>
                     </Box>
                   </Card>
                 ))
@@ -276,6 +305,13 @@ const Events = () => {
         </Grid>
 
       </Grid>
+
+      <EditEventDialog
+        open={editingEvent !== null}
+        onClose={() => setEditingEvent(null)}
+        onEditEvent={handleEditEvent}
+        event={editingEvent}
+      />
     </Box>
   );
 };

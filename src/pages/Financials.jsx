@@ -81,6 +81,25 @@ const Financials = () => {
   const balance = totalIncome - totalExpense;
 
   // --- HANDLERS ---
+  const handleExport = () => {
+    const headers = "ID,Type,Description,Amount,Date\n";
+    const csv = getFilteredTransactions().map(tx => {
+      return `${tx.id},${tx.type},${tx.description},${tx.amount},${tx.date}`;
+    }).join('\n');
+
+    const blob = new Blob([headers + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+      URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `financial_report_${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleTransaction = async (e) => {
     e.preventDefault();
     if (!amount || !description) return;
@@ -135,6 +154,8 @@ const Financials = () => {
           variant="outlined" 
           startIcon={<Download size={16} />} 
           sx={{ borderRadius: 2, display: { xs: 'none', sm: 'flex' } }}
+          onClick={handleExport}
+          disabled={transactions.length === 0}
         >
           Export Report
         </Button>
@@ -258,7 +279,7 @@ const Financials = () => {
                     fullWidth 
                     variant="contained" 
                     size="large"
-                    disabled={submitting}
+                    disabled={submitting || !amount || !description}
                     sx={{ py: 1.5, borderRadius: 3 }}
                   >
                     {submitting ? <CircularProgress size={24} color="inherit" /> : 'Log Transaction'}

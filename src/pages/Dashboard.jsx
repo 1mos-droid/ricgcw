@@ -27,6 +27,7 @@ import {
   CreditCard,
   Clock
 } from 'lucide-react';
+// import FinancialChart from '../components/FinancialChart';
 
 const API_BASE_URL = 'http://localhost:3002/api';
 
@@ -84,13 +85,19 @@ const Dashboard = () => {
     .filter(e => new Date(e.date) >= new Date())
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 3);
+  
+  const recentActivity = [
+    ...data.members.slice(-2).map(m => ({ type: 'member', data: m, date: new Date() })),
+    ...data.transactions.slice(-2).map(t => ({ type: 'transaction', data: t, date: new Date(t.date) })),
+    ...data.events.slice(-2).map(e => ({ type: 'event', data: e, date: new Date(e.date) })),
+  ].sort((a, b) => b.date - a.date).slice(0, 5);
 
   // --- ANIMATION ---
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
-
+  
   if (error) return (
     <Box sx={{ p: 4, textAlign: 'center', color: 'error.main' }}>
       <Typography variant="h6">{error}</Typography>
@@ -132,10 +139,6 @@ const Dashboard = () => {
               <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, borderRadius: 3 }}>
                 <Users size={24} />
               </Avatar>
-            </Box>
-            <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip label="+5% this month" size="small" color="success" sx={{ borderRadius: 1, fontWeight: 600 }} />
-              <Typography variant="caption" color="text.secondary">vs last month</Typography>
             </Box>
           </Card>
         </Grid>
@@ -203,18 +206,17 @@ const Dashboard = () => {
                 </Button>
               </Grid>
             </Grid>
-            <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 1, opacity: 0.8 }}>
-              <Activity size={16} />
-              <Typography variant="caption">Server Latency: 12ms</Typography>
-            </Box>
           </Card>
         </Grid>
 
       </Grid>
 
-      {/* --- AGENDA SECTION --- */}
+      {/* --- CHART AND AGENDA SECTION --- */}
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        {/* <Grid item xs={12} lg={8}>
+          <FinancialChart data={chartData} />
+        </Grid> */}
+        <Grid item xs={12} lg={12}>
           <Card sx={{ p: 0 }}>
             <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Upcoming Agenda</Typography>
@@ -271,6 +273,41 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
+      {/* --- RECENT ACTIVITY SECTION --- */}
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid item xs={12}>
+          <Card>
+            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Recent Activity</Typography>
+            </Box>
+            <Box sx={{ p: 2 }}>
+              {recentActivity.length === 0 ? (
+                <Typography sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>No recent activity.</Typography>
+              ) : (
+                recentActivity.map((activity, index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', p: 1, borderBottom: index !== recentActivity.length - 1 ? `1px solid ${theme.palette.divider}` : 'none' }}>
+                    <Avatar sx={{ mr: 2, bgcolor: activity.type === 'member' ? theme.palette.primary.light : activity.type === 'transaction' ? theme.palette.success.light : theme.palette.warning.light }}>
+                      {activity.type === 'member' && <Users size={20} color={theme.palette.primary.main} />}
+                      {activity.type === 'transaction' && <DollarSign size={20} color={theme.palette.success.main} />}
+                      {activity.type === 'event' && <Calendar size={20} color={theme.palette.warning.main} />}
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2">
+                        {activity.type === 'member' && `New member added: ${activity.data.name}`}
+                        {activity.type === 'transaction' && `New transaction: ${activity.data.description} ($${activity.data.amount})`}
+                        {activity.type === 'event' && `New event: ${activity.data.name}`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {format(activity.date, 'Pp')}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))
+              )}
+            </Box>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
