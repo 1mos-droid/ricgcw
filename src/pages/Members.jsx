@@ -24,7 +24,11 @@ import {
   useMediaQuery,
   Snackbar,
   Alert,
-  Skeleton
+  Skeleton,
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem 
 } from '@mui/material';
 import { 
   UserPlus, 
@@ -53,6 +57,7 @@ const Members = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState(''); // NEW: State for selected branch
   
   // Feedback State
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -130,6 +135,32 @@ const Members = () => {
     }
   };
 
+  const getStatusChip = (status) => {
+    const statusMap = {
+      active: { label: 'Active', color: 'success' },
+      inactive: { label: 'Inactive', color: 'warning' },
+      discontinued: { label: 'Discontinued', color: 'error' },
+    };
+    const { label, color } = statusMap[status] || { label: 'Unknown', color: 'default' };
+
+    return (
+      <Chip
+        label={label}
+        size="small"
+        color={color}
+        variant="outlined"
+        sx={{
+          bgcolor: theme.palette[color]?.light || theme.palette.grey[200],
+          color: theme.palette[color]?.dark || theme.palette.text.secondary,
+          border: 'none',
+          fontWeight: 700,
+          textTransform: 'capitalize',
+        }}
+      />
+    );
+  };
+
+
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
@@ -181,7 +212,7 @@ const Members = () => {
       <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[3], borderRadius: 3 }}>
         
         {/* Search Bar */}
-        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <TextField
             fullWidth
             placeholder="Search by name or email..."
@@ -202,6 +233,24 @@ const Members = () => {
               } 
             }}
           />
+          <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small">
+            <InputLabel id="branch-select-label">Branch</InputLabel>
+            <Select
+              labelId="branch-select-label"
+              id="branch-select"
+              value={selectedBranch}
+              label="Branch"
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              sx={{ borderRadius: 2 }}
+            >
+              <MenuItem value="">
+                <em>All Branches</em>
+              </MenuItem>
+              <MenuItem value="Langma">Langma</MenuItem>
+              <MenuItem value="Mallam">Mallam</MenuItem>
+              <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
 
         {loading ? (
@@ -226,7 +275,7 @@ const Members = () => {
         ) : isMobile ? (
           // MOBILE LIST VIEW
           <Grid container spacing={2} sx={{ p: 2 }}>
-            {filteredMembers.map(member => (
+            {filteredMembers.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map(member => (
               <Grid item xs={12} key={member.id}>
                 <Card 
                     sx={{ 
@@ -251,6 +300,9 @@ const Members = () => {
                             <Cake size={12}/> {formatDOB(member.dob)}
                         </Typography>
                     )}
+                    <Box sx={{ mt: 1 }}>
+                      {getStatusChip(member.status)}
+                    </Box>
                   </Box>
                   <IconButton onClick={() => setSelectedMember(member)}>
                     <MoreVertical size={18} />
@@ -276,7 +328,7 @@ const Members = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredMembers.map((member) => (
+                  {filteredMembers.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map((member) => (
                     <TableRow 
                       key={member.id} 
                       hover 
@@ -328,13 +380,7 @@ const Members = () => {
                       </TableCell>
 
                       <TableCell>
-                        <Chip 
-                          label="Active" 
-                          size="small" 
-                          color="success" 
-                          variant="outlined" 
-                          sx={{ bgcolor: theme.palette.success.light, color: theme.palette.success.dark, border: 'none', fontWeight: 700 }} 
-                        />
+                        {getStatusChip(member.status)}
                       </TableCell>
 
                       <TableCell align="right">

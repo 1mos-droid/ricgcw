@@ -14,6 +14,7 @@ import QuickSwitch from '../pages/QuickSwitch';
 import Help from '../pages/Help';
 import Settings from '../pages/Settings';
 import BibleStudies from '../pages/BibleStudies';
+import Graph from '../pages/Graph';
 
 // --- ANIMATION CONFIGURATION ---
 // "CareOS" Feel: Fast, snappy, subtle fade-up
@@ -72,6 +73,7 @@ const AppRouter = () => {
         <Route path="/help" element={<MotionWrap><Help /></MotionWrap>} />
         <Route path="/settings" element={<MotionWrap><Settings /></MotionWrap>} />
         <Route path="/bible-studies" element={<MotionWrap><BibleStudies /></MotionWrap>} />
+        <Route path="/graph" element={<MotionWrap><Graph /></MotionWrap>} />
       </Routes>
     </AnimatePresence>
   );

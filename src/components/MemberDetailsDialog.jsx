@@ -20,7 +20,11 @@ import {
   ListItem,
   Tab,
   Tabs,
-  Card
+  Card,
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem 
 } from '@mui/material';
 import { 
   X, 
@@ -35,14 +39,14 @@ import {
   DollarSign,
   HeartHandshake,
   Plus,
-  History
+  Building
 } from 'lucide-react';
 
-// Transition for the Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+// 🔴 THE WORKING URL YOU CONFIRMED
 const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
 
 const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
@@ -52,18 +56,48 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
   const [contributions, setContributions] = useState([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
   
-  // New contribution form state
-  const [newContribution, setNewContribution] = useState({ type: 'tithe', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+  const [newContribution, setNewContribution] = useState({ 
+    type: 'tithe', 
+    amount: '', 
+    description: '', 
+    date: new Date().toISOString().split('T')[0] 
+  });
   
-  // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    status: '',
+    branch: '' // NEW: Added branch to formData
   });
 
-  // Error State
+  const getStatusChip = (status) => {
+    const statusMap = {
+      active: { label: 'Active', color: 'success' },
+      inactive: { label: 'Inactive', color: 'warning' },
+      discontinued: { label: 'Discontinued', color: 'error' },
+    };
+    const { label, color } = statusMap[status] || { label: 'Unknown', color: 'default' };
+
+    return (
+      <Chip
+        label={label}
+        size="small"
+        color={color}
+        variant="outlined"
+        sx={{
+          bgcolor: theme.palette[color]?.light || theme.palette.grey[200],
+          color: theme.palette[color]?.dark || theme.palette.text.secondary,
+          border: 'none',
+          fontWeight: 700,
+          textTransform: 'capitalize',
+        }}
+      />
+    );
+  };
+
+
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -72,12 +106,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         name: member.name || '',
         email: member.email || '',
         phone: member.phone || '',
-        address: member.address || ''
+        address: member.address || '',
+        status: member.status || 'active',
+        branch: member.branch || '' // NEW: Set branch from member data
       });
       setErrors({});
       setIsEditing(false);
       setTabValue(0);
-      fetchContributions();
     }
   }, [member, open]);
 
@@ -87,40 +122,61 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     }
   }, [member, open, tabValue]);
 
+  // 🔴 FAIL-SAFE FETCH: Get all transactions and filter for this member locally
   const fetchContributions = async () => {
     if (!member) return;
     setLoadingContributions(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/contributions?memberId=${member.id}`);
-      setContributions(response.data);
+      // We fetch from the main transactions endpoint
+      const response = await axios.get(`${API_BASE_URL}/transactions`);
+      
+      // We filter right here to ensure we ONLY see this member's data
+      // This works even if the backend filter failed to deploy
+      const memberContributions = response.data.filter(
+        item => String(item.memberId) === String(member.id)
+      );
+      
+      setContributions(memberContributions);
     } catch (err) {
-      console.log("Contributions API not available yet - contributions will be tracked locally");
+      console.log("Error fetching contributions:", err);
       setContributions([]);
     } finally {
       setLoadingContributions(false);
     }
   };
 
+  // 🔴 FAIL-SAFE SAVE: Save to transactions with the 'Private' flag
   const handleAddContribution = async () => {
     if (!newContribution.amount || !member) return;
+    
+    // Optimistic Update (Show it immediately)
+    const tempId = Date.now().toString();
+    const payload = {
+      ...newContribution,
+      memberId: String(member.id), // Ensure ID is a string
+      memberName: member.name,
+      amount: Number(newContribution.amount),
+      isPrivateMemberRecord: true // <--- THIS HIDES IT FROM DASHBOARD TOTALS
+    };
+
+    setContributions(prev => [...prev, { ...payload, id: tempId }]);
+
+    // Reset Form
+    setNewContribution({ 
+        type: 'tithe', 
+        amount: '', 
+        description: '', 
+        date: new Date().toISOString().split('T')[0] 
+    });
+
     try {
-      const response = await axios.post(`${API_BASE_URL}/contributions`, {
-        ...newContribution,
-        memberId: member.id,
-        memberName: member.name
-      });
-      setContributions(prev => [...prev, response.data]);
-      setNewContribution({ type: 'tithe', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+      // Save to the working URL
+      await axios.post(`${API_BASE_URL}/transactions`, payload);
+      console.log("Saved successfully to server!");
+      // Optionally refresh to get the real ID, but not strictly necessary immediately
     } catch (err) {
-      console.log("Contributions API not available - saving locally");
-      const localContribution = {
-        id: Date.now().toString(),
-        ...newContribution,
-        memberId: member.id,
-        memberName: member.name
-      };
-      setContributions(prev => [...prev, localContribution]);
-      setNewContribution({ type: 'tithe', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+      console.error("Server save failed:", err);
+      alert("Saved locally. Server update failed.");
     }
   };
 
@@ -150,14 +206,21 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         name: member.name || '',
         email: member.email || '',
         phone: member.phone || '',
-        address: member.address || ''
+        address: member.address || '',
+        status: member.status || 'active'
     });
     setIsEditing(false);
     setErrors({});
   };
 
-  const totalTithe = contributions.filter(c => c.type === 'tithe').reduce((sum, c) => sum + Number(c.amount), 0);
-  const totalWelfare = contributions.filter(c => c.type === 'welfare').reduce((sum, c) => sum + Number(c.amount), 0);
+  // Calculate totals for THIS member only
+  const totalTithe = contributions
+    .filter(c => c.type === 'tithe')
+    .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+    
+  const totalWelfare = contributions
+    .filter(c => c.type === 'welfare')
+    .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
   
   if (!member) return null;
 
@@ -185,7 +248,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        bgcolor: isEditing ? theme.palette.action.hover : 'transparent'
+        bgcolor: 'transparent'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {!isEditing && (
@@ -198,7 +261,10 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                 {isEditing ? 'Edit Profile' : member.name}
             </Typography>
             {!isEditing && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                {getStatusChip(member.status)}
                 <Typography variant="caption" color="text.secondary">Member ID: #{member.id}</Typography>
+              </Box>
             )}
           </Box>
         </Box>
@@ -278,6 +344,31 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       }}
                   />
                 </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="branch-select-label">Branch Attending</InputLabel>
+                    <Select
+                      labelId="branch-select-label"
+                      id="branch-select"
+                      value={formData.branch}
+                      onChange={handleChange}
+                      label="Branch Attending"
+                      name="branch"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <Building size={18} color={theme.palette.text.secondary} />
+                        </InputAdornment>
+                      }
+                    >
+                      <MenuItem value="">
+                        <em>None</em>
+                      </MenuItem>
+                      <MenuItem value="Langma">Langma</MenuItem>
+                      <MenuItem value="Mallam">Mallam</MenuItem>
+                      <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
               </Grid>
             </Box>
           ) : (
@@ -302,11 +393,20 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                   </Box>
               </Grid>
               <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                       <MapPin size={18} color={theme.palette.text.secondary} />
                       <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>ADDRESS</Typography>
                           <Typography variant="body1">{member.address || 'N/A'}</Typography>
+                      </Box>
+                  </Box>
+              </Grid>
+              <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Building size={18} color={theme.palette.text.secondary} />
+                      <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>BRANCH</Typography>
+                          <Typography variant="body1">{member.branch || 'N/A'}</Typography>
                       </Box>
                   </Box>
               </Grid>
@@ -422,50 +522,16 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         )}
       </DialogContent>
 
-      {/* --- ACTIONS --- */}
       <DialogActions sx={{ px: 4, pb: 4, pt: 1, justifyContent: 'space-between' }}>
         {isEditing ? (
-            // Edit Mode Actions
             <Box sx={{ display: 'flex', gap: 2, width: '100%', justifyContent: 'flex-end' }}>
-                <Button 
-                    onClick={handleCancelEdit} 
-                    variant="outlined" 
-                    color="inherit" 
-                    startIcon={<ArrowLeft size={16}/>}
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    onClick={handleSave} 
-                    variant="contained" 
-                    startIcon={<Save size={16}/>}
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
-                >
-                    Save Changes
-                </Button>
+                <Button onClick={handleCancelEdit} variant="outlined" color="inherit" startIcon={<ArrowLeft size={16}/>}>Cancel</Button>
+                <Button onClick={handleSave} variant="contained" startIcon={<Save size={16}/>}>Save Changes</Button>
             </Box>
         ) : (
-            // View Mode Actions
             <>
-                <Button 
-                    onClick={() => onDelete(member.id)} 
-                    variant="outlined" 
-                    color="error" 
-                    startIcon={<Trash2 size={16} />} 
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, border: `1px solid ${theme.palette.error.main}50` }}
-                >
-                    Delete Member
-                </Button>
-                <Button 
-                    onClick={() => setIsEditing(true)} 
-                    variant="contained" 
-                    color="primary" 
-                    startIcon={<Edit size={16} />} 
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
-                >
-                    Edit Profile
-                </Button>
+                <Button onClick={() => onDelete(member.id)} variant="outlined" color="error" startIcon={<Trash2 size={16} />}>Delete Member</Button>
+                <Button onClick={() => setIsEditing(true)} variant="contained" color="primary" startIcon={<Edit size={16} />}>Edit Profile</Button>
             </>
         )}
       </DialogActions>

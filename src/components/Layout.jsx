@@ -34,6 +34,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import InstallButton from './InstallButton';
 
 const drawerWidth = 260; // Slightly wider for better readability
@@ -105,6 +106,7 @@ const NAV_ITEMS = [
   { text: 'Events', icon: <EventIcon />, path: '/events' },
   { text: 'Bible Studies', icon: <MenuBookIcon />, path: '/bible-studies' },
   { text: 'Reports', icon: <DescriptionIcon />, path: '/reports' },
+  { text: 'Graph', icon: <BarChartIcon />, path: '/graph' },
   { text: 'User Management', icon: <SupervisedUserCircleIcon />, path: '/user-management' },
   { text: 'Quick Switch', icon: <SwapHorizIcon />, path: '/quick-switch' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },

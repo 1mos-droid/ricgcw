@@ -51,6 +51,7 @@ const Financials = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0); // 0: All, 1: Income, 2: Expense
   const [submitting, setSubmitting] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   
   // Notification State
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -59,6 +60,7 @@ const Financials = () => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('contribution'); // or 'expense'
+  const [category, setCategory] = useState('');
 
   // --- FETCH DATA ---
   const fetchTransactions = useCallback(async () => {
@@ -77,17 +79,6 @@ const Financials = () => {
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
-
-  // --- CALCULATIONS ---
-  const totalIncome = transactions
-    .filter(t => t.type === 'contribution')
-    .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-
-  const balance = totalIncome - totalExpense;
 
   // --- HANDLERS ---
   const showSnackbar = (message, severity) => {
@@ -118,8 +109,8 @@ const Financials = () => {
 
   const handleTransaction = async (e) => {
     e.preventDefault();
-    if (!amount || !description) {
-      showSnackbar("Please fill in all fields.", "warning");
+    if (!amount || !description || !category) {
+      showSnackbar("Please fill in all fields, including location.", "warning");
       return;
     }
 
@@ -129,6 +120,7 @@ const Financials = () => {
         amount: Number(amount),
         description,
         type,
+        category,
         date: new Date().toISOString()
       };
       
@@ -137,6 +129,7 @@ const Financials = () => {
       // Reset Form & Refresh
       setAmount('');
       setDescription('');
+      setCategory('');
       await fetchTransactions(); 
       showSnackbar("Transaction logged successfully!", "success");
     } catch (error) {
@@ -161,9 +154,14 @@ const Financials = () => {
   };
 
   const getFilteredTransactions = () => {
-    if (activeTab === 1) return transactions.filter(t => t.type === 'contribution');
-    if (activeTab === 2) return transactions.filter(t => t.type === 'expense');
-    return transactions;
+    let filtered = transactions;
+    if (selectedLocation) {
+      filtered = transactions.filter(t => t.category === selectedLocation);
+    }
+
+    if (activeTab === 1) return filtered.filter(t => t.type === 'contribution');
+    if (activeTab === 2) return filtered.filter(t => t.type === 'expense');
+    return filtered;
   };
 
   const containerVariants = {
@@ -171,6 +169,17 @@ const Financials = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
   };
 
+  // --- CALCULATIONS ---
+  const totalIncome = getFilteredTransactions()
+    .filter(t => t.type === 'contribution')
+    .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+  const totalExpense = getFilteredTransactions()
+    .filter(t => t.type === 'expense')
+    .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+  const balance = totalIncome - totalExpense;
+  
   return (
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
@@ -211,6 +220,36 @@ const Financials = () => {
                 <Download size={20} />
             </IconButton>
         </Box>
+      </Box>
+
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <Button 
+          variant={selectedLocation === 'Mallam' ? 'contained' : 'outlined'} 
+          onClick={() => setSelectedLocation('Mallam')}
+        >
+          Mallam
+        </Button>
+        <Button 
+          variant={selectedLocation === 'Kokrobetey' ? 'contained' : 'outlined'}
+          onClick={() => setSelectedLocation('Kokrobetey')}
+        >
+          Kokrobetey
+        </Button>
+        <Button 
+          variant={selectedLocation === 'Langma' ? 'contained' : 'outlined'}
+          onClick={() => setSelectedLocation('Langma')}
+        >
+          Langma
+        </Button>
+        {selectedLocation && (
+          <Button 
+            variant='outlined'
+            color='error'
+            onClick={() => setSelectedLocation(null)}
+          >
+            Clear
+          </Button>
+        )}
       </Box>
 
       {/* --- STATS GRID --- */}
@@ -345,6 +384,24 @@ const Financials = () => {
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="e.g. Utility Bill"
                   />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Location"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    SelectProps={{
+                      native: true,
+                    }}
+                  >
+                    <option value=""></option>
+                    <option value="Mallam">Mallam</option>
+                    <option value="Kokrobetey">Kokrobetey</option>
+                    <option value="Langma">Langma</option>
+                  </TextField>
                 </Grid>
 
                 <Grid item xs={12}>

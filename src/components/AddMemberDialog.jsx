@@ -11,9 +11,14 @@ import {
   useTheme,
   Grid,
   Slide,
-  InputAdornment
+  InputAdornment,
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem,
+  FormHelperText 
 } from '@mui/material';
-import { X, UserPlus, User, Mail, Phone, MapPin, Cake } from 'lucide-react'; // 🟢 Added Cake Icon
+import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building } from 'lucide-react'; // 🟢 Added Cake Icon
 
 // Transition for the Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -29,7 +34,8 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     email: '',
     phone: '',
     address: '',
-    dob: '' // 🟢 Added Date of Birth state
+    dob: '', // 🟢 Added Date of Birth state
+    branch: '' // 🟢 Added branch state
   });
 
   // Error State
@@ -38,7 +44,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setFormData({ name: '', email: '', phone: '', address: '', dob: '' });
+      setFormData({ name: '', email: '', phone: '', address: '', dob: '', branch: '' });
       setErrors({});
     }
   }, [open]);
@@ -54,6 +60,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const validate = () => {
     let tempErrors = {};
     if (!formData.name.trim()) tempErrors.name = "Full Name is required";
+    if (!formData.branch) tempErrors.branch = "Branch attending is required";
     // Optional: Add email/phone validation regex here if needed
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -219,6 +226,34 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   ),
                 }}
               />
+            </Grid>
+
+            {/* 🟢 NEW: Branch Selection Field */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth variant="outlined" required error={!!errors.branch}>
+                <InputLabel id="branch-select-label">Branch Attending</InputLabel>
+                <Select
+                  labelId="branch-select-label"
+                  id="branch-select"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  label="Branch Attending"
+                  name="branch"
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Building size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  <MenuItem value="Langma">Langma</MenuItem>
+                  <MenuItem value="Mallam">Mallam</MenuItem>
+                  <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+                </Select>
+                {errors.branch && <FormHelperText>{errors.branch}</FormHelperText>}
+              </FormControl>
             </Grid>
 
           </Grid>
