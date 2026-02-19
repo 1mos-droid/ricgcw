@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   AppBar, 
@@ -17,8 +17,14 @@ import {
   CssBaseline, 
   useMediaQuery,
   Avatar,
-  Tooltip
+  Tooltip,
+  Menu,
+  MenuItem
 } from '@mui/material';
+
+import { useColorMode } from '../theme';
+import { useWorkspace } from '../context/WorkspaceContext';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 // Icons
 import MenuIcon from '@mui/icons-material/Menu';
@@ -35,11 +41,11 @@ import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import InstallButton from './InstallButton';
 
-const drawerWidth = 260; // Slightly wider for better readability
-
-// --- STYLED COMPONENTS ---
+const drawerWidth = 260;
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
@@ -49,9 +55,7 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    marginLeft: 0, // Default for mobile (no margin shift)
-    
-    // Desktop Styles
+    marginLeft: 0,
     [theme.breakpoints.up('md')]: {
       marginLeft: `-${drawerWidth}px`,
       ...(open && {
@@ -67,13 +71,11 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
 
 const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
-    zIndex: theme.zIndex.drawer + 1, // Ensure AppBar is above drawer on mobile
+    zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(['width', 'margin'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    
-    // Desktop Styles
     [theme.breakpoints.up('md')]: {
       ...(open && {
         marginLeft: drawerWidth,
@@ -91,12 +93,9 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(0, 2),
-  // necessary for content to be below app bar
   ...theme.mixins.toolbar,
   justifyContent: 'space-between',
 }));
-
-// --- CONFIGURATION ---
 
 const NAV_ITEMS = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
@@ -113,18 +112,45 @@ const NAV_ITEMS = [
   { text: 'Help', icon: <HelpCenterIcon />, path: '/help' },
 ];
 
-// --- COMPONENT ---
-
-const Layout = ({ children }) => {
+const AppLayout = ({ children }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Check if screen is mobile
-  const location = useLocation(); // Get current route
+  const navigate = useNavigate();
+  const { mode, toggleColorMode } = useColorMode();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
+  const { userRole } = useWorkspace(); // 🟢 Get user role
   
-  // State
-  const [open, setOpen] = useState(true); // Desktop state
-  const [mobileOpen, setMobileOpen] = useState(false); // Mobile state
+  const isLoginPage = location.pathname === '/login';
 
-  // Close mobile drawer when route changes
+  // Filter NAV_ITEMS based on role
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (userRole === 'admin') return true;
+    
+    // Restricted pages for branch admins
+    const restrictedPaths = ['/user-management', '/quick-switch', '/graph'];
+    return !restrictedPaths.includes(item.path);
+  });
+
+  const [open, setOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userBranch');
+    handleClose();
+    navigate('/login');
+  };
+
   useEffect(() => {
     if (isMobile) setMobileOpen(false);
   }, [location.pathname, isMobile]);
@@ -137,70 +163,28 @@ const Layout = ({ children }) => {
     }
   };
 
-  // Drawer Content (Shared between Mobile & Desktop)
   const drawerContent = (
     <>
       <DrawerHeader>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {/* Logo Fallback: If image fails, show Avatar */}
-          <Avatar 
-            src="/ricgcw.png" 
-            alt="Logo" 
-            variant="rounded" 
-            sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}
-          >
-            R
-          </Avatar>
-          <Typography variant="h6" fontWeight={700} color="primary" noWrap>
-            RICGCW CMS
-          </Typography>
+          <Avatar src="/ricgcw.png" variant="rounded" sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>R</Avatar>
+          <Typography variant="h6" fontWeight={700} color="primary" noWrap>RICGCW CMS</Typography>
         </Box>
-        {/* Only show close chevron on Desktop Persistent Drawer */}
         {!isMobile && (
-          <IconButton onClick={handleDrawerToggle}>
-            <ChevronLeftIcon />
-          </IconButton>
+          <IconButton onClick={handleDrawerToggle}><ChevronLeftIcon /></IconButton>
         )}
       </DrawerHeader>
-      
       <List sx={{ px: 1.5, py: 1 }}>
-        {NAV_ITEMS.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = location.pathname === item.path;
-          
           return (
-            <motion.div 
-              key={item.text}
-              whileHover={{ scale: 1.02, x: 4 }} 
-              whileTap={{ scale: 0.98 }}
-            >
+            <motion.div key={item.text} whileHover={{ scale: 1.02, x: 4 }} whileTap={{ scale: 0.98 }}>
               <ListItemButton 
-                component={Link} 
-                to={item.path}
-                selected={isActive}
-                sx={{
-                  mb: 0.5,
-                  borderRadius: 2,
-                  bgcolor: isActive ? theme.palette.action.selected : 'transparent',
-                  borderLeft: isActive ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
-                  '&.Mui-selected': {
-                    bgcolor: theme.palette.primary.main + '15', // Transparent primary
-                    '&:hover': { bgcolor: theme.palette.primary.main + '25' }
-                  }
-                }}
+                component={Link} to={item.path} selected={isActive}
+                sx={{ mb: 0.5, borderRadius: 2, '&.Mui-selected': { bgcolor: theme.palette.action.selected } }}
               >
-                <ListItemIcon sx={{ 
-                  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                  minWidth: 40
-                }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={item.text} 
-                  primaryTypographyProps={{ 
-                    fontWeight: isActive ? 700 : 500,
-                    color: isActive ? theme.palette.primary.main : theme.palette.text.primary
-                  }} 
-                />
+                <ListItemIcon sx={{ color: isActive ? theme.palette.primary.main : theme.palette.text.secondary, minWidth: 40 }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: isActive ? 700 : 500, color: isActive ? theme.palette.primary.main : theme.palette.text.primary }} />
               </ListItemButton>
             </motion.div>
           );
@@ -209,86 +193,53 @@ const Layout = ({ children }) => {
     </>
   );
 
+  if (isLoginPage) {
+    return (
+      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.palette.background.default }}>
+        <CssBaseline />
+        <Box component="main" sx={{ flexGrow: 1 }}>{children}</Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.palette.background.default }}>
       <CssBaseline />
-      
-      {/* --- TOP BAR --- */}
       <AppBarStyled position="fixed" open={open} elevation={0} sx={{ bgcolor: theme.palette.background.paper, color: theme.palette.text.primary, borderBottom: `1px solid ${theme.palette.divider}` }}>
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerToggle}
-            edge="start"
-            sx={{ mr: 2, ...(open && !isMobile && { display: 'none' }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
+          <IconButton color="inherit" onClick={handleDrawerToggle} edge="start" sx={{ mr: 2, ...(open && !isMobile && { display: 'none' }) }}><MenuIcon /></IconButton>
           <Box sx={{ flexGrow: 1 }} />
-
           <InstallButton />
-
-          {/* Top Right Profile / Actions */}
-          <Tooltip title="Admin Profile">
-            <IconButton size="small" sx={{ ml: 2 }}>
-              <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.secondary.main, fontSize: 14 }}>
-                KM
-              </Avatar>
-            </IconButton>
-          </Tooltip>
+          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">{mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}</IconButton>
+          <IconButton size="small" sx={{ ml: 2 }} onClick={handleMenu}><Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.secondary.main, fontSize: 14 }}>KM</Avatar></IconButton>
+          <Menu
+            anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }} anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{ sx: { mt: 1.5, borderRadius: 2, minWidth: 150, boxShadow: theme.shadows[3], border: `1px solid ${theme.palette.divider}` } }}
+          >
+            <MenuItem onClick={handleClose} sx={{ py: 1, fontWeight: 500 }}>My Profile</MenuItem>
+            <MenuItem onClick={handleClose} sx={{ py: 1, fontWeight: 500 }}>Settings</MenuItem>
+            <Box sx={{ my: 1, borderTop: `1px solid ${theme.palette.divider}` }} />
+            <MenuItem onClick={handleLogout} sx={{ py: 1, fontWeight: 600, color: theme.palette.error.main }}>
+              <ListItemIcon sx={{ color: theme.palette.error.main }}><LogoutIcon fontSize="small" /></ListItemIcon>
+              Sign Out
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBarStyled>
-
-      {/* --- DRAWER (RESPONSIVE) --- */}
       <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-        {/* Mobile: Temporary Drawer (Overlays content) */}
         {isMobile ? (
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{ keepMounted: true }} // Better open performance on mobile
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-            }}
-          >
-            {drawerContent}
-          </Drawer>
+          <Drawer variant="temporary" open={mobileOpen} onClose={handleDrawerToggle} ModalProps={{ keepMounted: true }} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth } }}>{drawerContent}</Drawer>
         ) : (
-          // Desktop: Persistent Drawer (Pushes content)
-          <Drawer
-            variant="persistent"
-            anchor="left"
-            open={open}
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` },
-            }}
-          >
-            {drawerContent}
-          </Drawer>
+          <Drawer variant="persistent" anchor="left" open={open} sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: `1px solid ${theme.palette.divider}` } }}>{drawerContent}</Drawer>
         )}
       </Box>
-
-      {/* --- MAIN CONTENT AREA --- */}
       <Main open={open}>
-        <Toolbar /> {/* Spacer for fixed AppBar */}
-        
-        {/* Content Fade In Animation */}
-        <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {children}
-        </motion.div>
+        <Toolbar />
+        <motion.div key={location.pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>{children}</motion.div>
       </Main>
     </Box>
   );
 };
 
-export default Layout;
+export default AppLayout;

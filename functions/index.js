@@ -8,7 +8,7 @@
  */
 
 const { onRequest } = require("firebase-functions/v2/https");
-const functions = require("firebase-functions"); // Import v1 SDK for scheduled functions
+const { onSchedule } = require("firebase-functions/v2/scheduler"); // 🟢 Added for v2 scheduling
 const admin = require("firebase-admin");
 const express = require("express");
 const cors = require("cors");
@@ -20,9 +20,36 @@ const db = admin.firestore();
 // Initialize Express App
 const app = express();
 
-// Automatically allow cross-origin requests (Allows your React app to talk to this)
+// Automatically allow cross-origin requests
 app.use(cors({ origin: true }));
 app.use(express.json());
+
+// --- SECURE LOGIN ENDPOINT ---
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  // Pre-defined users (In a real app, these would be hashed in a DB)
+  const users = [
+    { email: 'admin@ricgcw.com', password: 'admin123', role: 'admin', branch: 'all' },
+    { email: 'langma@ricgcw.com', password: 'langma123', role: 'branch_admin', branch: 'Langma' },
+    { email: 'mallam@ricgcw.com', password: 'mallam123', role: 'branch_admin', branch: 'Mallam' },
+    { email: 'kokrobetey@ricgcw.com', password: 'kokrobetey123', role: 'branch_admin', branch: 'Kokrobetey' },
+  ];
+
+  const user = users.find(u => u.email === email && u.password === password);
+
+  if (user) {
+    // Return only the necessary non-sensitive info
+    res.status(200).json({
+      isAuthenticated: true,
+      role: user.role,
+      branch: user.branch,
+      email: user.email
+    });
+  } else {
+    res.status(401).json({ message: "Invalid credentials" });
+  }
+});
 
 // --- GENERIC CRUD HANDLER ---
 // This smart function handles GET, POST, PUT, DELETE for ANY collection
@@ -87,6 +114,64 @@ app.use("/attendance", createHandler("attendance"));
 app.use("/transactions", createHandler("transactions"));
 app.use("/resources", createHandler("resources"));
 app.use("/bible-studies", createHandler("bible-studies"));
+
+// --- SCHEDULED BIRTHDAY EVENTS ---
+// Runs every day at midnight (UTC)
+exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
+  const today = new Date();
+  
+  // Calculate the target date (14 days from now)
+  const targetDate = new Date();
+  targetDate.setDate(today.getDate() + 14);
+  
+  const targetMonth = targetDate.getMonth() + 1; // 1-12
+  const targetDay = targetDate.getDate();
+
+  console.log(`Checking for birthdays on ${targetMonth}/${targetDay} (2 weeks from now)`);
+
+  try {
+    const membersSnapshot = await db.collection("members").get();
+    const members = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const birthdaysToday = members.filter(member => {
+      if (!member.dob) return false;
+      
+      const dob = new Date(member.dob);
+      return (dob.getMonth() + 1) === targetMonth && dob.getDate() === targetDay;
+    });
+
+    console.log(`Found ${birthdaysToday.length} members with birthdays in 2 weeks.`);
+
+    for (const member of birthdaysToday) {
+      const eventName = `🎂 Birthday: ${member.name}`;
+      
+      // Check if event already exists to avoid duplicates
+      const existingEvents = await db.collection("events")
+        .where("name", "==", eventName)
+        .where("date", "==", targetDate.toISOString().split('T')[0] + "T00:00:00.000Z")
+        .get();
+
+      if (existingEvents.empty) {
+        const newEvent = {
+          name: eventName,
+          date: targetDate.toISOString().split('T')[0] + "T00:00:00.000Z",
+          time: "00:00",
+          location: "Main Auditorium",
+          isOnline: false,
+          description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
+          createdAt: new Date().toISOString()
+        };
+
+        await db.collection("events").add(newEvent);
+        console.log(`Created birthday event for ${member.name}`);
+      } else {
+        console.log(`Birthday event for ${member.name} already exists. Skipping.`);
+      }
+    }
+  } catch (error) {
+    console.error("Error checking birthdays:", error);
+  }
+});
 
 // --- EXPORT THE FUNCTION ---
 // This is the specific line Firebase looks for. 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { format } from 'date-fns';
 import {
   Button,
   Dialog,
@@ -39,15 +40,17 @@ import {
   DollarSign,
   HeartHandshake,
   Plus,
-  Building
+  Building,
+  Cake,
+  Users,
+  Briefcase
 } from 'lucide-react';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-// 🔴 THE WORKING URL YOU CONFIRMED
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
   const theme = useTheme();
@@ -68,8 +71,11 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     email: '',
     phone: '',
     address: '',
+    dob: '', // 🟢 Added dob to formData
     status: '',
-    branch: '' // NEW: Added branch to formData
+    branch: '', // NEW: Added branch to formData
+    department: '', // 🟢 Added department
+    position: ''    // 🟢 Added position
   });
 
   const getStatusChip = (status) => {
@@ -107,8 +113,11 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         email: member.email || '',
         phone: member.phone || '',
         address: member.address || '',
+        dob: member.dob || '', // 🟢 Set dob from member data
         status: member.status || 'active',
-        branch: member.branch || '' // NEW: Set branch from member data
+        branch: member.branch || '', // NEW: Set branch from member data
+        department: member.department || '', // 🟢 Set department
+        position: member.position || ''      // 🟢 Set position
       });
       setErrors({});
       setIsEditing(false);
@@ -207,10 +216,23 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         email: member.email || '',
         phone: member.phone || '',
         address: member.address || '',
-        status: member.status || 'active'
+        dob: member.dob || '', // 🟢 Reset dob
+        status: member.status || 'active',
+        branch: member.branch || '', // 🟢 Reset branch
+        department: member.department || '', // 🟢 Reset
+        position: member.position || ''       // 🟢 Reset
     });
     setIsEditing(false);
     setErrors({});
+  };
+
+  const formatDOB = (dobString) => {
+    if (!dobString) return 'Not Set';
+    try {
+      return format(new Date(dobString), 'MMM do, yyyy');
+    } catch (e) {
+      return dobString;
+    }
   };
 
   // Calculate totals for THIS member only
@@ -344,7 +366,22 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       }}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                      label="Date of Birth" 
+                      name="dob" 
+                      type="date" 
+                      fullWidth 
+                      variant="outlined" 
+                      value={formData.dob} 
+                      onChange={handleChange} 
+                      InputLabelProps={{ shrink: true }}
+                      InputProps={{
+                          startAdornment: <InputAdornment position="start"><Cake size={18} color={theme.palette.text.secondary}/></InputAdornment>
+                      }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
                   <FormControl fullWidth variant="outlined">
                     <InputLabel id="branch-select-label">Branch Attending</InputLabel>
                     <Select
@@ -369,12 +406,63 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                     </Select>
                   </FormControl>
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="department-select-label">Department</InputLabel>
+                    <Select
+                      labelId="department-select-label"
+                      id="department-select"
+                      value={formData.department}
+                      onChange={handleChange}
+                      label="Department"
+                      name="department"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <Users size={18} color={theme.palette.text.secondary} />
+                        </InputAdornment>
+                      }
+                    >
+                      <MenuItem value=""><em>None</em></MenuItem>
+                      <MenuItem value="Children's Department">Children's Department</MenuItem>
+                      <MenuItem value="Youth">Youth</MenuItem>
+                      <MenuItem value="Mens">Mens</MenuItem>
+                      <MenuItem value="Women">Women</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="position-select-label">Position</InputLabel>
+                    <Select
+                      labelId="position-select-label"
+                      id="position-select"
+                      value={formData.position}
+                      onChange={handleChange}
+                      label="Position"
+                      name="position"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <Briefcase size={18} color={theme.palette.text.secondary} />
+                        </InputAdornment>
+                      }
+                    >
+                      <MenuItem value=""><em>None</em></MenuItem>
+                      <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
+                      <MenuItem value="Head Pastor">Head Pastor</MenuItem>
+                      <MenuItem value="Branch Pastor">Branch Pastor</MenuItem>
+                      <MenuItem value="Instrumentalist">Instrumentalist</MenuItem>
+                      <MenuItem value="Singer">Singer</MenuItem>
+                      <MenuItem value="Prayer Warrior">Prayer Warrior</MenuItem>
+                      <MenuItem value="Other">Other Positions</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
               </Grid>
             </Box>
           ) : (
             // VIEW MODE DETAILS
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                       <Mail size={18} color={theme.palette.text.secondary} />
                       <Box>
@@ -383,7 +471,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       </Box>
                   </Box>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                       <Phone size={18} color={theme.palette.text.secondary} />
                       <Box>
@@ -401,12 +489,39 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       </Box>
                   </Box>
               </Grid>
-              <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                      <Cake size={18} color={theme.palette.text.secondary} />
+                      <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>DATE OF BIRTH</Typography>
+                          <Typography variant="body1">{formatDOB(member.dob)}</Typography>
+                      </Box>
+                  </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                       <Building size={18} color={theme.palette.text.secondary} />
                       <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight={600}>BRANCH</Typography>
                           <Typography variant="body1">{member.branch || 'N/A'}</Typography>
+                      </Box>
+                  </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                      <Users size={18} color={theme.palette.text.secondary} />
+                      <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>DEPARTMENT</Typography>
+                          <Typography variant="body1">{member.department || 'N/A'}</Typography>
+                      </Box>
+                  </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                      <Briefcase size={18} color={theme.palette.text.secondary} />
+                      <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>POSITION</Typography>
+                          <Typography variant="body1">{member.position || 'N/A'}</Typography>
                       </Box>
                   </Box>
               </Grid>

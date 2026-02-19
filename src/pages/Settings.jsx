@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -36,6 +37,7 @@ import {
 
 const Settings = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   
   // --- STATE ---
   // 1. Load Dark Mode from Local Storage (or default to system/light)
@@ -276,7 +278,16 @@ const Settings = () => {
               <Divider />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2" fontWeight={500}>End Session</Typography>
-                <Button size="small" variant="contained" color="error" startIcon={<LogOut size={14} />} onClick={() => window.location.reload()}>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  color="error" 
+                  startIcon={<LogOut size={14} />} 
+                  onClick={() => {
+                    localStorage.removeItem('isAuthenticated');
+                    navigate('/login');
+                  }}
+                >
                   Log Out
                 </Button>
               </Box>

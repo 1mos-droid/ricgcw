@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { format, isValid, parseISO } from 'date-fns';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -53,18 +54,20 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// 🔴 LIVE BACKEND URL
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const Attendance = () => {
   const theme = useTheme();
+  const { filterData, isBranchRestricted, userBranch } = useWorkspace();
   
   // --- STATE ---
   const [members, setMembers] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedAttendees, setSelectedAttendees] = useState(new Set());
-  const [selectedBranch, setSelectedBranch] = useState(''); // NEW: State for selected branch
+  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : ''); // NEW: State for selected branch
+  
+  // ... rest of state
   
   // Report / Dialog State
   const [selectedRecord, setSelectedRecord] = useState(null); 
@@ -77,6 +80,10 @@ const Attendance = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedAttendees, setEditedAttendees] = useState(new Set());
+
+  // 🟢 Filtered Data
+  const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
+  const filteredRecords = useMemo(() => filterData(attendanceRecords), [attendanceRecords, filterData]);
 
   // --- HELPER: SAFE DATE PARSER ---
   const parseDate = (dateVal) => {
@@ -97,7 +104,7 @@ const Attendance = () => {
 
   // --- HELPER: CALCULATE ABSENT (CRASH PROOF) ---
   const getAbsentMembers = (record) => {
-    if (!record || !members) return [];
+    if (!record || !filteredMembers) return [];
     
     // 1. Safely get attendees, defaulting to empty array
     const attendees = record.attendees || [];
@@ -110,7 +117,7 @@ const Attendance = () => {
     );
 
     // 3. Filter members, ensuring member object exists
-    return members.filter(m => m && m.id && !presentIds.has(m.id));
+    return filteredMembers.filter(m => m && m.id && !presentIds.has(m.id));
   };
 
   // --- DATA FETCHING ---
@@ -176,6 +183,7 @@ const Attendance = () => {
       const recordData = {
         date: recordDate.toISOString(),
         attendees: attendeesList,
+        branch: isBranchRestricted ? userBranch : selectedBranch, // 🟢 Add branch info
         createdAt: new Date().toISOString()
       };
 
@@ -289,7 +297,7 @@ const Attendance = () => {
             />
           </Card>
 
-          <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small">
+          <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small" disabled={isBranchRestricted}>
             <InputLabel id="branch-select-label">Branch</InputLabel>
             <Select
               labelId="branch-select-label"
@@ -332,11 +340,11 @@ const Attendance = () => {
                      <Skeleton variant="text" width="60%" />
                    </Box>
                  ))
-              ) : members.length === 0 ? (
+              ) : filteredMembers.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6 }}><Typography>No members found</Typography></Box>
               ) : (
                 <List>
-                  {members.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map((member) => {
+                  {filteredMembers.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map((member) => {
                     const isSelected = selectedAttendees.has(member.id);
                     return (
                       <ListItemButton 
@@ -375,10 +383,10 @@ const Attendance = () => {
             </Box>
 
             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
-              {attendanceRecords.length === 0 && !loading ? (
+              {filteredRecords.length === 0 && !loading ? (
                 <Box sx={{ textAlign: 'center', mt: 4, opacity: 0.5 }}><Typography>No records found.</Typography></Box>
               ) : (
-                attendanceRecords.map((record, index) => (
+                filteredRecords.map((record, index) => (
                   <Box 
                     key={record.id || index} 
                     onClick={() => {
@@ -457,7 +465,7 @@ const Attendance = () => {
               {isEditing ? (
                 <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto' }}>
                   <List>
-                    {members.map((member) => {
+                    {filteredMembers.map((member) => {
                       const isSelected = editedAttendees.has(member.id);
                       return (
                         <ListItemButton 

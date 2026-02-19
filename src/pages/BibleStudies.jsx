@@ -38,8 +38,7 @@ import {
 import axios from 'axios';
 import StudyDetailsDialog from '../components/StudyDetailsDialog';
 
-// 🔴 LIVE BACKEND URL
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const BibleStudies = () => {
   const theme = useTheme();

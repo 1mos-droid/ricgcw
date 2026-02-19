@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { Box, Typography, Paper, useTheme, Skeleton, Grid } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { format, parseISO, startOfDay } from 'date-fns';
 import { AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919'];
 
 const Graph = () => {
   const theme = useTheme();
+  const { filterData } = useWorkspace();
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,28 +28,34 @@ const Graph = () => {
           axios.get(`${API_BASE_URL}/members`),
         ]);
 
-        const totalMembers = membersRes.data.length;
-        const incomeTransactions = transactionsRes.data.filter(t => t.type === 'contribution');
+        const filteredMembers = filterData(membersRes.data || []);
+        const filteredTransactions = filterData(transactionsRes.data || []);
+        const filteredAttendance = filterData(attendanceRes.data || []);
 
-        const dailyData = attendanceRes.data.map(record => {
-          const recordDate = record.date._seconds ? new Date(record.date._seconds * 1000) : parseISO(record.date);
+        const totalMembers = filteredMembers.length;
+        const incomeTransactions = filteredTransactions.filter(t => t && t.type === 'contribution');
+
+        const dailyData = filteredAttendance.map(record => {
+          if (!record) return null;
+          const recordDate = record.date && record.date._seconds ? new Date(record.date._seconds * 1000) : parseISO(record.date || new Date().toISOString());
           const formattedDate = format(recordDate, 'yyyy-MM-dd');
           
-          const attendanceRate = totalMembers > 0 ? (record.attendees.length / totalMembers) * 100 : 0;
+          const attendeesCount = Array.isArray(record.attendees) ? record.attendees.length : 0;
+          const attendanceRate = totalMembers > 0 ? (attendeesCount / totalMembers) * 100 : 0;
 
           const dailyIncome = incomeTransactions
             .filter(t => {
               const tDate = t.date._seconds ? new Date(t.date._seconds * 1000) : parseISO(t.date);
               return startOfDay(tDate).getTime() === startOfDay(recordDate).getTime();
             })
-            .reduce((sum, t) => sum + t.amount, 0);
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
 
           return {
             date: formattedDate,
             attendanceRate: attendanceRate,
             income: dailyIncome,
           };
-        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+        }).filter(Boolean).sort((a, b) => new Date(a.date) - new Date(b.date));
         
         setChartData(dailyData);
 
@@ -60,7 +68,7 @@ const Graph = () => {
     };
 
     fetchData();
-  }, []);
+  }, [filterData]);
 
   if (error) {
     return (

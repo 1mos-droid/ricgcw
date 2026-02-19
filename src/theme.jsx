@@ -25,6 +25,9 @@ const getDesignTokens = (mode) => ({
             primary: '#1E293B', // Dark Slate
             secondary: '#475569',
           },
+          gradients: {
+            primary: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+          }
         }
       : {
           // DARK MODE (Rich Navy/Slate)
@@ -38,6 +41,9 @@ const getDesignTokens = (mode) => ({
             primary: '#F8FAFC', // White
             secondary: '#CBD5E1',
           },
+          gradients: {
+            primary: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+          }
         }),
   },
   typography: {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -37,9 +38,11 @@ const pulse = keyframes`
 
 const QuickSwitch = () => {
   const theme = useTheme();
+  const workspaceContext = useWorkspace();
+  const activeWorkspace = workspaceContext?.workspace || 'main';
+  const switchWorkspace = workspaceContext?.switchWorkspace || (() => {});
   
   // --- STATE ---
-  const [activeWorkspace, setActiveWorkspace] = useState('main');
   const [systemStatus, setSystemStatus] = useState('Online');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
@@ -53,8 +56,8 @@ const QuickSwitch = () => {
   const handleSwitch = (id, label) => {
     if (activeWorkspace === id) return;
     
-    // Simulate context switch
-    setActiveWorkspace(id);
+    // Switch shared context
+    switchWorkspace(id);
     showSnackbar(`Switched environment to: ${label}`, 'success');
   };
 

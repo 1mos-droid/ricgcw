@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -40,18 +41,23 @@ import {
   Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
-// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const Financials = () => {
   const theme = useTheme();
+  const workspaceContext = useWorkspace();
+  const workspace = workspaceContext?.workspace || 'main';
+  const filterData = workspaceContext?.filterData || ((d) => d);
+  const isBranchRestricted = workspaceContext?.isBranchRestricted;
+  const userBranch = workspaceContext?.userBranch;
   
   // --- STATE ---
   const [transactions, setTransactions] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0); // 0: All, 1: Income, 2: Expense
   const [submitting, setSubmitting] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(isBranchRestricted ? userBranch : null);
   
   // Notification State
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -60,25 +66,29 @@ const Financials = () => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('contribution'); // or 'expense'
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(isBranchRestricted ? userBranch : '');
 
   // --- FETCH DATA ---
-  const fetchTransactions = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      if(transactions.length === 0) setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/transactions`);
-      setTransactions(res.data.reverse()); // Newest first
+      setLoading(true);
+      const [txRes, memRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/transactions`),
+        axios.get(`${API_BASE_URL}/members`)
+      ]);
+      setTransactions(txRes.data.reverse()); // Newest first
+      setMembers(memRes.data);
     } catch (err) {
       console.error("Finance Sync Error:", err);
       showSnackbar("Failed to sync financial data.", "error");
     } finally {
       setLoading(false);
     }
-  }, [transactions.length]);
+  }, []);
 
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    fetchData();
+  }, [fetchData]);
 
   // --- HANDLERS ---
   const showSnackbar = (message, severity) => {
@@ -130,7 +140,7 @@ const Financials = () => {
       setAmount('');
       setDescription('');
       setCategory('');
-      await fetchTransactions(); 
+      await fetchData(); 
       showSnackbar("Transaction logged successfully!", "success");
     } catch (error) {
       console.error(error);
@@ -153,10 +163,22 @@ const Financials = () => {
     }
   };
 
+  const workspaceFilteredTransactions = useMemo(() => {
+    const filteredMembers = filterData(members);
+    const memberIds = new Set(filteredMembers.map(m => String(m.id)));
+
+    return transactions.filter(t => {
+      if (t.memberId) {
+        return memberIds.has(String(t.memberId));
+      }
+      return workspace === 'main'; // General entries only in Main Sanctuary
+    });
+  }, [transactions, members, workspace, filterData]);
+
   const getFilteredTransactions = () => {
-    let filtered = transactions;
+    let filtered = workspaceFilteredTransactions;
     if (selectedLocation) {
-      filtered = transactions.filter(t => t.category === selectedLocation);
+      filtered = filtered.filter(t => t.category === selectedLocation);
     }
 
     if (activeTab === 1) return filtered.filter(t => t.type === 'contribution');
@@ -199,6 +221,9 @@ const Financials = () => {
           <Typography variant="body2" color="text.secondary">
             Financial oversight and allocation
           </Typography>
+          <Typography variant="body2" color="primary" fontWeight={700} sx={{ mt: 1 }}>
+            ENVIRONMENT: {workspace === 'main' ? 'MAIN SANCTUARY' : workspace === 'youth' ? 'YOUTH MINISTRY' : "CHILDREN'S DEPT"}
+          </Typography>
         </Box>
         
         {/* Responsive Export Button */}
@@ -222,105 +247,79 @@ const Financials = () => {
         </Box>
       </Box>
 
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-        <Button 
-          variant={selectedLocation === 'Mallam' ? 'contained' : 'outlined'} 
-          onClick={() => setSelectedLocation('Mallam')}
-        >
-          Mallam
-        </Button>
-        <Button 
-          variant={selectedLocation === 'Kokrobetey' ? 'contained' : 'outlined'}
-          onClick={() => setSelectedLocation('Kokrobetey')}
-        >
-          Kokrobetey
-        </Button>
-        <Button 
-          variant={selectedLocation === 'Langma' ? 'contained' : 'outlined'}
-          onClick={() => setSelectedLocation('Langma')}
-        >
-          Langma
-        </Button>
-        {selectedLocation && (
+      {!isBranchRestricted && (
+        <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap' }}>
           <Button 
-            variant='outlined'
-            color='error'
-            onClick={() => setSelectedLocation(null)}
+            variant={selectedLocation === 'Mallam' ? 'contained' : 'outlined'} 
+            onClick={() => setSelectedLocation('Mallam')}
           >
-            Clear
+            Mallam
           </Button>
-        )}
-      </Box>
+          <Button 
+            variant={selectedLocation === 'Kokrobetey' ? 'contained' : 'outlined'}
+            onClick={() => setSelectedLocation('Kokrobetey')}
+          >
+            Kokrobetey
+          </Button>
+          <Button 
+            variant={selectedLocation === 'Langma' ? 'contained' : 'outlined'}
+            onClick={() => setSelectedLocation('Langma')}
+          >
+            Langma
+          </Button>
+          {selectedLocation && (
+            <Button 
+              variant='outlined'
+              color='error'
+              onClick={() => setSelectedLocation(null)}
+            >
+              Clear
+            </Button>
+          )}
+        </Stack>
+      )}
 
       {/* --- STATS GRID --- */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        
-        {/* Net Balance */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ p: 3, height: '100%', position: 'relative', overflow: 'hidden', boxShadow: theme.shadows[3] }}>
-            {loading ? (
-                <Box>
-                    <Skeleton width="40%" height={20} sx={{ mb: 1 }} />
-                    <Skeleton width="80%" height={60} />
-                    <Skeleton width="100%" height={10} sx={{ mt: 2 }} />
-                </Box>
-            ) : (
-                <>
-                    <Box sx={{ position: 'relative', zIndex: 1 }}>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight={700} letterSpacing={0.5}>NET BALANCE</Typography>
-                    <Typography variant="h3" sx={{ fontWeight: 700, mt: 1, color: theme.palette.primary.main, fontSize: { xs: '1.75rem', md: '3rem' } }}>
-                        GHC{balance.toLocaleString()}
-                    </Typography>
-                    <LinearProgress 
-                        variant="determinate" 
-                        value={totalIncome > 0 ? Math.min((balance / totalIncome) * 100, 100) : 0} 
-                        sx={{ mt: 2, height: 6, borderRadius: 3, bgcolor: theme.palette.action.hover }} 
-                    />
-                    </Box>
-                    <Wallet size={120} color={theme.palette.primary.main} style={{ position: 'absolute', right: -20, bottom: -20, opacity: 0.08 }} />
-                </>
-            )}
-          </Card>
-        </Grid>
-
-        {/* Total Income */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {loading ? (
-                 <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />
-            ) : (
-                <>
+        <Grid item xs={12}>
+          <Card>
+            <Grid container>
+              <Grid item xs={12} md={4} sx={{ p: 3, background: theme.palette.gradients?.primary || theme.palette.primary.main, color: '#fff' }}>
+                <Typography variant="subtitle2" fontWeight={700} letterSpacing={0.5}>NET BALANCE</Typography>
+                <Typography variant="h3" sx={{ fontWeight: 700, mt: 1, fontSize: { xs: '1.75rem', md: '3rem' } }}>
+                    GHC{balance.toLocaleString()}
+                </Typography>
+                <LinearProgress 
+                    variant="determinate" 
+                    value={totalIncome > 0 ? Math.min((balance / totalIncome) * 100, 100) : 0} 
+                    sx={{ mt: 2, height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.3)', '& .MuiLinearProgress-bar': { bgcolor: '#fff' } }} 
+                />
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Stack direction="row" sx={{ height: '100%' }} divider={<Divider orientation="vertical" flexItem />}>
+                  <Box sx={{ p: 3, flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                    <Avatar sx={{ bgcolor: theme.palette.success.light, color: theme.palette.success.main, borderRadius: 2, width: 40, height: 40 }}>
-                        <TrendingUp size={20} />
-                    </Avatar>
-                    <Typography variant="subtitle2" fontWeight={600} color="text.secondary">Total Income</Typography>
+                      <Avatar sx={{ bgcolor: theme.palette.success.light, color: theme.palette.success.main, borderRadius: 2, width: 40, height: 40 }}>
+                          <TrendingUp size={20} />
+                      </Avatar>
+                      <Typography variant="subtitle2" fontWeight={600} color="text.secondary">Total Income</Typography>
                     </Box>
                     <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>GHC{totalIncome.toLocaleString()}</Typography>
-                </>
-            )}
-          </Card>
-        </Grid>
-
-        {/* Total Expenses */}
-        <Grid item xs={12} sm={6} md={4}>
-            <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {loading ? (
-                 <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />
-            ) : (
-                <>
+                  </Box>
+                  <Box sx={{ p: 3, flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                    <Avatar sx={{ bgcolor: theme.palette.error.light, color: theme.palette.error.main, borderRadius: 2, width: 40, height: 40 }}>
-                        <TrendingDown size={20} />
-                    </Avatar>
-                    <Typography variant="subtitle2" fontWeight={600} color="text.secondary">Total Expenses</Typography>
+                      <Avatar sx={{ bgcolor: theme.palette.error.light, color: theme.palette.error.main, borderRadius: 2, width: 40, height: 40 }}>
+                          <TrendingDown size={20} />
+                      </Avatar>
+                      <Typography variant="subtitle2" fontWeight={600} color="text.secondary">Total Expenses</Typography>
                     </Box>
                     <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>GHC{totalExpense.toLocaleString()}</Typography>
-                </>
-            )}
+                  </Box>
+                </Stack>
+              </Grid>
+            </Grid>
           </Card>
         </Grid>
-
       </Grid>
 
       <Grid container spacing={4}>
@@ -393,6 +392,7 @@ const Financials = () => {
                     label="Location"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
+                    disabled={isBranchRestricted}
                     SelectProps={{
                       native: true,
                     }}
@@ -431,6 +431,8 @@ const Financials = () => {
                 sx={{ px: 2 }}
                 textColor="primary"
                 indicatorColor="primary"
+                variant="scrollable"
+                scrollButtons="auto"
               >
                 <Tab label="All" />
                 <Tab label="Income" />
@@ -459,7 +461,12 @@ const Financials = () => {
                 </Box>
               ) : (
                 getFilteredTransactions().map((tx, index) => (
-                  <React.Fragment key={tx.id}>
+                  <motion.div
+                    key={tx.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                  >
                     <ListItem 
                         sx={{ 
                             py: 2, 
@@ -502,7 +509,7 @@ const Financials = () => {
                       </Tooltip>
                     </ListItem>
                     {index < getFilteredTransactions().length - 1 && <Divider variant="inset" component="li" />}
-                  </React.Fragment>
+                  </motion.div>
                 ))
               )}
             </List>

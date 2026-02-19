@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -16,11 +17,11 @@ import {
   ListItemAvatar,
   ListItemText,
   IconButton,
-  Divider,
   Skeleton,
   Snackbar,
   Alert
 } from '@mui/material';
+import Divider from '@mui/material/Divider';
 import { 
   Users, 
   DollarSign, 
@@ -32,11 +33,13 @@ import {
   Download
 } from 'lucide-react';
 
-// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const Reports = () => {
   const theme = useTheme();
+  const workspaceContext = useWorkspace();
+  const workspace = workspaceContext?.workspace || 'main';
+  const filterData = workspaceContext?.filterData || ((d) => d);
   
   // --- STATE ---
   const [stats, setStats] = useState({ members: 0, funds: 0, events: 0 });
@@ -48,21 +51,25 @@ const Reports = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Simulate network delay for smooth skeleton transition
-        // await new Promise(resolve => setTimeout(resolve, 800)); 
-        
         const [membersRes, financeRes, eventsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/members`),
           axios.get(`${API_BASE_URL}/transactions`),
           axios.get(`${API_BASE_URL}/events`),
         ]);
 
+        const filteredMembers = filterData(membersRes.data);
+        const memberIds = new Set(filteredMembers.map(m => String(m.id)));
+
         const totalFunds = financeRes.data
-          .filter(t => t.type === 'contribution')
+          .filter(t => {
+            if (t.type !== 'contribution') return false;
+            if (t.memberId) return memberIds.has(String(t.memberId));
+            return workspace === 'main';
+          })
           .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
         setStats({
-          members: membersRes.data.length,
+          members: filteredMembers.length,
           funds: totalFunds,
           events: eventsRes.data.length
         });
@@ -74,7 +81,7 @@ const Reports = () => {
       }
     };
     fetchStats();
-  }, []);
+  }, [workspace, filterData]);
 
   // --- HANDLERS ---
   const showSnackbar = (message, severity = 'success') => {
@@ -85,14 +92,17 @@ const Reports = () => {
     setGenerating(type);
     
     try {
-      // 1. Fetch Fresh Data
+      // 1. Fresh data logic
       let endpoint = '';
       if (type === 'members') endpoint = 'members';
       if (type === 'financial') endpoint = 'transactions';
-      if (type === 'attendance') endpoint = 'events'; // Typically attendance is linked to events
+      if (type === 'attendance') endpoint = 'events';
 
       const res = await axios.get(`${API_BASE_URL}/${endpoint}`);
-      const data = res.data;
+      const rawData = res.data;
+
+      // 🟢 Apply Security Filter before generating report
+      const data = filterData(rawData);
 
       if (!data || data.length === 0) {
         showSnackbar("No data available to generate report.", "warning");
@@ -100,17 +110,12 @@ const Reports = () => {
         return;
       }
 
-      // 2. Convert JSON to CSV
       const headers = Object.keys(data[0]).join(",");
       const rows = data.map(obj => 
-        Object.values(obj).map(v => 
-          `"${String(v).replace(/"/g, '""')}"` // Handle commas/quotes in data
-        ).join(",")
+        Object.values(obj).map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")
       );
       
       const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
-
-      // 3. Trigger Download
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
@@ -120,7 +125,6 @@ const Reports = () => {
       document.body.removeChild(link);
       
       showSnackbar(`${type.charAt(0).toUpperCase() + type.slice(1)} report downloaded successfully.`);
-
     } catch (error) {
       console.error(error);
       showSnackbar("Failed to generate document.", "error");
@@ -137,9 +141,8 @@ const Reports = () => {
   return (
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
-      {/* --- HEADER --- */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary, fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
           Executive Reports
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -148,10 +151,6 @@ const Reports = () => {
       </Box>
 
       <Grid container spacing={4}>
-        
-        {/* --- ROW 1: GENERATORS --- */}
-        
-        {/* Members Report */}
         <Grid item xs={12} md={4}>
           <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[3], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -160,203 +159,112 @@ const Reports = () => {
               </Avatar>
               <Chip label="Directory" size="small" sx={{ fontWeight: 600 }} />
             </Box>
-            
             <Typography variant="h6" fontWeight={700} gutterBottom>Membership Registry</Typography>
-            
             <Box sx={{ mb: 3, flexGrow: 1 }}>
-              {loading ? (
-                <Skeleton variant="text" width="90%" />
-              ) : (
+              {loading ? <Skeleton variant="text" width="90%" /> : (
                 <Typography variant="body2" color="text.secondary">
-                  Full export of all <strong>{stats.members}</strong> registered members, including contact details and addresses.
+                  Full export of all <strong>{stats.members}</strong> registered members.
                 </Typography>
               )}
             </Box>
-
             <Button 
               variant="outlined" 
               fullWidth 
               onClick={() => downloadReport('members')}
               disabled={generating === 'members' || loading}
-              startIcon={generating === 'members' ? <CircularProgress size={16} color="inherit" /> : <Download size={16} />}
-              sx={{ borderRadius: 2, py: 1, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary }}
+              startIcon={<Download size={16} />}
+              sx={{ borderRadius: 2 }}
             >
               {generating === 'members' ? 'Generating...' : 'Download CSV'}
             </Button>
           </Card>
         </Grid>
 
-        {/* Financial Report */}
         <Grid item xs={12} md={4}>
           <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[3], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Avatar sx={{ bgcolor: theme.palette.success.light, color: theme.palette.success.main }}>
                 <DollarSign size={20} />
               </Avatar>
-              <Chip label="Finance" size="small" color="success" variant="outlined" sx={{ fontWeight: 600, border: 'none', bgcolor: theme.palette.success.light, color: theme.palette.success.dark }} />
+              <Chip label="Finance" size="small" color="success" />
             </Box>
-            
             <Typography variant="h6" fontWeight={700} gutterBottom>Financial Statement</Typography>
-            
             <Box sx={{ mb: 3, flexGrow: 1 }}>
-              {loading ? (
-                 <Skeleton variant="text" width="90%" />
-              ) : (
+              {loading ? <Skeleton variant="text" width="90%" /> : (
                 <Typography variant="body2" color="text.secondary">
-                  Detailed ledger of all contributions (<strong>${stats.funds.toLocaleString()}</strong>) and operational expenses.
+                  Total contributions: <strong>GHC{stats.funds.toLocaleString()}</strong>.
                 </Typography>
               )}
             </Box>
-
             <Button 
               variant="contained" 
               color="success"
               fullWidth 
               onClick={() => downloadReport('financial')}
               disabled={generating === 'financial' || loading}
-              startIcon={generating === 'financial' ? <CircularProgress size={16} color="inherit" /> : <Download size={16} />}
-              sx={{ borderRadius: 2, py: 1, boxShadow: 'none' }}
+              startIcon={<Download size={16} />}
+              sx={{ borderRadius: 2 }}
             >
               {generating === 'financial' ? 'Generating...' : 'Download CSV'}
             </Button>
           </Card>
         </Grid>
 
-        {/* Attendance Report */}
         <Grid item xs={12} md={4}>
           <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[3], borderRadius: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Avatar sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.warning.main }}>
                 <Calendar size={20} />
               </Avatar>
-              <Chip label="Activity" size="small" color="warning" variant="outlined" sx={{ fontWeight: 600, border: 'none', bgcolor: theme.palette.warning.light, color: theme.palette.warning.dark }} />
+              <Chip label="Activity" size="small" color="warning" />
             </Box>
-            
             <Typography variant="h6" fontWeight={700} gutterBottom>Attendance Logs</Typography>
-            
             <Box sx={{ mb: 3, flexGrow: 1 }}>
-              {loading ? (
-                 <Skeleton variant="text" width="90%" />
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Historical data of service attendance records, including headcount and absentee lists.
-                </Typography>
+              {loading ? <Skeleton variant="text" width="90%" /> : (
+                <Typography variant="body2" color="text.secondary">Historical attendance data.</Typography>
               )}
             </Box>
-
             <Button 
               variant="outlined" 
               color="warning"
               fullWidth 
               onClick={() => downloadReport('attendance')}
               disabled={generating === 'attendance' || loading}
-              startIcon={generating === 'attendance' ? <CircularProgress size={16} color="inherit" /> : <Download size={16} />}
-              sx={{ borderRadius: 2, py: 1 }}
+              startIcon={<Download size={16} />}
+              sx={{ borderRadius: 2 }}
             >
               {generating === 'attendance' ? 'Generating...' : 'Download CSV'}
             </Button>
           </Card>
         </Grid>
 
-        {/* --- ROW 2: ARCHIVE --- */}
         <Grid item xs={12}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, px: 1 }}>Recent Archive</Typography>
-          <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2] }}>
-            <List disablePadding>
-              
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>Archive</Typography>
+          <Card sx={{ borderRadius: 3 }}>
+            <List>
               <ListItem 
-                secondaryAction={
-                  <IconButton edge="end" onClick={() => showSnackbar("Downloading archived report...", "info")}>
-                    <ArrowRight size={18} />
-                  </IconButton>
-                }
-                sx={{ 
-                  '&:hover': { bgcolor: theme.palette.action.hover }, 
-                  cursor: 'pointer',
-                  py: 2
-                }}
+                secondaryAction={<IconButton edge="end"><ArrowRight size={18} /></IconButton>}
+                sx={{ py: 2 }}
               >
-                <ListItemAvatar>
-                  <Avatar sx={{ bgcolor: theme.palette.background.default, color: theme.palette.text.secondary }}>
-                    <FileText size={20} />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText 
-                  primary="Monthly_Tithe_Report_Jan.pdf" 
-                  secondary="Generated Jan 01, 2026 • 2.4 MB" 
-                  primaryTypographyProps={{ fontWeight: 600, fontSize: '0.95rem' }}
-                />
+                <ListItemAvatar><Avatar><FileText size={20} /></Avatar></ListItemAvatar>
+                <ListItemText primary="Monthly_Report_Jan.pdf" secondary="Jan 01, 2026" />
               </ListItem>
-              
               <Divider variant="inset" component="li" />
-              
               <ListItem 
-                secondaryAction={
-                  <IconButton edge="end" onClick={() => showSnackbar("Downloading archived report...", "info")}>
-                    <ArrowRight size={18} />
-                  </IconButton>
-                }
-                sx={{ 
-                  '&:hover': { bgcolor: theme.palette.action.hover }, 
-                  cursor: 'pointer',
-                  py: 2
-                }}
+                secondaryAction={<IconButton edge="end"><ArrowRight size={18} /></IconButton>}
+                sx={{ py: 2 }}
               >
-                <ListItemAvatar>
-                  <Avatar sx={{ bgcolor: theme.palette.background.default, color: theme.palette.text.secondary }}>
-                    <PieChart size={20} />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText 
-                  primary="Annual_Membership_Review_2025.pdf" 
-                  secondary="Generated Dec 31, 2025 • 4.1 MB" 
-                  primaryTypographyProps={{ fontWeight: 600, fontSize: '0.95rem' }}
-                />
-              </ListItem>
-
-              <Divider variant="inset" component="li" />
-
-              <ListItem 
-                secondaryAction={
-                  <IconButton edge="end" onClick={() => showSnackbar("Downloading archived report...", "info")}>
-                    <ArrowRight size={18} />
-                  </IconButton>
-                }
-                sx={{ 
-                  '&:hover': { bgcolor: theme.palette.action.hover }, 
-                  cursor: 'pointer',
-                  py: 2
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar sx={{ bgcolor: theme.palette.background.default, color: theme.palette.text.secondary }}>
-                    <FileSpreadsheet size={20} />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText 
-                  primary="Event_Attendance_Q4_2025.csv" 
-                  secondary="Generated Dec 15, 2025 • 850 KB" 
-                  primaryTypographyProps={{ fontWeight: 600, fontSize: '0.95rem' }}
-                />
+                <ListItemAvatar><Avatar><PieChart size={20} /></Avatar></ListItemAvatar>
+                <ListItemText primary="Annual_Review_2025.pdf" secondary="Dec 31, 2025" />
               </ListItem>
             </List>
           </Card>
         </Grid>
-
       </Grid>
 
-      {/* --- NOTIFICATIONS --- */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%', borderRadius: 2 }}>
-          {snackbar.message}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
       </Snackbar>
-
     </Box>
   );
 };

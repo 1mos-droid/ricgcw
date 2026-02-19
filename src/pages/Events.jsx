@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -35,11 +36,11 @@ import {
 } from 'lucide-react';
 import EditEventDialog from '../components/EditEventDialog';
 
-// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const Events = () => {
   const theme = useTheme();
+  const { filterData, isBranchRestricted, userBranch } = useWorkspace();
   
   // --- STATE ---
   const [events, setEvents] = useState([]);
@@ -55,9 +56,12 @@ const Events = () => {
     name: '',
     date: '',
     time: '',
-    location: '',
+    location: isBranchRestricted ? `${userBranch} Sanctuary` : '',
     isOnline: false // 🟢 Added default state
   });
+
+  // 🟢 Filtered Data
+  const filteredEvents = useMemo(() => filterData(events), [events, filterData]);
 
   // 🔴 FIX 2: Helper to handle Firebase Timestamp Objects safely
   const parseDate = (dateVal) => {
@@ -119,12 +123,13 @@ const Events = () => {
         ...formData,
         date: new Date(formData.date).toISOString(), // Ensure ISO format
         // 🟢 Logic: If location is empty, set default based on Online status
-        location: formData.location || (formData.isOnline ? 'Zoom / Online' : 'Main Auditorium'),
+        location: formData.location || (formData.isOnline ? 'Zoom / Online' : (isBranchRestricted ? `${userBranch} Sanctuary` : 'Main Auditorium')),
+        branch: isBranchRestricted ? userBranch : 'Main', // 🟢 Explicit branch
         createdAt: new Date().toISOString()
       });
       
       // Reset & Refresh
-      setFormData({ name: '', date: '', time: '', location: '', isOnline: false });
+      setFormData({ name: '', date: '', time: '', location: isBranchRestricted ? `${userBranch} Sanctuary` : '', isOnline: false });
       await fetchEvents();
       showSnackbar("Event scheduled successfully!", "success");
     } catch (error) {
@@ -332,14 +337,14 @@ const Events = () => {
                    </Box>
                  </Card>
                ))
-            ) : events.length === 0 ? (
+            ) : filteredEvents.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6, bgcolor: theme.palette.background.paper, borderRadius: 3 }}>
                 <AlertCircle size={48} style={{ marginBottom: 16 }} />
                 <Typography variant="h6">No upcoming events found.</Typography>
                 <Typography variant="body2">Use the form to create your first event.</Typography>
               </Box>
             ) : (
-              events.map((event) => (
+              filteredEvents.map((event) => (
                 <Card 
                   key={event.id}
                   sx={{ 

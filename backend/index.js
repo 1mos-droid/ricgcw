@@ -1,15 +1,46 @@
-const functions = require('firebase-functions');
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 
+// 🟢 LOCAL SETUP:
+// To run this locally, you usually need a service account key.
+// If you are running in the Firebase Emulator, it works automatically.
 admin.initializeApp();
+
 const db = admin.firestore();
 const app = express();
+const PORT = process.env.PORT || 5000;
+
 app.use(cors({ origin: true }));
 app.use(express.json());
 
+// --- SECURE LOGIN ENDPOINT ---
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  const users = [
+    { email: 'admin@ricgcw.com', password: 'admin123', role: 'admin', branch: 'all' },
+    { email: 'langma@ricgcw.com', password: 'langma123', role: 'branch_admin', branch: 'Langma' },
+    { email: 'mallam@ricgcw.com', password: 'mallam123', role: 'branch_admin', branch: 'Mallam' },
+    { email: 'kokrobetey@ricgcw.com', password: 'kokrobetey123', role: 'branch_admin', branch: 'Kokrobetey' },
+  ];
+
+  const user = users.find(u => u.email === email && u.password === password);
+
+  if (user) {
+    res.status(200).json({
+      isAuthenticated: true,
+      role: user.role,
+      branch: user.branch,
+      email: user.email
+    });
+  } else {
+    res.status(401).json({ message: "Invalid credentials" });
+  }
+});
+
 // --- HELPER FUNCTIONS ---
+// ... (rest of helper functions same as before) ...
 
 const handleGet = async (req, res, collectionName) => {
   try {
@@ -105,4 +136,6 @@ app.delete('/attendance/:id', (req, res) => handleDelete(req, res, 'attendance')
 
 app.get('/events', (req, res) => handleGet(req, res, 'events'));
 
-exports.api = functions.https.onRequest(app);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

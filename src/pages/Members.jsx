@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns'; // 🟢 Added for date formatting
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -44,12 +45,16 @@ import {
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
 
-// 🔴 FIX 1: Hardcoded to your LIVE Backend URL
-const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+import { API_BASE_URL } from '../config';
 
 const Members = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const workspaceContext = useWorkspace();
+  const filterData = workspaceContext?.filterData || ((d) => d);
+  const userRole = workspaceContext?.userRole;
+  const userBranch = workspaceContext?.userBranch;
+  const isBranchRestricted = workspaceContext?.isBranchRestricted;
   
   // --- STATE ---
   const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
@@ -57,7 +62,7 @@ const Members = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState(''); // NEW: State for selected branch
+  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : ''); // Set default branch for branch admins
   
   // Feedback State
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -120,10 +125,15 @@ const Members = () => {
     }
   };
 
-  const filteredMembers = members.filter(m => 
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    m.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 🟢 Filter members based on environment AND search term AND branch
+  const filteredMembers = useMemo(() => {
+    const environmentFiltered = filterData(members);
+    return environmentFiltered.filter(m => 
+      (m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      m.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (selectedBranch === '' || m.branch === selectedBranch)
+    );
+  }, [members, searchTerm, selectedBranch, filterData]);
 
   // 🟢 Helper to format DOB safely
   const formatDOB = (dobString) => {
@@ -199,11 +209,11 @@ const Members = () => {
           </Button>
           <Button 
             variant="contained" 
-            startIcon={<UserPlus size={16} />}
+            startIcon={<UserPlus size={16} />} 
             onClick={() => setOpenAddMemberDialog(true)}
             sx={{ borderRadius: 2, boxShadow: theme.shadows[2], flex: { xs: 1, md: 'none' } }}
           >
-            Add Member
+            {isBranchRestricted ? `Add to ${userBranch}` : 'Add Member'}
           </Button>
         </Box>
       </Box>
@@ -233,7 +243,7 @@ const Members = () => {
               } 
             }}
           />
-          <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small">
+          <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small" disabled={isBranchRestricted}>
             <InputLabel id="branch-select-label">Branch</InputLabel>
             <Select
               labelId="branch-select-label"
@@ -275,7 +285,7 @@ const Members = () => {
         ) : isMobile ? (
           // MOBILE LIST VIEW
           <Grid container spacing={2} sx={{ p: 2 }}>
-            {filteredMembers.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map(member => (
+            {filteredMembers.map(member => (
               <Grid item xs={12} key={member.id}>
                 <Card 
                     sx={{ 
@@ -302,6 +312,13 @@ const Members = () => {
                     )}
                     <Box sx={{ mt: 1 }}>
                       {getStatusChip(member.status)}
+                      <Chip 
+                        label={member.membershipType || 'N/A'}
+                        size="small"
+                        color={member.membershipType === 'Member' ? 'primary' : 'secondary'}
+                        variant="outlined"
+                        sx={{ ml: 1 }}
+                      />
                     </Box>
                   </Box>
                   <IconButton onClick={() => setSelectedMember(member)}>
@@ -324,11 +341,12 @@ const Members = () => {
                     {/* 🟢 New Header */}
                     <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Date of Birth</TableCell>
                     <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Status</TableCell>
+                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Type</TableCell>
                     <TableCell sx={{ bgcolor: theme.palette.background.paper }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredMembers.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map((member) => (
+                  {filteredMembers.map((member) => (
                     <TableRow 
                       key={member.id} 
                       hover 
@@ -381,6 +399,15 @@ const Members = () => {
 
                       <TableCell>
                         {getStatusChip(member.status)}
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip 
+                          label={member.membershipType || 'N/A'}
+                          size="small"
+                          color={member.membershipType === 'Member' ? 'primary' : 'secondary'}
+                          variant="outlined"
+                        />
                       </TableCell>
 
                       <TableCell align="right">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useWorkspace } from '../context/WorkspaceContext';
 import {
   Button,
   TextField,
@@ -16,9 +17,13 @@ import {
   InputLabel, 
   Select, 
   MenuItem,
-  FormHelperText 
+  FormHelperText,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel
 } from '@mui/material';
-import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building } from 'lucide-react'; // 🟢 Added Cake Icon
+import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase } from 'lucide-react'; // 🟢 Added Icons
 
 // Transition for the Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -27,6 +32,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 
 const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const theme = useTheme();
+  const { userBranch, isBranchRestricted } = useWorkspace();
   
   // Form State
   const [formData, setFormData] = useState({
@@ -34,8 +40,11 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     email: '',
     phone: '',
     address: '',
-    dob: '', // 🟢 Added Date of Birth state
-    branch: '' // 🟢 Added branch state
+    dob: '', 
+    branch: isBranchRestricted ? userBranch : '', 
+    department: '', // 🟢 Added department state
+    position: '',   // 🟢 Added position state
+    membershipType: 'Member',
   });
 
   // Error State
@@ -44,10 +53,20 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setFormData({ name: '', email: '', phone: '', address: '', dob: '', branch: '' });
+      setFormData({ 
+        name: '', 
+        email: '', 
+        phone: '', 
+        address: '', 
+        dob: '', 
+        branch: isBranchRestricted ? userBranch : '', 
+        department: '', // 🟢 Reset
+        position: '',   // 🟢 Reset
+        membershipType: 'Member' 
+      });
       setErrors({});
     }
-  }, [open]);
+  }, [open, isBranchRestricted, userBranch]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -230,7 +249,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
 
             {/* 🟢 NEW: Branch Selection Field */}
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth variant="outlined" required error={!!errors.branch}>
+              <FormControl fullWidth variant="outlined" required error={!!errors.branch} disabled={isBranchRestricted}>
                 <InputLabel id="branch-select-label">Branch Attending</InputLabel>
                 <Select
                   labelId="branch-select-label"
@@ -253,6 +272,77 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
                 </Select>
                 {errors.branch && <FormHelperText>{errors.branch}</FormHelperText>}
+              </FormControl>
+            </Grid>
+
+            {/* 🟢 NEW: Department Selection Field */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="department-select-label">Department</InputLabel>
+                <Select
+                  labelId="department-select-label"
+                  id="department-select"
+                  value={formData.department}
+                  onChange={handleChange}
+                  label="Department"
+                  name="department"
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Users size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value="Children's Department">Children's Department</MenuItem>
+                  <MenuItem value="Youth">Youth</MenuItem>
+                  <MenuItem value="Mens">Mens</MenuItem>
+                  <MenuItem value="Women">Women</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* 🟢 NEW: Position Selection Field */}
+            <Grid item xs={12} sm={12}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="position-select-label">Position</InputLabel>
+                <Select
+                  labelId="position-select-label"
+                  id="position-select"
+                  value={formData.position}
+                  onChange={handleChange}
+                  label="Position"
+                  name="position"
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <Briefcase size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
+                  <MenuItem value="Head Pastor">Head Pastor</MenuItem>
+                  <MenuItem value="Branch Pastor">Branch Pastor</MenuItem>
+                  <MenuItem value="Instrumentalist">Instrumentalist</MenuItem>
+                  <MenuItem value="Singer">Singer</MenuItem>
+                  <MenuItem value="Prayer Warrior">Prayer Warrior</MenuItem>
+                  <MenuItem value="Other">Other Positions</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Membership Type</FormLabel>
+                <RadioGroup
+                  row
+                  aria-label="membership-type"
+                  name="membershipType"
+                  value={formData.membershipType}
+                  onChange={handleChange}
+                >
+                  <FormControlLabel value="Member" control={<Radio />} label="Member" />
+                  <FormControlLabel value="Visitor" control={<Radio />} label="Visitor" />
+                </RadioGroup>
               </FormControl>
             </Grid>
 
