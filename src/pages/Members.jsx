@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import { format } from 'date-fns'; // 🟢 Added for date formatting
+import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
@@ -26,10 +26,17 @@ import {
   Snackbar,
   Alert,
   Skeleton,
+  CircularProgress,
   FormControl, 
   InputLabel, 
   Select, 
-  MenuItem 
+  MenuItem,
+  alpha,
+  Paper,
+  Stack,
+  Divider,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import { 
   UserPlus, 
@@ -40,7 +47,17 @@ import {
   Phone, 
   MapPin,
   UserX,
-  Cake // 🟢 Added Icon for Birthday
+  Cake,
+  Filter,
+  LayoutGrid,
+  Table as TableIcon,
+  Download,
+  CheckCircle2,
+  XCircle,
+  Building2,
+  CalendarDays,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
@@ -50,383 +67,444 @@ import { API_BASE_URL } from '../config';
 const Members = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const workspaceContext = useWorkspace();
-  const filterData = workspaceContext?.filterData || ((d) => d);
-  const userRole = workspaceContext?.userRole;
-  const userBranch = workspaceContext?.userBranch;
-  const isBranchRestricted = workspaceContext?.isBranchRestricted;
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const { filterData, showNotification, showConfirmation, userRole, userBranch, isBranchRestricted } = useWorkspace();
   
   // --- STATE ---
+  const [viewMode, setViewMode] = useState(isMobile ? 'grid' : 'table');
   const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : ''); // Set default branch for branch admins
-  
-  // Feedback State
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : '');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
 
   // --- FETCH DATA ---
-  const fetchMembers = useCallback(async () => {
+  const fetchMembers = useCallback(async (isSilent = false) => {
     try {
-      if(members.length === 0) setLoading(true);
+      if (!isSilent) setLoading(true);
+      console.log("Members: Fetching from", `${API_BASE_URL}/members`);
       const response = await axios.get(`${API_BASE_URL}/members`);
-      setMembers(response.data);
+      console.log("Members: Received", response.data?.length || 0, "items");
+      setMembers(response.data || []);
     } catch (err) {
-      console.error("Directory Sync Error:", err);
-      showSnackbar("Failed to load member directory.", "error");
+      console.error("Members Fetch Error:", err.response?.data || err.message);
+      showNotification("Failed to sync member database. Check console.", "error");
     } finally {
       setLoading(false);
     }
-  }, [members.length]);
+  }, [showNotification]);
+
+  const handleCleanupDuplicates = () => {
+    showConfirmation({
+      title: "Remove Historical Duplicates",
+      message: "This will scan the registry for identical names and permanently delete older duplicate entries, keeping only the most recent record for each person. Continue?",
+      severity: "warning",
+      onConfirm: async () => {
+        setMaintenanceLoading(true);
+        try {
+          // Use current members state
+          const groups = {};
+          members.forEach(m => {
+            if (!m.name) return;
+            const key = m.name.trim().toLowerCase();
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(m);
+          });
+
+          const toDelete = [];
+          Object.values(groups).forEach(group => {
+            if (group.length > 1) {
+              // Sort by date descending (newest first)
+              const sorted = group.sort((a, b) => {
+                const dateA = new Date(a.createdAt || 0);
+                const dateB = new Date(b.createdAt || 0);
+                return dateB - dateA;
+              });
+              // Mark all but the newest (index 0) for deletion
+              for (let i = 1; i < sorted.length; i++) {
+                toDelete.push(sorted[i].id);
+              }
+            }
+          });
+
+          if (toDelete.length === 0) {
+            showNotification("No duplicates found. Your registry is clean!", "success");
+          } else {
+            await Promise.all(toDelete.map(id => axios.delete(`${API_BASE_URL}/members/${id}`)));
+            showNotification(`Optimization complete! Removed ${toDelete.length} old duplicate records.`, "success");
+            await fetchMembers(true);
+          }
+        } catch (err) {
+          console.error("Cleanup Error:", err);
+          showNotification("Registry cleanup encountered an issue.", "error");
+        } finally {
+          setMaintenanceLoading(false);
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
 
-  // --- HANDLERS ---
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
   const handleAddMember = async (newMember) => {
+    // 🟢 Duplicate Name Check (Case-Insensitive)
+    const nameExists = members.some(m => 
+      m.name.trim().toLowerCase() === newMember.name.trim().toLowerCase()
+    );
+
+    if (nameExists) {
+      showNotification(`Registry Alert: A member named "${newMember.name}" already exists.`, "warning");
+      throw new Error("Duplicate member name"); // Stop submission and reset dialog loading state
+    }
+
     try {
-      await axios.post(`${API_BASE_URL}/members`, newMember);
-      await fetchMembers();
+      setLoading(true);
+      console.log("Members: Adding new", newMember);
+      const response = await axios.post(`${API_BASE_URL}/members`, newMember);
+      console.log("Members: Add success", response.data);
+      
+      await fetchMembers(true); 
       setOpenAddMemberDialog(false);
-      showSnackbar("Member added successfully!");
+      showNotification("New member successfully registered!", "success");
+      return response.data;
     } catch (err) {
-      showSnackbar("Failed to add member.", "error");
+      console.error("Members Add Error:", err.response?.data || err.message);
+      showNotification(`Failed to register member: ${err.response?.status} ${err.message}`, "error");
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEdit = async (id, updatedMember) => {
     try {
       await axios.put(`${API_BASE_URL}/members/${id}`, updatedMember);
-      await fetchMembers();
+      await fetchMembers(true);
       setSelectedMember(null);
-      showSnackbar("Member profile updated.");
+      showNotification("Member profile synchronized.", "success");
     } catch (err) {
-      showSnackbar("Failed to update member.", "error");
+      console.error("Members Edit Error:", err.response?.data || err.message);
+      showNotification("Failed to update profile.", "error");
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
-      try {
-        await axios.delete(`${API_BASE_URL}/members/${id}`);
-        await fetchMembers();
-        setSelectedMember(null);
-        showSnackbar("Member deleted.", "info");
-      } catch (err) {
-        showSnackbar("Failed to delete member.", "error");
+    showConfirmation({
+      title: "Remove Member",
+      message: "Are you sure you want to remove this member from the directory? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await axios.delete(`${API_BASE_URL}/members/${id}`);
+          await fetchMembers(true);
+          setSelectedMember(null);
+          showNotification("Member removed from directory.", "info");
+        } catch (err) {
+          console.error("Members Delete Error:", err.response?.data || err.message);
+          showNotification("Failed to remove member.", "error");
+        }
       }
-    }
+    });
   };
 
-  // 🟢 Filter members based on environment AND search term AND branch
   const filteredMembers = useMemo(() => {
     const environmentFiltered = filterData(members);
-    return environmentFiltered.filter(m => 
-      (m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      m.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (selectedBranch === '' || m.branch === selectedBranch)
-    );
-  }, [members, searchTerm, selectedBranch, filterData]);
+    return environmentFiltered.filter(m => {
+      const matchesSearch = (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (m.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (m.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBranch = selectedBranch === '' || (m.branch || '').toLowerCase() === selectedBranch.toLowerCase();
+      const matchesStatus = selectedStatus === 'all' || (m.status || 'active').toLowerCase() === selectedStatus.toLowerCase();
+      
+      return matchesSearch && matchesBranch && matchesStatus;
+    });
+  }, [members, searchTerm, selectedBranch, selectedStatus, filterData]);
 
-  // 🟢 Helper to format DOB safely
-  const formatDOB = (dobString) => {
-    if (!dobString) return 'Not Set';
-    try {
-      return format(new Date(dobString), 'MMM do, yyyy');
-    } catch (e) {
-      return dobString;
-    }
-  };
-
-  const getStatusChip = (status) => {
-    const statusMap = {
-      active: { label: 'Active', color: 'success' },
-      inactive: { label: 'Inactive', color: 'warning' },
-      discontinued: { label: 'Discontinued', color: 'error' },
+  const getStatusChip = (status = 'active') => {
+    const colors = {
+      active: { main: '#10B981', bg: alpha('#10B981', 0.1) },
+      inactive: { main: '#F59E0B', bg: alpha('#F59E0B', 0.1) },
+      discontinued: { main: '#EF4444', bg: alpha('#EF4444', 0.1) },
     };
-    const { label, color } = statusMap[status] || { label: 'Unknown', color: 'default' };
-
+    const color = colors[status.toLowerCase()] || colors.active;
+    
     return (
-      <Chip
-        label={label}
+      <Chip 
+        label={status}
         size="small"
-        color={color}
-        variant="outlined"
-        sx={{
-          bgcolor: theme.palette[color]?.light || theme.palette.grey[200],
-          color: theme.palette[color]?.dark || theme.palette.text.secondary,
-          border: 'none',
-          fontWeight: 700,
-          textTransform: 'capitalize',
-        }}
+        sx={{ 
+          bgcolor: color.bg, 
+          color: color.main, 
+          fontWeight: 800, 
+          textTransform: 'uppercase', 
+          fontSize: '0.65rem',
+          letterSpacing: 0.5,
+          borderRadius: 2
+        }} 
       />
     );
   };
 
+  const renderMemberCard = (member, index) => (
+    <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={member.id}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: index * 0.05 }}
+      >
+        <Card 
+          onClick={() => setSelectedMember(member)}
+          sx={{ 
+            p: 3, 
+            borderRadius: 5, 
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': { 
+              transform: 'translateY(-4px)',
+              boxShadow: theme.shadows[8],
+              borderColor: alpha(theme.palette.primary.main, 0.2)
+            },
+            position: 'relative',
+            overflow: 'hidden',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Avatar 
+              sx={{ 
+                width: 56, height: 56, 
+                borderRadius: '16px', 
+                bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                color: theme.palette.primary.main,
+                fontWeight: 800,
+                fontSize: '1.2rem',
+                boxShadow: `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.2)}`
+              }}
+            >
+              {member.name?.charAt(0).toUpperCase()}
+            </Avatar>
+            {getStatusChip(member.status)}
+          </Box>
+          
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: '-0.01em' }}>{member.name}</Typography>
+            <Typography variant="body2" color="text.secondary" fontWeight={500} noWrap sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <Building2 size={14} /> {member.branch || 'Main Sanctuary'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.6 }}>
+               Contact Information
+            </Typography>
+            <Stack spacing={1} sx={{ mt: 1 }}>
+               <Typography variant="body2" color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                  <Mail size={14} color={theme.palette.text.secondary} /> {member.email || 'No email set'}
+               </Typography>
+               <Typography variant="body2" color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                  <Phone size={14} color={theme.palette.text.secondary} /> {member.phone || 'N/A'}
+               </Typography>
+            </Stack>
+          </Box>
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-  };
+          <Divider sx={{ my: 2.5, opacity: 0.5 }} />
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" fontWeight={700} sx={{ color: theme.palette.primary.main }}>
+              #{member.id?.toString().slice(-4)}
+            </Typography>
+            <IconButton size="small"><MoreVertical size={16} /></IconButton>
+          </Box>
+        </Card>
+      </motion.div>
+    </Grid>
+  );
 
   return (
-    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
+    <Box sx={{ pb: 6 }}>
       
       {/* --- HEADER --- */}
-      <Box sx={{ 
-        mb: 4, 
-        display: 'flex', 
-        flexDirection: { xs: 'column', md: 'row' }, 
-        justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', md: 'flex-end' }, 
-        gap: 2 
-      }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'flex-end' }} spacing={3} sx={{ mb: 5 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
-            Member Directory
+          <Typography variant="overline" color="primary" fontWeight={800} letterSpacing={2} sx={{ opacity: 0.7 }}>
+             GLOBAL DIRECTORY
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage {members.length} active records
+          <Typography variant="h2" sx={{ fontWeight: 800, mt: 0.5, letterSpacing: '-0.04em' }}>
+            Church Registry
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', md: 'auto' } }}>
+        <Stack direction="row" spacing={2} sx={{ width: { xs: '100%', md: 'auto' } }}>
+          {userRole === 'admin' && (
+            <Button 
+              variant="outlined" 
+              color="warning"
+              startIcon={maintenanceLoading ? <CircularProgress size={16} color="inherit" /> : <Sparkles size={18} />}
+              onClick={handleCleanupDuplicates}
+              disabled={maintenanceLoading || members.length === 0}
+              sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
+            >
+              {maintenanceLoading ? 'Cleaning...' : 'Clean Duplicates'}
+            </Button>
+          )}
           <Button 
             variant="outlined" 
-            startIcon={<Printer size={16} />}
+            startIcon={<Printer size={18} />}
             onClick={() => window.print()}
-            sx={{ borderRadius: 2, flex: { xs: 1, md: 'none' } }}
-            disabled={members.length === 0}
+            sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
           >
-            Print
+            Export
           </Button>
           <Button 
             variant="contained" 
-            startIcon={<UserPlus size={16} />} 
+            startIcon={<UserPlus size={18} />} 
             onClick={() => setOpenAddMemberDialog(true)}
-            sx={{ borderRadius: 2, boxShadow: theme.shadows[2], flex: { xs: 1, md: 'none' } }}
-          >
-            {isBranchRestricted ? `Add to ${userBranch}` : 'Add Member'}
-          </Button>
-        </Box>
-      </Box>
-
-      {/* --- SEARCH & CONTENT --- */}
-      <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[3], borderRadius: 3 }}>
-        
-        {/* Search Bar */}
-        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-          <TextField
-            fullWidth
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={20} color={theme.palette.text.secondary} />
-                </InputAdornment>
-              ),
-            }}
             sx={{ 
-              '& .MuiOutlinedInput-root': { 
-                bgcolor: theme.palette.action.hover,
-                borderRadius: 2,
-                '& fieldset': { border: 'none' } 
-              } 
+              borderRadius: 3, px: 4, py: 1.5, fontWeight: 800,
+              boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}` 
             }}
-          />
-          <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small" disabled={isBranchRestricted}>
-            <InputLabel id="branch-select-label">Branch</InputLabel>
-            <Select
-              labelId="branch-select-label"
-              id="branch-select"
-              value={selectedBranch}
-              label="Branch"
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              sx={{ borderRadius: 2 }}
-            >
-              <MenuItem value="">
-                <em>All Branches</em>
-              </MenuItem>
-              <MenuItem value="Langma">Langma</MenuItem>
-              <MenuItem value="Mallam">Mallam</MenuItem>
-              <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+          >
+            Add New Member
+          </Button>
+        </Stack>
+      </Stack>
 
-        {loading ? (
-            // SKELETON LOADING
-            <Box sx={{ p: 2 }}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
-                        <Skeleton variant="circular" width={40} height={40} />
-                        <Box sx={{ width: '30%' }}><Skeleton variant="text" width="80%" /><Skeleton variant="text" width="50%" /></Box>
-                        <Box sx={{ width: '30%', display: { xs: 'none', md: 'block' } }}><Skeleton variant="text" width="90%" /></Box>
-                        <Box sx={{ width: '20%', display: { xs: 'none', md: 'block' } }}><Skeleton variant="text" width="60%" /></Box>
-                    </Box>
-                ))}
-            </Box>
-        ) : filteredMembers.length === 0 ? (
-          // EMPTY STATE
-          <Box sx={{ py: 8, textAlign: 'center', color: 'text.secondary' }}>
-            <UserX size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-            <Typography variant="h6">No members found</Typography>
-            <Typography variant="body2">Try adjusting your search terms</Typography>
-          </Box>
-        ) : isMobile ? (
-          // MOBILE LIST VIEW
-          <Grid container spacing={2} sx={{ p: 2 }}>
-            {filteredMembers.map(member => (
-              <Grid item xs={12} key={member.id}>
-                <Card 
-                    sx={{ 
-                        p: 2, 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        border: `1px solid ${theme.palette.divider}`,
-                        boxShadow: 'none' 
-                    }}
+      {/* --- FILTERS & TOOLS --- */}
+      <Paper elevation={0} sx={{ p: 2, borderRadius: 5, mb: 4, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.paper, 0.4), backdropFilter: 'blur(10px)' }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              placeholder="Quick search members..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search size={18} color={theme.palette.text.secondary} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: theme.palette.background.paper } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 6, md: 2 }}>
+             <FormControl fullWidth size="medium">
+                <Select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  displayEmpty
+                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.paper }}
                 >
-                  <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, fontWeight: 700, mr: 2 }}>
-                    {member.name.charAt(0).toUpperCase()}
-                  </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="subtitle2" fontWeight={700}>{member.name}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Mail size={12}/> {member.email}
-                    </Typography>
-                    {/* 🟢 Mobile DOB */}
-                    {member.dob && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                            <Cake size={12}/> {formatDOB(member.dob)}
-                        </Typography>
-                    )}
-                    <Box sx={{ mt: 1 }}>
-                      {getStatusChip(member.status)}
-                      <Chip 
-                        label={member.membershipType || 'N/A'}
-                        size="small"
-                        color={member.membershipType === 'Member' ? 'primary' : 'secondary'}
-                        variant="outlined"
-                        sx={{ ml: 1 }}
-                      />
-                    </Box>
-                  </Box>
-                  <IconButton onClick={() => setSelectedMember(member)}>
-                    <MoreVertical size={18} />
-                  </IconButton>
-                </Card>
-              </Grid>
-            ))}
+                  <MenuItem value="">All Branches</MenuItem>
+                  <MenuItem value="Langma">Langma</MenuItem>
+                  <MenuItem value="Mallam">Mallam</MenuItem>
+                  <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+                </Select>
+             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 6, md: 2 }}>
+             <FormControl fullWidth size="medium">
+                <Select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.paper }}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                </Select>
+             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={(e, v) => v && setViewMode(v)}
+                size="small"
+                sx={{ bgcolor: theme.palette.background.paper, borderRadius: 3 }}
+              >
+                <ToggleButton value="grid" sx={{ px: 2, borderRadius: '12px 0 0 12px !important' }}><LayoutGrid size={18} /></ToggleButton>
+                <ToggleButton value="table" sx={{ px: 2, borderRadius: '0 12px 12px 0 !important' }}><TableIcon size={18} /></ToggleButton>
+              </ToggleButtonGroup>
+              <IconButton sx={{ bgcolor: theme.palette.background.paper, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}><Download size={18} /></IconButton>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* --- CONTENT --- */}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+             <Grid container spacing={3}>
+               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <Grid key={i} size={{ xs: 12, md: 3 }}><Skeleton variant="rectangular" height={220} sx={{ borderRadius: 5 }} /></Grid>)}
+             </Grid>
+          </motion.div>
+        ) : filteredMembers.length === 0 ? (
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+            <Box sx={{ py: 15, textAlign: 'center' }}>
+              <UserX size={80} color={theme.palette.text.disabled} style={{ opacity: 0.3, marginBottom: 16 }} />
+              <Typography variant="h5" fontWeight={800} color="text.secondary">No members found</Typography>
+              <Typography variant="body2" color="text.secondary">Try adjusting your filters or search terms</Typography>
+              <Button sx={{ mt: 3, fontWeight: 700 }} onClick={() => { setSearchTerm(''); setSelectedBranch(''); setSelectedStatus('all'); }}>Clear All Filters</Button>
+            </Box>
+          </motion.div>
+        ) : viewMode === 'grid' ? (
+          <Grid container spacing={3}>
+             {filteredMembers.map((member, idx) => renderMemberCard(member, idx))}
           </Grid>
         ) : (
-          // DESKTOP TABLE VIEW
-          <div className="printable-area">
-            <TableContainer sx={{ maxHeight: '65vh' }}>
-              <Table stickyHeader>
-                <TableHead>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 6, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
+              <Table>
+                <TableHead sx={{ bgcolor: alpha(theme.palette.text.primary, 0.02) }}>
                   <TableRow>
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Contact Info</TableCell>
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Location</TableCell>
-                    {/* 🟢 New Header */}
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Date of Birth</TableCell>
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper, fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ bgcolor: theme.palette.background.paper }} align="right">Actions</TableCell>
+                    {['Member', 'Contact Details', 'Location', 'Registered', 'Status', 'Actions'].map(h => <TableCell key={h} sx={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: theme.palette.text.secondary }}>{h}</TableCell>)}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredMembers.map((member) => (
-                    <TableRow 
-                      key={member.id} 
-                      hover 
-                      sx={{ cursor: 'pointer', transition: 'background 0.2s' }}
-                      onClick={() => setSelectedMember(member)}
-                    >
+                    <TableRow key={member.id} hover onClick={() => setSelectedMember(member)} sx={{ cursor: 'pointer', transition: 'background 0.2s' }}>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, fontWeight: 700 }}>
-                            {member.name.charAt(0).toUpperCase()}
-                          </Avatar>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Avatar sx={{ width: 40, height: 40, borderRadius: 2.5, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800 }}>{member.name?.charAt(0)}</Avatar>
                           <Box>
-                            <Typography variant="subtitle2" fontWeight={700}>
-                              {member.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              ID: #{member.id.toString().slice(-4)}
-                            </Typography>
+                            <Typography variant="subtitle2" fontWeight={800}>{member.name}</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>#{member.id?.toString().slice(-4)}</Typography>
                           </Box>
-                        </Box>
+                        </Stack>
                       </TableCell>
-
                       <TableCell>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 13, color: 'text.primary' }}>
-                            <Mail size={12} color={theme.palette.text.secondary} />
-                            {member.email}
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 13, color: 'text.secondary' }}>
-                            <Phone size={12} />
-                            {member.phone}
-                          </Box>
-                        </Box>
+                         <Stack spacing={0.2}>
+                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>{member.email}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{member.phone}</Typography>
+                         </Stack>
                       </TableCell>
-
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-                          <MapPin size={14} />
-                          <Typography variant="body2">{member.address}</Typography>
-                        </Box>
+                        <Typography variant="body2" fontWeight={600}>{member.branch || 'Main Sanctuary'}</Typography>
+                        <Typography variant="caption" color="text.secondary">{member.address || 'No Address'}</Typography>
                       </TableCell>
-
-                      {/* 🟢 New Date of Birth Column */}
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Cake size={14} color={theme.palette.text.secondary} />
-                            <Typography variant="body2">{formatDOB(member.dob)}</Typography>
-                        </Box>
+                         <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+                            <CalendarDays size={14} /> {member.createdAt ? format(new Date(member.createdAt), 'MMM dd, yyyy') : 'N/A'}
+                         </Typography>
                       </TableCell>
-
+                      <TableCell>{getStatusChip(member.status)}</TableCell>
                       <TableCell>
-                        {getStatusChip(member.status)}
-                      </TableCell>
-
-                      <TableCell>
-                        <Chip 
-                          label={member.membershipType || 'N/A'}
-                          size="small"
-                          color={member.membershipType === 'Member' ? 'primary' : 'secondary'}
-                          variant="outlined"
-                        />
-                      </TableCell>
-
-                      <TableCell align="right">
-                        <Tooltip title="View Details">
-                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); setSelectedMember(member); }}>
-                            <MoreVertical size={16} />
-                          </IconButton>
-                        </Tooltip>
+                        <IconButton size="small"><MoreVertical size={18} /></IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </div>
+          </motion.div>
         )}
-      </Card>
+      </AnimatePresence>
 
-      {/* --- DIALOGS & FEEDBACK --- */}
       <AddMemberDialog
         open={openAddMemberDialog}
         onClose={() => setOpenAddMemberDialog(false)}
@@ -440,17 +518,6 @@ const Members = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
-
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%', borderRadius: 2 }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
 
     </Box>
   );

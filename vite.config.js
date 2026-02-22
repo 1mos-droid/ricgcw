@@ -71,6 +71,14 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://us-central1-thegatheringplace-app.cloudfunctions.net',
+        changeOrigin: true,
+      }
+    }
+  }
 })
 
 

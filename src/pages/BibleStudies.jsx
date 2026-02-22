@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -21,9 +22,10 @@ import {
   InputAdornment,
   Skeleton,
   Snackbar,
-  Alert
+  Alert,
+  alpha
 } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { 
   BookOpen, 
   Download, 
@@ -33,15 +35,19 @@ import {
   Headphones, 
   Bookmark,
   Search,
-  ExternalLink // Added icon to indicate opening external link
+  ExternalLink,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import axios from 'axios';
 import StudyDetailsDialog from '../components/StudyDetailsDialog';
+import AddResourceDialog from '../components/AddResourceDialog';
 
 import { API_BASE_URL } from '../config';
 
 const BibleStudies = () => {
   const theme = useTheme();
+  const { showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
   const [activeTab, setActiveTab] = useState(0);
@@ -49,57 +55,67 @@ const BibleStudies = () => {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState(null);
+  const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
   
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  
-  // Notification State
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   // --- DATA FETCHING ---
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+        console.log("Fetching Bible Studies from:", `${API_BASE_URL}/bible-studies/`);
         const [seriesRes, resourcesRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/bible-studies`),
-          axios.get(`${API_BASE_URL}/resources`),
+          axios.get(`${API_BASE_URL}/bible-studies/`),
+          axios.get(`${API_BASE_URL}/resources/`),
         ]);
-        setStudySeries(seriesRes.data);
-        setResources(resourcesRes.data);
+        setStudySeries(seriesRes.data || []);
+        setResources(resourcesRes.data || []);
       } catch (err) {
-        console.error("Sync Error:", err);
-        showSnackbar("Failed to load content. Please refresh.", "error");
+        console.error("Bible Studies Sync Error:", err.response?.data || err.message);
+        showNotification("Failed to load content. Please refresh.", "error");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [showNotification]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
+  const handleResourceAdded = (newResource) => {
+    setResources(prev => [newResource, ...prev]);
+    showNotification(`Successfully uploaded ${newResource.title}`, "success");
+  };
+
+  const handleDeleteResource = async (resource) => {
+    showConfirmation({
+      title: "Delete Resource",
+      message: `Are you sure you want to delete "${resource.title}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await axios.delete(`${API_BASE_URL}/resources/${resource.id}/`);
+          setResources(prev => prev.filter(r => r.id !== resource.id));
+          showNotification(`Deleted ${resource.title}`, "success");
+        } catch (err) {
+          console.error("Delete Resource Error:", err.response?.data || err.message);
+          showNotification("Failed to delete resource.", "error");
+        }
+      }
+    });
   };
 
   // --- 🟢 NEW: HANDLE GOOGLE DRIVE LINKS ---
   const handleOpenResource = (resource) => {
-    // 1. Check if the resource has a link
     if (!resource.link) {
-      showSnackbar("Resource link not available yet.", "warning");
+      showNotification("Resource link not available yet.", "warning");
       return;
     }
-
-    // 2. Notify user
-    showSnackbar(`Opening ${resource.title}...`, "info");
-
-    // 3. Open the Google Drive link in a new tab
-    // This allows Google to handle the PDF preview or Audio streaming automatically
+    showNotification(`Opening ${resource.title}...`, "info");
     window.open(resource.link, '_blank', 'noopener,noreferrer');
   };
 
@@ -121,10 +137,13 @@ const BibleStudies = () => {
       
       {/* --- HEADER --- */}
       <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Typography variant="h4" sx={{ 
-          fontWeight: 700, 
+        <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={1.2}>
+          EDUCATION
+        </Typography>
+        <Typography variant="h3" sx={{ 
+          fontWeight: 800, 
           color: theme.palette.text.primary,
-          fontSize: { xs: '1.5rem', sm: '2.125rem' }
+          letterSpacing: '-0.02em'
         }}>
           Scripture & Study
         </Typography>
@@ -139,43 +158,43 @@ const BibleStudies = () => {
       ) : (
         <Card 
           sx={{ 
-            p: { xs: 3, sm: 4 },
+            p: { xs: 3, sm: 5 },
             mb: 5, 
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
             color: '#fff',
             position: 'relative',
             overflow: 'hidden',
             borderRadius: 4,
-            boxShadow: theme.shadows[4]
+            boxShadow: theme.shadows[6]
           }}
         >
           <Box sx={{ position: 'relative', zIndex: 2, maxWidth: { xs: '100%', md: '80%' } }}>
             <Chip 
               label="Scripture of the Week" 
               size="small" 
-              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', mb: 2, backdropFilter: 'blur(4px)' }} 
+              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', mb: 3, backdropFilter: 'blur(4px)', fontWeight: 700 }} 
             />
-            <Typography variant="h4" component="div" sx={{ 
+            <Typography variant="h3" component="div" sx={{ 
               fontFamily: '"Playfair Display", serif', 
               fontStyle: 'italic', 
-              mb: 2, 
-              lineHeight: 1.4, 
-              fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2.125rem' } 
+              mb: 3, 
+              lineHeight: 1.3, 
+              fontWeight: 700
             }}>
               "Do not conform to the pattern of this world, but be transformed by the renewing of your mind."
             </Typography>
-            <Typography variant="subtitle2" sx={{ opacity: 0.9, fontWeight: 600 }}>
-              — Romans 12:2
+            <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 700, letterSpacing: 1 }}>
+              — ROMANS 12:2
             </Typography>
           </Box>
           
           <BookOpen 
-            size={180} 
+            size={240} 
             color="#fff" 
             style={{ 
               position: 'absolute', 
-              right: -40, 
-              bottom: -60, 
+              right: -60, 
+              bottom: -80, 
               opacity: 0.1, 
               transform: 'rotate(-15deg)',
               pointerEvents: 'none'
@@ -187,7 +206,7 @@ const BibleStudies = () => {
       <Grid container spacing={4}>
         
         {/* --- LEFT COL: CURRICULUM & RESOURCES --- */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs 
               value={activeTab} 
@@ -198,6 +217,7 @@ const BibleStudies = () => {
               variant="scrollable"
               scrollButtons="auto"
               allowScrollButtonsMobile
+              sx={{ '& .MuiTab-root': { fontWeight: 700, minHeight: 64 } }}
             >
               <Tab label="Active Modules" />
               <Tab label="Resource Library" />
@@ -209,8 +229,8 @@ const BibleStudies = () => {
             <Grid container spacing={3}>
               {loading ? (
                  Array.from(new Array(4)).map((_, i) => (
-                   <Grid item xs={12} sm={6} key={i}>
-                     <Card sx={{ p: 3, height: '100%' }}>
+                   <Grid size={{ xs: 12, sm: 6 }} key={i}>
+                     <Card sx={{ p: 3, height: '100%', borderRadius: 3 }}>
                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                          <Skeleton variant="circular" width={40} height={40} />
                          <Skeleton variant="rounded" width={60} height={24} />
@@ -222,7 +242,7 @@ const BibleStudies = () => {
                    </Grid>
                  ))
               ) : studySeries.length === 0 ? (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6 }}>
                     <BookOpen size={48} style={{ marginBottom: 16 }} />
                     <Typography>No study modules available currently.</Typography>
@@ -230,29 +250,31 @@ const BibleStudies = () => {
                 </Grid>
               ) : (
                 studySeries.map((study) => (
-                  <Grid item xs={12} sm={6} key={study.id}>
+                  <Grid size={{ xs: 12, sm: 6 }} key={study.id}>
                     <Card 
                       sx={{ 
                         p: 3, 
                         height: '100%', 
                         display: 'flex', 
                         flexDirection: 'column', 
+                        borderRadius: 3,
                         border: study.active ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                         transition: 'all 0.2s',
-                        '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[3] }
+                        '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] }
                       }}
                     >
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                         <Avatar sx={{ 
                           bgcolor: study.active ? theme.palette.primary.main : theme.palette.action.selected,
-                          color: study.active ? '#fff' : theme.palette.text.secondary
+                          color: study.active ? '#fff' : theme.palette.text.secondary,
+                          borderRadius: 2
                         }}>
                           <Bookmark size={20} />
                         </Avatar>
-                        {study.active && <Chip label="Current" color="primary" size="small" />}
+                        {study.active && <Chip label="Current" color="primary" size="small" sx={{ fontWeight: 700, borderRadius: 2 }} />}
                       </Box>
 
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: theme.palette.text.primary }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, color: theme.palette.text.primary }}>
                         {study.title}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
@@ -261,8 +283,8 @@ const BibleStudies = () => {
 
                       <Box sx={{ mb: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption" color="text.secondary">{study.sessions} Sessions</Typography>
-                          {study.active && <Typography variant="caption" color="primary.main">{study.progress}% Complete</Typography>}
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>{study.sessions} Sessions</Typography>
+                          {study.active && <Typography variant="caption" color="primary.main" fontWeight={700}>{study.progress}% Complete</Typography>}
                         </Box>
                         {study.active && (
                           <LinearProgress variant="determinate" value={study.progress} sx={{ borderRadius: 2, height: 6 }} />
@@ -271,15 +293,16 @@ const BibleStudies = () => {
 
                       {study.active ? (
                         <Button 
-                          variant="outlined" 
+                          variant="contained" 
                           endIcon={<ChevronRight size={16} />} 
                           fullWidth 
-                          onClick={() => showSnackbar("Resuming study session...", "info")}
+                          onClick={() => showNotification("Resuming study session...", "info")}
+                          sx={{ borderRadius: 2, fontWeight: 700, boxShadow: 'none' }}
                         >
                           Resume Study
                         </Button>
                       ) : (
-                        <Button color="inherit" sx={{ color: 'text.secondary' }} onClick={() => setSelectedStudy(study)}>
+                        <Button variant="outlined" color="inherit" fullWidth sx={{ color: 'text.secondary', borderRadius: 2, fontWeight: 600 }} onClick={() => setSelectedStudy(study)}>
                           View Details
                         </Button>
                       )}
@@ -313,6 +336,7 @@ const BibleStudies = () => {
                       </InputAdornment>
                     ),
                   }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                 />
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
                   {['all', 'pdf', 'audio'].map((type) => (
@@ -321,59 +345,81 @@ const BibleStudies = () => {
                       size="small"
                       variant={filterType === type ? 'contained' : 'outlined'} 
                       onClick={() => setFilterType(type)}
-                      sx={{ flex: 1, textTransform: 'capitalize' }}
+                      sx={{ flex: 1, textTransform: 'capitalize', borderRadius: 2, fontWeight: 600 }}
                     >
                       {type}
                     </Button>
                   ))}
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Plus size={18} />}
+                    onClick={() => setIsAddResourceOpen(true)}
+                    sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}
+                  >
+                    Add Resource
+                  </Button>
                 </Box>
               </Box>
 
-              <Card variant="outlined">
+              <Card variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
                 <List sx={{ p: 0 }}>
                   {filteredResources.length === 0 ? (
-                    <Box sx={{ p: 4, textAlign: 'center' }}>
-                      <Typography color="text.secondary">No resources match your search.</Typography>
+                    <Box sx={{ p: 6, textAlign: 'center' }}>
+                      <Typography color="text.secondary" fontWeight={500}>No resources match your search.</Typography>
                     </Box>
                   ) : (
                     filteredResources.map((res, index) => (
                       <React.Fragment key={res.id}>
                         <ListItem
                           sx={{ 
-                            '&:hover': { bgcolor: theme.palette.action.hover },
-                            cursor: 'pointer'
+                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                            cursor: 'pointer',
+                            py: 2,
+                            px: 3
                           }}
-                          // 🟢 Update: Clicking the whole row opens the Google Drive link
                           onClick={() => handleOpenResource(res)}
                           secondaryAction={
-                            <IconButton 
-                              edge="end" 
-                              size="small" 
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent double click event
-                                handleOpenResource(res);
-                              }}
-                            >
-                              {/* 🟢 Update: Icon changes based on type */}
-                              {res.type === 'audio' ? <Play size={16} /> : <Download size={16} />}
-                            </IconButton>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <IconButton 
+                                size="small" 
+                                onClick={(e) => {
+                                  e.stopPropagation(); 
+                                  handleOpenResource(res);
+                                }}
+                                sx={{ color: theme.palette.primary.main }}
+                              >
+                                {res.type === 'audio' ? <Play size={20} /> : <Download size={20} />}
+                              </IconButton>
+                              <IconButton 
+                                size="small" 
+                                onClick={(e) => {
+                                  e.stopPropagation(); 
+                                  handleDeleteResource(res);
+                                }}
+                                color="error"
+                              >
+                                <Trash2 size={20} />
+                              </IconButton>
+                            </Box>
                           }
                         >
                           <ListItemAvatar>
                             <Avatar sx={{ 
                               bgcolor: alpha(theme.palette.primary.main, 0.1), 
                               color: theme.palette.primary.main,
-                              width: 36,
-                              height: 36
+                              width: 40,
+                              height: 40,
+                              borderRadius: 2
                             }}>
-                              {res.type === 'pdf' ? <FileText size={18} /> : <Headphones size={18} />}
+                              {res.type === 'pdf' ? <FileText size={20} /> : <Headphones size={20} />}
                             </Avatar>
                           </ListItemAvatar>
                           <ListItemText
                             primary={res.title}
-                            primaryTypographyProps={{ fontSize: 14, fontWeight: 600, color: theme.palette.text.primary }}
+                            primaryTypographyProps={{ fontSize: '1rem', fontWeight: 600, color: theme.palette.text.primary }}
                             secondary={`${res.type.toUpperCase()} • ${res.size}`}
-                            secondaryTypographyProps={{ fontSize: 12 }}
+                            secondaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500 }}
                           />
                         </ListItem>
                         {index < filteredResources.length - 1 && <Divider component="li" />}
@@ -387,12 +433,12 @@ const BibleStudies = () => {
         </Grid>
 
         {/* --- RIGHT COL: SIDEBAR RESOURCES --- */}
-        <Grid item xs={12} md={4}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: theme.palette.text.primary }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: theme.palette.text.primary }}>
             Recent Material
           </Typography>
           
-          <Card sx={{ mb: 4, maxHeight: '400px', overflowY: 'auto' }}>
+          <Card sx={{ mb: 4, maxHeight: '400px', overflowY: 'auto', borderRadius: 3, boxShadow: theme.shadows[2] }}>
             <List disablePadding>
               {loading ? (
                 <Box sx={{ p: 2 }}>
@@ -408,9 +454,8 @@ const BibleStudies = () => {
                 resources.slice(0, 5).map((res, index) => (
                   <React.Fragment key={res.id}>
                     <ListItem 
-                      // 🟢 Update: Sidebar clicks also open Drive links
                       onClick={() => handleOpenResource(res)}
-                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) }, py: 1.5 }}
                       secondaryAction={
                         <IconButton 
                           edge="end" 
@@ -426,17 +471,18 @@ const BibleStudies = () => {
                     >
                       <ListItemAvatar>
                         <Avatar sx={{ 
-                          bgcolor: alpha(theme.palette.primary.main, 0.1), 
-                          color: theme.palette.primary.main,
+                          bgcolor: theme.palette.background.default, 
+                          color: theme.palette.text.secondary,
                           width: 32,
-                          height: 32
+                          height: 32,
+                          borderRadius: 2
                         }}>
                           {res.type === 'pdf' ? <FileText size={16} /> : <Headphones size={16} />}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText 
                         primary={res.title} 
-                        primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+                        primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }}
                         secondary={`${res.type.toUpperCase()} • ${res.size}`}
                         secondaryTypographyProps={{ fontSize: 11 }}
                       />
@@ -450,16 +496,18 @@ const BibleStudies = () => {
 
           {/* Quote Box */}
           <Card sx={{ 
-            p: 3, 
-            bgcolor: alpha(theme.palette.secondary.main, 0.05), 
+            p: 4, 
+            bgcolor: alpha(theme.palette.secondary.main, 0.08), 
             border: 'none', 
             boxShadow: 'none', 
-            borderRadius: 3
+            borderRadius: 4,
+            position: 'relative',
+            overflow: 'hidden'
           }}>
-            <Typography variant="h2" sx={{ color: theme.palette.secondary.main, opacity: 0.2, lineHeight: 0.5, mb: 2 }}>
+            <Typography variant="h1" sx={{ color: theme.palette.secondary.main, opacity: 0.1, position: 'absolute', top: -10, left: 10, fontSize: '6rem' }}>
               “
             </Typography>
-            <Typography variant="body1" sx={{ fontStyle: 'italic', color: theme.palette.text.secondary, mb: 2, position: 'relative', zIndex: 1 }}>
+            <Typography variant="h6" sx={{ fontStyle: 'italic', color: theme.palette.text.primary, mb: 2, position: 'relative', zIndex: 1, fontWeight: 500, lineHeight: 1.6 }}>
               To understand the scripture is to understand the heart of God.
             </Typography>
           </Card>
@@ -473,16 +521,11 @@ const BibleStudies = () => {
         study={selectedStudy}
       />
 
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <AddResourceDialog
+        open={isAddResourceOpen}
+        onClose={() => setIsAddResourceOpen(false)}
+        onResourceAdded={handleResourceAdded}
+      />
 
     </Box>
   );

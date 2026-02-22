@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Snackbar, Alert } from '@mui/material';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const WorkspaceContext = createContext();
 
@@ -24,6 +26,18 @@ export const WorkspaceProvider = ({ children }) => {
     const saved = localStorage.getItem('userRole');
     return (saved && saved !== 'undefined') ? saved : 'guest';
   });
+
+  // --- Global Notification State ---
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
+  const [confirmation, setConfirmation] = useState({ open: false, title: '', message: '', onConfirm: () => {}, severity: 'error' });
+
+  const showNotification = (message, severity = 'info') => {
+    setNotification({ open: true, message, severity });
+  };
+
+  const showConfirmation = ({ title, message, onConfirm, severity = 'error' }) => {
+    setConfirmation({ open: true, title, message, onConfirm, severity });
+  };
 
   const refreshUserContext = () => {
     const branch = localStorage.getItem('userBranch') || 'all';
@@ -64,10 +78,12 @@ export const WorkspaceProvider = ({ children }) => {
 
     return filteredByBranch.filter(item => {
       if (!item) return false;
+      if (workspace === 'main') return true; // Show all in Main Sanctuary
+      
       const department = (item.department || '').toLowerCase();
       if (workspace === 'youth') return department === 'youth';
       if (workspace === 'kids') return department === "children's department";
-      return department !== 'youth' && department !== "children's department";
+      return true;
     });
   };
 
@@ -85,12 +101,41 @@ export const WorkspaceProvider = ({ children }) => {
     userRole,
     canEdit,
     isBranchRestricted: userBranch !== 'all',
-    refreshUserContext
+    refreshUserContext,
+    showNotification,
+    showConfirmation
   };
 
   return (
     <WorkspaceContext.Provider value={value}>
       {children}
+      
+      {/* Global Notification Component (The "Sandwich") */}
+      <Snackbar 
+        open={notification.open} 
+        autoHideDuration={5000} 
+        onClose={() => setNotification({ ...notification, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setNotification({ ...notification, open: false })} 
+          severity={notification.severity} 
+          variant="filled"
+          sx={{ width: '100%', borderRadius: 3, boxShadow: 6, fontWeight: 600 }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Global Confirmation Dialog */}
+      <ConfirmationDialog 
+        open={confirmation.open}
+        title={confirmation.title}
+        message={confirmation.message}
+        severity={confirmation.severity}
+        onConfirm={confirmation.onConfirm}
+        onClose={() => setConfirmation({ ...confirmation, open: false })}
+      />
     </WorkspaceContext.Provider>
   );
 };

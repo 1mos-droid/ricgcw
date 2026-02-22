@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { format, isValid, parseISO } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
@@ -9,7 +9,7 @@ import {
   Card, 
   Button, 
   List, 
-  ListItem, // Imported native MUI ListItem
+  ListItem,
   ListItemButton, 
   ListItemAvatar, 
   ListItemText, 
@@ -30,13 +30,13 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableRow,
-  IconButton, // Fixed: Was missing
-  FormControl, // NEW
-  InputLabel, // NEW
-  Select, // NEW
-  MenuItem // NEW
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  alpha
 } from '@mui/material';
 import { 
   Calendar, 
@@ -44,7 +44,6 @@ import {
   Save, 
   History, 
   Users, 
-  AlertCircle,
   Clock,
   Printer,
   XCircle,
@@ -58,34 +57,26 @@ import { API_BASE_URL } from '../config';
 
 const Attendance = () => {
   const theme = useTheme();
-  const { filterData, isBranchRestricted, userBranch } = useWorkspace();
+  const { filterData, isBranchRestricted, userBranch, showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
   const [members, setMembers] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedAttendees, setSelectedAttendees] = useState(new Set());
-  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : ''); // NEW: State for selected branch
+  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : '');
   
-  // ... rest of state
-  
-  // Report / Dialog State
   const [selectedRecord, setSelectedRecord] = useState(null); 
   const [reportTab, setReportTab] = useState(0); 
   
-  // UI States
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedAttendees, setEditedAttendees] = useState(new Set());
 
-  // 🟢 Filtered Data
   const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
   const filteredRecords = useMemo(() => filterData(attendanceRecords), [attendanceRecords, filterData]);
 
-  // --- HELPER: SAFE DATE PARSER ---
   const parseDate = (dateVal) => {
     if (!dateVal) return new Date();
     if (dateVal._seconds) return new Date(dateVal._seconds * 1000); 
@@ -93,7 +84,6 @@ const Attendance = () => {
     return isValid(d) ? d : new Date();
   };
 
-  // --- HELPER: SAFE DATE FORMATTER ---
   const safeFormat = (dateVal, formatStr) => {
     try {
       return format(parseDate(dateVal), formatStr);
@@ -102,33 +92,24 @@ const Attendance = () => {
     }
   };
 
-  // --- HELPER: CALCULATE ABSENT (CRASH PROOF) ---
   const getAbsentMembers = (record) => {
     if (!record || !filteredMembers) return [];
-    
-    // 1. Safely get attendees, defaulting to empty array
     const attendees = record.attendees || [];
-    
-    // 2. Create Set of IDs, filtering out any null/bad entries
     const presentIds = new Set(
         attendees
-        .filter(a => a && a.id) // Only keep valid objects with IDs
+        .filter(a => a && a.id)
         .map(a => a.id)
     );
-
-    // 3. Filter members, ensuring member object exists
     return filteredMembers.filter(m => m && m.id && !presentIds.has(m.id));
   };
 
-  // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     try {
-      // Only set loading if we don't have data yet to prevent UI flickering
       if (members.length === 0) setLoading(true); 
       
       const [membersRes, attendanceRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/members`),
-        axios.get(`${API_BASE_URL}/attendance`)
+        axios.get(`${API_BASE_URL}/members/`),
+        axios.get(`${API_BASE_URL}/attendance/`)
       ]);
       
       setMembers(membersRes.data || []); 
@@ -139,18 +120,17 @@ const Attendance = () => {
       
       setAttendanceRecords(sortedRecords);
     } catch (err) {
-      console.error("Sync Error:", err);
-      showSnackbar("Failed to load data. Check connection.", "error");
+      console.error("Attendance Sync Error:", err.response?.data || err.message);
+      showNotification("Failed to load data. Check connection.", "error");
     } finally {
       setLoading(false);
     }
-  }, []); // Fixed: Removed members.length dependency to prevent infinite loop
+  }, [showNotification, members.length]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // --- HANDLERS ---
   const handleToggle = (id) => {
     const newSet = new Set(selectedAttendees);
     if (newSet.has(id)) newSet.delete(id);
@@ -167,34 +147,31 @@ const Attendance = () => {
 
   const handleSave = async () => {
     if (selectedAttendees.size === 0) {
-      showSnackbar("Please select at least one member.", "warning");
+      showNotification("Please select at least one member.", "warning");
       return;
     }
     
     setSubmitting(true);
-    // Filter to ensure we don't save broken member data
     const attendeesList = members.filter(m => m && m.id && selectedAttendees.has(m.id));
 
     try {
-      // Create a date object that respects the selected string date
-      // Appending T12:00:00 avoids timezone "previous day" issues when converting to ISO
       const recordDate = new Date(`${selectedDate}T12:00:00`);
 
       const recordData = {
         date: recordDate.toISOString(),
         attendees: attendeesList,
-        branch: isBranchRestricted ? userBranch : selectedBranch, // 🟢 Add branch info
+        branch: isBranchRestricted ? userBranch : selectedBranch,
         createdAt: new Date().toISOString()
       };
 
-      await axios.post(`${API_BASE_URL}/attendance`, recordData);
+      await axios.post(`${API_BASE_URL}/attendance/`, recordData);
       
       setSelectedAttendees(new Set());
       await fetchData(); 
-      showSnackbar("Attendance saved successfully!", "success");
+      showNotification("Attendance saved successfully!", "success");
     } catch (err) {
-      console.error(err);
-      showSnackbar("Failed to save attendance.", "error");
+      console.error("Save Attendance Error:", err.response?.data || err.message);
+      showNotification("Failed to save attendance.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -212,15 +189,15 @@ const Attendance = () => {
         attendees: attendeesList,
       };
 
-      await axios.put(`${API_BASE_URL}/attendance/${selectedRecord.id}`, updatedRecord);
+      await axios.put(`${API_BASE_URL}/attendance/${selectedRecord.id}/`, updatedRecord);
 
       await fetchData(); 
-      showSnackbar("Attendance updated successfully!", "success");
-      setIsEditing(false); // Exit edit mode
-      setSelectedRecord(updatedRecord); // Update the selected record in the UI
+      showNotification("Attendance updated successfully!", "success");
+      setIsEditing(false);
+      setSelectedRecord(updatedRecord);
     } catch (err) {
-      console.error(err);
-      showSnackbar("Failed to update attendance.", "error");
+      console.error("Update Attendance Error:", err.response?.data || err.message);
+      showNotification("Failed to update attendance.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -230,23 +207,24 @@ const Attendance = () => {
   const handleDelete = async () => {
     if (!selectedRecord || !selectedRecord.id) return;
     
-    setSubmitting(true);
-    try {
-      await axios.delete(`${API_BASE_URL}/attendance/${selectedRecord.id}`);
-      setDeleteDialogOpen(false);
-      setSelectedRecord(null);
-      await fetchData();
-      showSnackbar("Attendance record deleted successfully!", "success");
-    } catch (err) {
-      console.error(err);
-      showSnackbar("Failed to delete attendance record.", "error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const showSnackbar = (message, severity) => {
-    setSnackbar({ open: true, message, severity });
+    showConfirmation({
+      title: "Delete Attendance",
+      message: `Are you sure you want to delete the attendance record for ${safeFormat(selectedRecord.date, 'MMMM dd, yyyy')}? This action cannot be undone.`,
+      onConfirm: async () => {
+        setSubmitting(true);
+        try {
+          await axios.delete(`${API_BASE_URL}/attendance/${selectedRecord.id}/`);
+          setSelectedRecord(null);
+          await fetchData();
+          showNotification("Attendance record deleted successfully!", "success");
+        } catch (err) {
+          console.error("Delete Attendance Error:", err.response?.data || err.message);
+          showNotification("Failed to delete attendance record.", "error");
+        } finally {
+          setSubmitting(false);
+        }
+      }
+    });
   };
 
   const handlePrint = () => {
@@ -276,36 +254,37 @@ const Attendance = () => {
       {/* --- HEADER --- */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }} className="no-print">
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.text.primary, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
-            Attendance Register
+          <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={1.2}>
+            REGISTRY
           </Typography>
-          <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-            Track daily presence & engagement
+          <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.02em' }}>
+            Attendance
           </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-          <Card sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 3, width: { xs: '100%', sm: 'auto' }, border: `1px solid ${theme.palette.divider}` }}>
-            <Box sx={{ p: 1, bgcolor: theme.palette.primary.light, borderRadius: 2, color: theme.palette.primary.contrastText }}>
+          <Card sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 2, borderRadius: 3, width: { xs: '100%', sm: 'auto' }, border: `1px solid ${theme.palette.divider}`, boxShadow: 'none' }}>
+            <Box sx={{ p: 1, bgcolor: theme.palette.primary.light, borderRadius: 2, color: theme.palette.primary.main }}>
               <Calendar size={18} />
             </Box>
             <input 
               type="date" 
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              style={{ border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '14px', color: theme.palette.text.primary, outline: 'none', cursor: 'pointer', width: '100%' }}
+              style={{ border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, color: theme.palette.text.primary, outline: 'none', cursor: 'pointer', width: '100%' }}
             />
           </Card>
 
           <FormControl sx={{ width: { xs: '100%', sm: 200 } }} size="small" disabled={isBranchRestricted}>
-            <InputLabel id="branch-select-label">Branch</InputLabel>
             <Select
-              labelId="branch-select-label"
-              id="branch-select"
+              displayEmpty
               value={selectedBranch}
-              label="Branch"
               onChange={(e) => setSelectedBranch(e.target.value)}
               sx={{ borderRadius: 3 }}
+              renderValue={(selected) => {
+                if (selected === '') return <Typography color="text.secondary">All Branches</Typography>;
+                return selected;
+              }}
             >
               <MenuItem value="">
                 <em>All Branches</em>
@@ -322,17 +301,22 @@ const Attendance = () => {
       <Grid container spacing={3} className="no-print">
         
         {/* --- LEFT COL: MARK ATTENDANCE --- */}
-        <Grid item xs={12} md={8}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 3 }}>
-            <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 4, overflow: 'hidden' }}>
+            <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}><Users size={18} /></Avatar>
-                <Typography variant="h6">Mark Present</Typography>
+                <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 3 }}>
+                    <Users size={20} />
+                </Avatar>
+                <Box>
+                    <Typography variant="h6" fontWeight={700}>Mark Present</Typography>
+                    <Typography variant="caption" color="text.secondary">Tap to select members</Typography>
+                </Box>
               </Box>
-              <Chip label={`${selectedAttendees.size} Selected`} color="primary" variant={selectedAttendees.size > 0 ? "filled" : "outlined"} size="small" />
+              <Chip label={`${selectedAttendees.size} Selected`} color="primary" sx={{ fontWeight: 700, borderRadius: 2 }} />
             </Box>
 
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2, py: 1, maxHeight: '60vh', minHeight: '300px' }}>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2, py: 2, maxHeight: '60vh', minHeight: '400px' }}>
               {loading ? (
                  Array.from(new Array(5)).map((_, index) => (
                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 2 }}>
@@ -343,31 +327,47 @@ const Attendance = () => {
               ) : filteredMembers.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6 }}><Typography>No members found</Typography></Box>
               ) : (
-                <List>
+                <Grid container spacing={1}>
                   {filteredMembers.filter(m => m && m.name && (selectedBranch === '' || m.branch === selectedBranch)).map((member) => {
                     const isSelected = selectedAttendees.has(member.id);
                     return (
-                      <ListItemButton 
-                        key={member.id} 
-                        onClick={() => handleToggle(member.id)}
-                        sx={{ borderRadius: 2, mb: 1, border: isSelected ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent', bgcolor: isSelected ? theme.palette.action.selected : 'transparent' }}
-                      >
-                        <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: isSelected ? theme.palette.primary.main : theme.palette.grey[200], color: isSelected ? '#FFF' : theme.palette.text.secondary }}>
-                            {(member.name || "?").charAt(0).toUpperCase()}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText primary={member.name} secondary={member.email} />
-                        {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
-                      </ListItemButton>
+                      <Grid size={{ xs: 12, sm: 6 }} key={member.id}>
+                        <ListItemButton 
+                            onClick={() => handleToggle(member.id)}
+                            sx={{ 
+                                borderRadius: 3, 
+                                border: isSelected ? `1px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`, 
+                                bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                                transition: 'all 0.2s',
+                                '&:hover': { bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.12) : theme.palette.action.hover }
+                            }}
+                        >
+                            <ListItemAvatar>
+                            <Avatar sx={{ 
+                                bgcolor: isSelected ? theme.palette.primary.main : theme.palette.action.hover, 
+                                color: isSelected ? '#FFF' : theme.palette.text.secondary,
+                                fontWeight: 700,
+                                borderRadius: 2
+                            }}>
+                                {(member.name || "?").charAt(0).toUpperCase()}
+                            </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText 
+                                primary={member.name} 
+                                primaryTypographyProps={{ fontWeight: isSelected ? 700 : 500 }}
+                                secondary={member.email} 
+                            />
+                            {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
+                        </ListItemButton>
+                      </Grid>
                     );
                   })}
-                </List>
+                </Grid>
               )}
             </Box>
 
-            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-              <Button variant="contained" fullWidth size="large" disabled={submitting || selectedAttendees.size === 0 || loading} onClick={handleSave} sx={{ borderRadius: 3, py: 1.5, fontWeight: 600 }}>
+            <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.default }}>
+              <Button variant="contained" fullWidth size="large" disabled={submitting || selectedAttendees.size === 0 || loading} onClick={handleSave} sx={{ borderRadius: 3, py: 1.5, fontWeight: 700, boxShadow: theme.shadows[4] }}>
                 {submitting ? <CircularProgress size={24} color="inherit"/> : <Box sx={{ display: 'flex', gap: 1 }}><Save size={20} /><span>Save Record</span></Box>}
               </Button>
             </Box>
@@ -375,11 +375,11 @@ const Attendance = () => {
         </Grid>
 
         {/* --- RIGHT COL: HISTORY LOG --- */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: 3, maxHeight: '80vh' }}>
-            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}><History size={18} /></Avatar>
-              <Typography variant="h6">Recent Logs</Typography>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: 4, maxHeight: '80vh', overflow: 'hidden' }}>
+            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, width: 40, height: 40, borderRadius: 3 }}><History size={20} /></Avatar>
+              <Typography variant="h6" fontWeight={700}>Recent Logs</Typography>
             </Box>
 
             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
@@ -391,31 +391,32 @@ const Attendance = () => {
                     key={record.id || index} 
                     onClick={() => {
                       setSelectedRecord(record);
-                      // Pre-populate the edited attendees when opening the dialog
                       const attendeeIds = new Set((record.attendees || []).map(a => a.id));
                       setEditedAttendees(attendeeIds);
                     }}
                     sx={{ 
-                      p: 2, mb: 2, borderRadius: 2, 
-                      bgcolor: theme.palette.background.default, 
+                      p: 2, mb: 2, borderRadius: 3, 
+                      bgcolor: theme.palette.background.paper, 
                       border: `1px solid ${theme.palette.divider}`,
                       cursor: 'pointer',
-                      '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[2] },
-                      transition: 'all 0.2s'
+                      '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[3], borderColor: theme.palette.primary.main },
+                      transition: 'all 0.2s',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}
                   >
+                    <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, bgcolor: theme.palette.primary.main }} />
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: theme.palette.text.secondary }}>
                       <Clock size={14} />
-                      <Typography variant="caption" fontWeight={600}>
+                      <Typography variant="caption" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         {safeFormat(record.date, 'MMM dd, yyyy')}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="h6" color="primary.main" fontWeight={700}>
-                        {/* 🔴 SAFE LENGTH CHECK */}
-                        {record.attendees ? record.attendees.length : 0} Present
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pl: 1 }}>
+                      <Typography variant="h6" color="text.primary" fontWeight={800}>
+                        {record.attendees ? record.attendees.length : 0} <Typography component="span" variant="body2" color="text.secondary">Present</Typography>
                       </Typography>
-                      <Button size="small" variant="text" endIcon={<Edit size={14}/>}>Edit</Button>
+                      <Button size="small" variant="outlined" sx={{ borderRadius: 2, minWidth: 0, p: 0.5 }}><Edit size={14}/></Button>
                     </Box>
                   </Box>
                 ))
@@ -430,33 +431,33 @@ const Attendance = () => {
         open={!!selectedRecord} 
         onClose={() => {
           setSelectedRecord(null);
-          setIsEditing(false); // Reset edit mode on close
+          setIsEditing(false); 
         }}
         maxWidth="md"
         fullWidth
         className="no-print"
+        PaperProps={{ sx: { borderRadius: 4 } }}
       >
         {selectedRecord && (
           <>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}` }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}`, p: 3 }}>
               <Box>
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h5" fontWeight={800}>
                   {isEditing ? 'Edit Attendance' : 'Attendance Report'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
                   {safeFormat(selectedRecord.date, 'EEEE, MMMM do, yyyy')}
                 </Typography>
               </Box>
               <IconButton onClick={() => {
                 if (isEditing) {
-                  setIsEditing(false); // Just exit edit mode, don't close dialog
-                  // Reset changes to original state
+                  setIsEditing(false); 
                   const originalAttendeeIds = new Set((selectedRecord.attendees || []).map(a => a.id));
                   setEditedAttendees(originalAttendeeIds);
                 } else {
-                  setSelectedRecord(null); // Close dialog
+                  setSelectedRecord(null); 
                 }
-              }}>
+              }} sx={{ bgcolor: theme.palette.action.hover }}>
                 <X />
               </IconButton>
             </DialogTitle>
@@ -464,78 +465,79 @@ const Attendance = () => {
             <DialogContent sx={{ p: 0 }}>
               {isEditing ? (
                 <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto' }}>
-                  <List>
+                  <Grid container spacing={1}>
                     {filteredMembers.map((member) => {
                       const isSelected = editedAttendees.has(member.id);
                       return (
-                        <ListItemButton 
-                          key={member.id} 
-                          onClick={() => handleToggleEdited(member.id)}
-                          sx={{ borderRadius: 2, mb: 1, border: isSelected ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent', bgcolor: isSelected ? theme.palette.action.selected : 'transparent' }}
-                        >
-                          <ListItemAvatar>
-                            <Avatar sx={{ bgcolor: isSelected ? theme.palette.primary.main : theme.palette.grey[200], color: isSelected ? '#FFF' : theme.palette.text.secondary }}>
-                              {(member.name || "?").charAt(0).toUpperCase()}
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText primary={member.name} secondary={member.email} />
-                          {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
-                        </ListItemButton>
+                        <Grid size={{ xs: 12, sm: 6 }} key={member.id}>
+                            <ListItemButton 
+                            onClick={() => handleToggleEdited(member.id)}
+                            sx={{ borderRadius: 3, mb: 1, border: isSelected ? `1px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`, bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent' }}
+                            >
+                            <ListItemAvatar>
+                                <Avatar sx={{ bgcolor: isSelected ? theme.palette.primary.main : theme.palette.grey[200], color: isSelected ? '#FFF' : theme.palette.text.secondary, borderRadius: 2 }}>
+                                {(member.name || "?").charAt(0).toUpperCase()}
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText primary={member.name} secondary={member.email} />
+                            {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
+                            </ListItemButton>
+                        </Grid>
                       );
                     })}
-                  </List>
+                  </Grid>
                 </Box>
               ) : (
                 <>
-                  <Box sx={{ bgcolor: theme.palette.background.default, p: 2 }}>
+                  <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), p: 3 }}>
                     <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Card sx={{ p: 2, textAlign: 'center', bgcolor: theme.palette.success.light, color: theme.palette.success.dark }}>
-                          <Typography variant="h4" fontWeight={800}>{selectedRecord.attendees ? selectedRecord.attendees.length : 0}</Typography>
-                          <Typography variant="caption" fontWeight={700}>PRESENT</Typography>
+                      <Grid size={{ xs: 6 }}>
+                        <Card sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.dark, boxShadow: 'none', border: `1px solid ${alpha(theme.palette.success.main, 0.2)}` }}>
+                          <Typography variant="h3" fontWeight={800} letterSpacing={-1}>{selectedRecord.attendees ? selectedRecord.attendees.length : 0}</Typography>
+                          <Typography variant="caption" fontWeight={700} letterSpacing={1}>PRESENT</Typography>
                         </Card>
                       </Grid>
-                      <Grid item xs={6}>
-                        <Card sx={{ p: 2, textAlign: 'center', bgcolor: theme.palette.error.light, color: theme.palette.error.dark }}>
-                          <Typography variant="h4" fontWeight={800}>{getAbsentMembers(selectedRecord).length}</Typography>
-                          <Typography variant="caption" fontWeight={700}>ABSENT</Typography>
+                      <Grid size={{ xs: 6 }}>
+                        <Card sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.dark, boxShadow: 'none', border: `1px solid ${alpha(theme.palette.error.main, 0.2)}` }}>
+                          <Typography variant="h3" fontWeight={800} letterSpacing={-1}>{getAbsentMembers(selectedRecord).length}</Typography>
+                          <Typography variant="caption" fontWeight={700} letterSpacing={1}>ABSENT</Typography>
                         </Card>
                       </Grid>
                     </Grid>
                   </Box>
 
                   <Tabs value={reportTab} onChange={(e, v) => setReportTab(v)} variant="fullWidth" sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tab label="Present List" icon={<CheckCircle size={16}/>} iconPosition="start" />
-                    <Tab label="Absent List" icon={<XCircle size={16}/>} iconPosition="start" />
+                    <Tab label="Present List" />
+                    <Tab label="Absent List" />
                   </Tabs>
 
-                  <Box sx={{ p: 2, maxHeight: '40vh', overflowY: 'auto' }}>
+                  <Box sx={{ p: 0, maxHeight: '40vh', overflowY: 'auto' }}>
                     {reportTab === 0 ? (
                       // PRESENT LIST
-                      <List dense>
+                      <List>
                         {selectedRecord.attendees && selectedRecord.attendees.filter(m => m).map((m, i) => (
                           <ListItem key={m.id || i} divider>
                             <ListItemAvatar>
-                              <Avatar sx={{ width: 30, height: 30, bgcolor: theme.palette.success.main, fontSize: 14 }}>
+                              <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.success.main, fontSize: 14, fontWeight: 700, borderRadius: 2 }}>
                                 {(m.name || "?").charAt(0)}
                               </Avatar>
                             </ListItemAvatar>
-                            <ListItemText primary={m.name || "Unknown"} secondary={m.email} />
+                            <ListItemText primary={m.name || "Unknown"} primaryTypographyProps={{ fontWeight: 600 }} secondary={m.email} />
                           </ListItem>
                         ))}
-                        {(!selectedRecord.attendees || selectedRecord.attendees.length === 0) && <Typography sx={{p:2, opacity:0.6}}>No one marked present.</Typography>}
+                        {(!selectedRecord.attendees || selectedRecord.attendees.length === 0) && <Typography sx={{p:3, opacity:0.6, textAlign: 'center'}}>No one marked present.</Typography>}
                       </List>
                     ) : (
                       // ABSENT LIST
-                      <List dense>
+                      <List>
                         {getAbsentMembers(selectedRecord).filter(m => m).map((m, i) => (
                           <ListItem key={m.id || i} divider>
                             <ListItemAvatar>
-                              <Avatar sx={{ width: 30, height: 30, bgcolor: theme.palette.error.main, fontSize: 14 }}>
+                              <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.error.main, fontSize: 14, fontWeight: 700, borderRadius: 2 }}>
                                 {(m.name || "?").charAt(0)}
                               </Avatar>
                             </ListItemAvatar>
-                            <ListItemText primary={m.name || "Unknown"} secondary={m.email} />
+                            <ListItemText primary={m.name || "Unknown"} primaryTypographyProps={{ fontWeight: 600 }} secondary={m.email} />
                           </ListItem>
                         ))}
                       </List>
@@ -545,18 +547,17 @@ const Attendance = () => {
               )}
             </DialogContent>
 
-            <DialogActions sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <DialogActions sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.default }}>
               {isEditing ? (
                 <>
                   <Button onClick={() => {
                     setIsEditing(false);
-                    // Restore original attendees
                     const originalAttendeeIds = new Set((selectedRecord.attendees || []).map(a => a.id));
                     setEditedAttendees(originalAttendeeIds);
-                  }}>
+                  }} sx={{ borderRadius: 2, fontWeight: 600 }}>
                     Cancel
                   </Button>
-                  <Button variant="contained" onClick={handleUpdate} disabled={submitting}>
+                  <Button variant="contained" onClick={handleUpdate} disabled={submitting} sx={{ borderRadius: 2, fontWeight: 600, boxShadow: theme.shadows[2] }}>
                     {submitting ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
                   </Button>
                 </>
@@ -566,7 +567,7 @@ const Attendance = () => {
                     color="error" 
                     startIcon={<Trash2 size={18}/>} 
                     onClick={() => setDeleteDialogOpen(true)}
-                    sx={{ mr: 'auto' }} // Pushes this button to the far left
+                    sx={{ mr: 'auto', fontWeight: 600, borderRadius: 2 }} 
                   >
                     Delete
                   </Button>
@@ -574,14 +575,11 @@ const Attendance = () => {
                     variant="outlined"
                     startIcon={<Edit size={18}/>}
                     onClick={() => setIsEditing(true)}
+                    sx={{ borderRadius: 2, fontWeight: 600 }}
                   >
                     Edit
                   </Button>
-                  <Button onClick={() => {
-                    setSelectedRecord(null);
-                    setIsEditing(false);
-                  }}>Close</Button>
-                  <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint}>
+                  <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint} sx={{ borderRadius: 2, fontWeight: 600, boxShadow: theme.shadows[2] }}>
                     Print Report
                   </Button>
                 </>
@@ -600,7 +598,7 @@ const Attendance = () => {
           </Box>
 
           <Grid container spacing={4} sx={{ mb: 4 }}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <Box sx={{ border: '1px solid #ddd', p: 2, borderRadius: 2 }}>
                 <Typography variant="h6" fontWeight={700} gutterBottom>
                   Present ({selectedRecord.attendees ? selectedRecord.attendees.length : 0})
@@ -614,7 +612,7 @@ const Attendance = () => {
                 </Table>
               </Box>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <Box sx={{ border: '1px solid #ddd', p: 2, borderRadius: 2 }}>
                 <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: 'error.main' }}>
                   Absent ({getAbsentMembers(selectedRecord).length})
@@ -636,33 +634,6 @@ const Attendance = () => {
         </div>
       )}
 
-      {/* --- SNACKBAR --- */}
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 2 }}>{snackbar.message}</Alert>
-      </Snackbar>
-
-      {/* --- DELETE CONFIRMATION DIALOG --- */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Attendance Record?</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete the attendance record for {selectedRecord && safeFormat(selectedRecord.date, 'MMMM dd, yyyy')}?
-            This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button 
-            color="error" 
-            variant="contained" 
-            onClick={handleDelete} 
-            disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Trash2 size={18}/>}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

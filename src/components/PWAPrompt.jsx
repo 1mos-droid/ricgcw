@@ -8,7 +8,8 @@ import {
   IconButton,
   Paper,
   Slide,
-  useMediaQuery
+  useMediaQuery,
+  alpha
 } from '@mui/material';
 import { Wifi, RefreshCw, X, DownloadCloud } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -112,35 +113,37 @@ export default function PWAPrompt() {
         sx={{ bottom: { xs: 20, md: 24 }, left: { xs: 20, md: 24 } }}
       >
         <Paper
-          elevation={4}
+          elevation={6}
           sx={{
             display: 'flex',
             alignItems: 'center',
             gap: 2,
-            px: 2,
-            py: 1.5,
+            px: 2.5,
+            py: 2,
             borderRadius: 3,
-            bgcolor: theme.palette.background.paper,
-            borderLeft: `4px solid ${theme.palette.success.main}`,
+            bgcolor: alpha(theme.palette.background.paper, 0.9),
+            border: `1px solid ${theme.palette.success.light}`,
+            backdropFilter: 'blur(10px)',
             color: theme.palette.text.primary,
-            minWidth: 280
+            minWidth: 300,
+            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.1)}`
           }}
         >
           <Box sx={{
             p: 1,
             borderRadius: '50%',
-            bgcolor: theme.palette.success.light,
-            color: theme.palette.success.dark,
+            bgcolor: alpha(theme.palette.success.main, 0.1),
+            color: theme.palette.success.main,
             display: 'flex'
           }}>
-            <Wifi size={18} />
+            <Wifi size={20} />
           </Box>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle2" fontWeight={700}>Ready for Offline</Typography>
-            <Typography variant="caption" color="text.secondary">App cached successfully.</Typography>
+            <Typography variant="subtitle2" fontWeight={800}>Ready for Offline</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>App cached successfully.</Typography>
           </Box>
-          <IconButton size="small" onClick={close}>
-            <X size={16} />
+          <IconButton size="small" onClick={close} sx={{ color: theme.palette.text.secondary }}>
+            <X size={18} />
           </IconButton>
         </Paper>
       </Snackbar>
@@ -160,22 +163,24 @@ export default function PWAPrompt() {
         }}
       >
         <Paper
-          elevation={8}
+          elevation={12}
           sx={{
-            p: 2,
-            borderRadius: 3,
-            bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#fff',
-            border: `1px solid ${theme.palette.primary.main}`,
+            p: 3,
+            borderRadius: 4,
+            bgcolor: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(12px)',
+            border: `1px solid ${theme.palette.primary.light}`,
             maxWidth: { xs: '100%', md: 400 },
-            width: '100%'
+            width: '100%',
+            boxShadow: `0 12px 48px ${alpha(theme.palette.primary.main, 0.15)}`
           }}
         >
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+          <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
             <Box sx={{
               p: 1.5,
               borderRadius: '50%',
-              bgcolor: theme.palette.primary.main,
-              color: '#fff',
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              color: theme.palette.primary.main,
               display: 'flex',
               mt: 0.5
             }}>
@@ -183,19 +188,19 @@ export default function PWAPrompt() {
             </Box>
 
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '1rem' }}>
+              <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2 }}>
                 Update Available
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 0.5, lineHeight: 1.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, mt: 1, lineHeight: 1.5, fontWeight: 500 }}>
                 A new version of the app is available. Reload to apply changes.
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
                 <Button
-                  variant="outlined"
+                  variant="text"
                   size="small"
                   onClick={close}
-                  sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', borderColor: theme.palette.divider }}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, color: theme.palette.text.secondary }}
                 >
                   Dismiss
                 </Button>
@@ -203,8 +208,8 @@ export default function PWAPrompt() {
                   variant="contained"
                   size="small"
                   onClick={handleReload}
-                  startIcon={<RefreshCw size={14} />}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: theme.shadows[2] }}
+                  startIcon={<RefreshCw size={16} />}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, px: 3, boxShadow: theme.shadows[4] }}
                 >
                   Reload Now
                 </Button>
@@ -228,22 +233,24 @@ export default function PWAPrompt() {
         }}
       >
         <Paper
-          elevation={8}
+          elevation={12}
           sx={{
-            p: 2,
-            borderRadius: 3,
-            bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#fff',
-            border: `1px solid ${theme.palette.primary.main}`,
+            p: 3,
+            borderRadius: 4,
+            bgcolor: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(12px)',
+            border: `1px solid ${theme.palette.primary.light}`,
             maxWidth: { xs: '100%', md: 400 },
-            width: '100%'
+            width: '100%',
+            boxShadow: `0 12px 48px ${alpha(theme.palette.primary.main, 0.15)}`
           }}
         >
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+          <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'flex-start' }}>
             <Box sx={{
               p: 1.5,
               borderRadius: '50%',
-              bgcolor: theme.palette.primary.main,
-              color: '#fff',
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              color: theme.palette.primary.main,
               display: 'flex',
               mt: 0.5
             }}>
@@ -251,19 +258,19 @@ export default function PWAPrompt() {
             </Box>
 
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '1rem' }}>
+              <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2 }}>
                 Install App
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 0.5, lineHeight: 1.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, mt: 1, lineHeight: 1.5, fontWeight: 500 }}>
                 Install RICGCW CMS on your device for a better experience.
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
                 <Button
-                  variant="outlined"
+                  variant="text"
                   size="small"
                   onClick={close}
-                  sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', borderColor: theme.palette.divider }}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, color: theme.palette.text.secondary }}
                 >
                   Not Now
                 </Button>
@@ -271,8 +278,8 @@ export default function PWAPrompt() {
                   variant="contained"
                   size="small"
                   onClick={handleInstall}
-                  startIcon={<DownloadCloud size={14} />}
-                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: theme.shadows[2] }}
+                  startIcon={<DownloadCloud size={16} />}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, px: 3, boxShadow: theme.shadows[4] }}
                 >
                   Install
                 </Button>

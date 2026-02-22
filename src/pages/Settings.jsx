@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -19,87 +21,144 @@ import {
   Chip,
   Snackbar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  alpha,
+  Stack
 } from '@mui/material';
 import { 
   User, 
   Bell, 
-  Shield, 
   Smartphone, 
   Moon, 
   LogOut, 
   RefreshCw, 
   Database,
-  Lock,
   Save,
-  CheckCircle
+  ShieldCheck,
+  Palette,
+  UserCheck,
+  Zap
 } from 'lucide-react';
+
+import { API_BASE_URL } from '../config';
 
 const Settings = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
-  // 1. Load Dark Mode from Local Storage (or default to system/light)
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem('theme') === 'dark'
   );
 
-  // 2. Other Local Preferences
   const [notifications, setNotifications] = useState(
     localStorage.getItem('pref_notifications') === 'true'
   );
   
-  // 3. Local Profile Data (No Authentication)
   const [adminName, setAdminName] = useState(localStorage.getItem('admin_name') || "Admin User");
   const [email, setEmail] = useState(localStorage.getItem('admin_email') || "admin@ricgcw.com");
   
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
 
   // --- HANDLERS ---
-  
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
+  const handleDeduplicate = async () => {
+    showConfirmation({
+      title: "Clean Registry",
+      message: "This will scan all members, find duplicates by name, and delete the ones with missing information. This action is irreversible.",
+      severity: "warning",
+      onConfirm: async () => {
+        setMaintenanceLoading(true);
+        try {
+          const res = await axios.get(`${API_BASE_URL}/members`);
+          const allMembers = res.data || [];
+          
+          // Group by normalized name
+          const groups = {};
+          allMembers.forEach(m => {
+            if (!m.name) return;
+            const key = m.name.trim().toLowerCase();
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(m);
+          });
+
+          const toDelete = [];
+          
+          Object.values(groups).forEach(group => {
+            if (group.length > 1) {
+              // Rank by completeness (counting non-empty optional fields)
+              const scored = group.map(m => {
+                const optionalFields = ['email', 'phone', 'address', 'dob', 'department', 'position', 'membershipType'];
+                const score = optionalFields.reduce((acc, field) => {
+                  return acc + (m[field] && String(m[field]).trim() ? 1 : 0);
+                }, 0);
+                return { ...m, _completenessScore: score };
+              });
+
+              // Sort: highest score first, then newest first
+              scored.sort((a, b) => {
+                if (b._completenessScore !== a._completenessScore) {
+                  return b._completenessScore - a._completenessScore;
+                }
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+              });
+
+              // Keep the winner (index 0), mark others for deletion
+              for (let i = 1; i < scored.length; i++) {
+                toDelete.push(scored[i].id);
+              }
+            }
+          });
+
+          if (toDelete.length === 0) {
+            showNotification("Registry is already optimized. No duplicates found.", "success");
+          } else {
+            // Delete duplicates
+            await Promise.all(toDelete.map(id => axios.delete(`${API_BASE_URL}/members/${id}`)));
+            showNotification(`Registry sanitized! Removed ${toDelete.length} duplicate records.`, "success");
+          }
+        } catch (err) {
+          console.error("Deduplication Error:", err);
+          showNotification("Failed to complete registry cleanup.", "error");
+        } finally {
+          setMaintenanceLoading(false);
+        }
+      }
+    });
   };
 
-  // 🟢 DARK MODE TOGGLE (ACTUALLY WORKS)
   const handleThemeToggle = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
-    
-    // 1. Save preference to storage so theme.js can read it
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
-    
-    // 2. Force reload to apply the new theme globally
     window.location.reload(); 
   };
 
   const handleSave = () => {
     setLoading(true);
-    
-    // Save all current states to Local Storage
     localStorage.setItem('admin_name', adminName);
     localStorage.setItem('admin_email', email);
     localStorage.setItem('pref_notifications', notifications);
 
-    // Simulate network delay for better UX
     setTimeout(() => {
       setLoading(false);
-      showSnackbar("Preferences saved successfully.");
+      showNotification("Preferences updated successfully.");
     }, 800);
   };
 
   const handleClearCache = () => {
-    if(window.confirm("Are you sure? This will clear all local data and reload.")) {
-        // Clear everything EXCEPT the theme to prevent flashing
+    showConfirmation({
+      title: "Clear Cache",
+      message: "Are you sure? This will clear all local data and reload the application. You may need to sign in again.",
+      onConfirm: () => {
         const currentTheme = localStorage.getItem('theme');
         localStorage.clear();
         if(currentTheme) localStorage.setItem('theme', currentTheme);
-        
         sessionStorage.clear();
         window.location.reload();
-    }
+      }
+    });
   };
 
   const containerVariants = {
@@ -116,15 +175,18 @@ const Settings = () => {
         display: 'flex', 
         flexDirection: { xs: 'column', sm: 'row' },
         justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', sm: 'center' },
+        alignItems: { xs: 'flex-start', sm: 'flex-end' },
         gap: 2
       }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
-            System Configuration
+          <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={1.2}>
+            PREFERENCES
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.02em' }}>
+            Settings
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage local preferences and interface settings
+            Customize your system experience and local profile
           </Typography>
         </Box>
         <Button 
@@ -134,180 +196,206 @@ const Settings = () => {
           onClick={handleSave}
           disabled={loading}
           sx={{ 
-            borderRadius: 2, 
+            borderRadius: 3, 
             px: 4, 
+            py: 1.2,
             width: { xs: '100%', sm: 'auto' },
-            boxShadow: theme.shadows[3]
+            boxShadow: theme.shadows[4],
+            fontWeight: 700
           }}
         >
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? 'Updating...' : 'Save Changes'}
         </Button>
       </Box>
 
       <Grid container spacing={4}>
         
-        {/* --- LEFT COL: NAVIGATION & PROFILE --- */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ p: 4, textAlign: 'center', mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
-            <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
+        {/* --- LEFT COL: PROFILE --- */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ p: 4, textAlign: 'center', borderRadius: 4, border: `1px solid ${theme.palette.divider}` }}>
+            <Box sx={{ position: 'relative', display: 'inline-block', mb: 3 }}>
               <Avatar 
                 sx={{ 
-                  width: 80, 
-                  height: 80, 
+                  width: 100, 
+                  height: 100, 
                   bgcolor: theme.palette.primary.main, 
-                  fontSize: 32, 
+                  fontSize: 40, 
                   mx: 'auto',
-                  border: `4px solid ${theme.palette.background.paper}`,
-                  boxShadow: theme.shadows[3]
+                  fontWeight: 800,
+                  border: `4px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.3)}`
                 }}
               >
                 {adminName.charAt(0).toUpperCase()}
               </Avatar>
               <Box sx={{ 
-                width: 16, 
-                height: 16, 
-                bgcolor: '#4CAF50', 
+                width: 24, 
+                height: 24, 
+                bgcolor: theme.palette.success.main, 
                 borderRadius: '50%', 
                 position: 'absolute', 
                 bottom: 5, 
                 right: 5, 
-                border: `2px solid ${theme.palette.background.paper}` 
+                border: `4px solid ${theme.palette.background.paper}`,
+                boxShadow: theme.shadows[2]
               }} />
             </Box>
             
-            <Typography variant="h6" fontWeight={700}>{adminName}</Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>Administrator</Typography>
+            <Typography variant="h5" fontWeight={800} letterSpacing="-0.01em">{adminName}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 3 }}>System Administrator</Typography>
             
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2, mb: 3 }}>
-              <Chip label="Local Admin" size="small" color="primary" variant="outlined" sx={{ fontWeight: 700, borderRadius: 1 }} />
-            </Box>
+            <Stack direction="row" spacing={1} justifyContent="center">
+              <Chip icon={<ShieldCheck size={14} />} label="Verified Access" size="small" sx={{ fontWeight: 700, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main }} />
+            </Stack>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 4, borderStyle: 'dashed' }} />
+            
+            <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ mb: 2, display: 'block', textTransform: 'uppercase', letterSpacing: 1 }}>Account Status</Typography>
+                <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" fontWeight={600}>Security Level</Typography>
+                        <Typography variant="body2" color="primary" fontWeight={700}>Tier 1</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" fontWeight={600}>Last Sync</Typography>
+                        <Typography variant="body2" color="text.secondary" fontWeight={500}>Just now</Typography>
+                    </Box>
+                </Stack>
+            </Box>
           </Card>
         </Grid>
 
-        {/* --- RIGHT COL: SETTINGS FORMS --- */}
-        <Grid item xs={12} md={8}>
+        {/* --- RIGHT COL: SETTINGS --- */}
+        <Grid size={{ xs: 12, md: 8 }}>
           
-          {/* Section 1: Account (Local Only) */}
-          <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, borderRadius: 2 }}>
-                <User size={20} />
-              </Avatar>
-              <Typography variant="h6" fontWeight={600}>Profile Details</Typography>
-            </Box>
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  fullWidth 
-                  label="Display Name" 
-                  value={adminName} 
-                  onChange={(e) => setAdminName(e.target.value)} 
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  fullWidth 
-                  label="Email Address" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                />
-              </Grid>
-            </Grid>
-          </Card>
+          <Stack spacing={3}>
+            {/* Profile Section */}
+            <Card sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}` }}>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, borderRadius: 2.5 }}>
+                        <User size={24} />
+                    </Box>
+                    <Typography variant="h6" fontWeight={800}>Profile Information</Typography>
+                </Stack>
+                
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField 
+                            fullWidth 
+                            label="Display Name" 
+                            value={adminName} 
+                            onChange={(e) => setAdminName(e.target.value)} 
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField 
+                            fullWidth 
+                            label="Email Address" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                        />
+                    </Grid>
+                </Grid>
+            </Card>
 
-          {/* Section 2: Preferences (Dark Mode Logic) */}
-          <Card sx={{ p: 3, mb: 3, boxShadow: theme.shadows[2], borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Avatar sx={{ bgcolor: theme.palette.secondary.light, color: theme.palette.secondary.main, borderRadius: 2 }}>
-                <Smartphone size={20} />
-              </Avatar>
-              <Typography variant="h6" fontWeight={600}>Interface & App</Typography>
-            </Box>
+            {/* Appearance Section */}
+            <Card sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}` }}>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+                    <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, borderRadius: 2.5 }}>
+                        <Palette size={24} />
+                    </Box>
+                    <Typography variant="h6" fontWeight={800}>Interface & Experience</Typography>
+                </Stack>
 
-            <List>
-              {/* DARK MODE TOGGLE */}
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon><Moon size={20} /></ListItemIcon>
-                <ListItemText 
-                  primary="Dark Mode" 
-                  secondary={darkMode ? "Dark mode is active" : "Light mode is active"} 
-                  primaryTypographyProps={{ fontWeight: 500 }}
-                />
-                <Switch 
-                  checked={darkMode} 
-                  onChange={handleThemeToggle} 
-                />
-              </ListItem>
-              
-              <Divider variant="inset" component="li" />
+                <List sx={{ p: 0 }}>
+                    <ListItem sx={{ px: 0, py: 2 }}>
+                        <ListItemIcon sx={{ color: theme.palette.text.primary, minWidth: 48 }}><Moon size={22} /></ListItemIcon>
+                        <ListItemText 
+                            primary="Midnight Mode" 
+                            secondary="Switch to a dark color palette for late hours" 
+                            primaryTypographyProps={{ fontWeight: 700 }}
+                            secondaryTypographyProps={{ fontWeight: 500 }}
+                        />
+                        <Switch 
+                            checked={darkMode} 
+                            onChange={handleThemeToggle} 
+                        />
+                    </ListItem>
+                    
+                    <Divider sx={{ borderStyle: 'dashed' }} />
 
-              <ListItem sx={{ px: 0 }}>
-                <ListItemIcon><Bell size={20} /></ListItemIcon>
-                <ListItemText 
-                  primary="Push Notifications" 
-                  secondary="Enable local browser notifications" 
-                  primaryTypographyProps={{ fontWeight: 500 }}
-                />
-                <Switch 
-                  checked={notifications} 
-                  onChange={() => setNotifications(!notifications)} 
-                />
-              </ListItem>
-            </List>
-          </Card>
+                    <ListItem sx={{ px: 0, py: 2 }}>
+                        <ListItemIcon sx={{ color: theme.palette.text.primary, minWidth: 48 }}><Bell size={22} /></ListItemIcon>
+                        <ListItemText 
+                            primary="Real-time Notifications" 
+                            secondary="Receive alerts for financial transactions and new members" 
+                            primaryTypographyProps={{ fontWeight: 700 }}
+                            secondaryTypographyProps={{ fontWeight: 500 }}
+                        />
+                        <Switch 
+                            checked={notifications} 
+                            onChange={() => setNotifications(!notifications)} 
+                        />
+                    </ListItem>
+                </List>
+            </Card>
 
-          {/* Section 3: Data Zone */}
-          <Card sx={{ p: 3, border: `1px solid ${theme.palette.error.light}`, borderRadius: 3, boxShadow: 'none' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Avatar sx={{ bgcolor: theme.palette.error.light, color: theme.palette.error.main, borderRadius: 2 }}>
-                <Database size={20} />
-              </Avatar>
-              <Typography variant="h6" fontWeight={600} color="error">Data Zone</Typography>
-            </Box>
+            {/* Danger Zone */}
+            <Card sx={{ p: 3, borderRadius: 4, border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`, bgcolor: alpha(theme.palette.error.main, 0.02) }}>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                    <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.main, borderRadius: 2.5 }}>
+                        <Database size={24} />
+                    </Box>
+                    <Typography variant="h6" fontWeight={800} color="error">System Maintenance</Typography>
+                </Stack>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" fontWeight={500}>Clear App Cache</Typography>
-                <Button size="small" color="error" startIcon={<RefreshCw size={14} />} onClick={handleClearCache}>
-                  Clear Data
-                </Button>
-              </Box>
-              <Divider />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2" fontWeight={500}>End Session</Typography>
-                <Button 
-                  size="small" 
-                  variant="contained" 
-                  color="error" 
-                  startIcon={<LogOut size={14} />} 
-                  onClick={() => {
-                    localStorage.removeItem('isAuthenticated');
-                    navigate('/login');
-                  }}
-                >
-                  Log Out
-                </Button>
-              </Box>
-            </Box>
-          </Card>
+                <Stack spacing={3}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                            <Typography variant="body1" fontWeight={700}>Optimize Registry</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight={500}>Merge duplicate members and remove incomplete records</Typography>
+                        </Box>
+                        <Button 
+                            variant="outlined" 
+                            color="primary" 
+                            startIcon={maintenanceLoading ? <CircularProgress size={16} /> : <Zap size={16} />} 
+                            onClick={handleDeduplicate}
+                            disabled={maintenanceLoading}
+                            sx={{ borderRadius: 2, fontWeight: 700, border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}` }}
+                        >
+                            {maintenanceLoading ? 'Scanning...' : 'Clean Registry'}
+                        </Button>
+                    </Box>
+                    
+                    <Divider sx={{ borderStyle: 'dashed' }} />
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                            <Typography variant="body1" fontWeight={700}>Terminate Session</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight={500}>Sign out of your account and clear authentication</Typography>
+                        </Box>
+                        <Button 
+                            variant="contained" 
+                            color="error" 
+                            startIcon={<LogOut size={16} />} 
+                            onClick={() => {
+                                localStorage.removeItem('isAuthenticated');
+                                navigate('/login');
+                            }}
+                            sx={{ borderRadius: 2, fontWeight: 700, boxShadow: 'none' }}
+                        >
+                            Log Out
+                        </Button>
+                    </Box>
+                </Stack>
+            </Card>
+          </Stack>
 
         </Grid>
       </Grid>
-
-      {/* --- NOTIFICATIONS --- */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%', borderRadius: 2 }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
 
     </Box>
   );

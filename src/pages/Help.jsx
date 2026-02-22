@@ -11,7 +11,10 @@ import {
   useTheme,
   IconButton,
   Snackbar,
-  Alert
+  Alert,
+  alpha,
+  Stack,
+  Avatar
 } from '@mui/material';
 import { 
   Search, 
@@ -24,7 +27,8 @@ import {
   ChevronUp, 
   Mail,
   ExternalLink,
-  SearchX // Icon for empty state
+  SearchX,
+  LifeBuoy
 } from 'lucide-react';
 
 const Help = () => {
@@ -45,7 +49,7 @@ const Help = () => {
     {
       id: 2,
       question: "Can I manage multiple church branches?",
-      answer: "Yes. Use the 'Quick Switch' command center (CMD+K or Ctrl+K) to toggle between different workspace environments (e.g., Main Sanctuary vs. Youth Ministry)."
+      answer: "Yes. Use the 'Quick Switch' command center to toggle between different workspace environments (e.g., Main Sanctuary vs. Youth Ministry)."
     },
     {
       id: 3,
@@ -54,24 +58,23 @@ const Help = () => {
     },
     {
       id: 4,
-      question: "How do I reset my administrative PIN?",
-      answer: "For security reasons, PIN resets cannot be done automatically if 2FA is not enabled. Please contact the FlameCore dedicated support line or email security@flamecore.com."
+      question: "How do I reset my administrative password?",
+      answer: "Go to User Management, find the relevant user account, click the options menu (three dots), and select 'Reset Password'."
     },
     {
       id: 5,
       question: "How do I add a new user to the system?",
-      answer: "Go to Settings > Team Management. Click 'Invite Member', enter their email address, and assign a role (Admin, Editor, or Viewer)."
+      answer: "Navigate to User Management. Click 'Grant Access' at the top right, enter the user details, and assign an appropriate privilege level."
     }
   ];
 
   const quickTopics = [
-    { icon: <FileText size={20} />, label: "Guides" },
-    { icon: <Lock size={20} />, label: "Security" },
-    { icon: <CreditCard size={20} />, label: "Billing" },
-    { icon: <HelpCircle size={20} />, label: "FAQs" },
+    { icon: <FileText size={20} />, label: "User Manual" },
+    { icon: <Lock size={20} />, label: "Privacy Policy" },
+    { icon: <CreditCard size={20} />, label: "Pricing" },
+    { icon: <HelpCircle size={20} />, label: "Support" },
   ];
 
-  // --- LOGIC ---
   const toggleFAQ = (id) => {
     setExpandedId(expandedId === id ? null : id);
   };
@@ -80,7 +83,6 @@ const Help = () => {
     setSnackbar({ open: true, message: 'Connecting you to a support agent...' });
   };
 
-  // Filter FAQs based on search
   const filteredFaqs = faqs.filter(faq => 
     faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
     faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
@@ -94,164 +96,178 @@ const Help = () => {
   return (
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
-      {/* --- HEADER & SEARCH --- */}
+      {/* --- HERO SECTION --- */}
       <Box sx={{ 
         textAlign: 'center', 
-        mb: { xs: 5, md: 8 }, 
+        mb: { xs: 6, md: 10 }, 
         mt: { xs: 2, md: 4 },
         px: 2
       }}>
-        <Typography variant="h3" sx={{ 
+        <Typography variant="overline" color="primary" fontWeight={800} letterSpacing={2}>
+          SUPPORT HUB
+        </Typography>
+        <Typography variant="h2" sx={{ 
           fontWeight: 800, 
           mb: 2,
-          fontSize: { xs: '2rem', md: '3rem' },
-          color: theme.palette.text.primary
+          fontSize: { xs: '2.25rem', md: '3.5rem' },
+          color: theme.palette.text.primary,
+          letterSpacing: '-0.03em'
         }}>
           How can we help?
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500, mx: 'auto' }}>
-          Search our knowledge base for answers or browse popular topics below.
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 5, maxWidth: 600, mx: 'auto', fontWeight: 500 }}>
+          Search our comprehensive documentation or browse popular topics to find the assistance you need.
         </Typography>
         
-        <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 700, mx: 'auto' }}>
           <TextField
             fullWidth
-            placeholder="Search documentation (e.g. 'Financial Report')"
+            placeholder="Search documentation (e.g. 'Reports', 'Security')..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search size={20} color={theme.palette.text.secondary} />
+                  <Search size={22} color={theme.palette.primary.main} />
                 </InputAdornment>
               ),
               sx: { 
                 borderRadius: 4, 
                 bgcolor: theme.palette.background.paper,
-                boxShadow: theme.shadows[3],
-                height: 56,
+                boxShadow: '0 20px 40px -10px rgba(0,0,0,0.08)',
+                height: 64,
                 paddingLeft: 2,
-                '& fieldset': { border: 'none' } 
+                fontSize: '1.1rem',
+                fontWeight: 500,
+                '& fieldset': { border: `1px solid ${theme.palette.divider}` },
+                '&:hover fieldset': { borderColor: theme.palette.primary.main }
               }
             }}
           />
         </Box>
       </Box>
 
-      <Grid container spacing={{ xs: 4, md: 6 }}>
+      <Grid container spacing={6}>
         
-        {/* --- LEFT COL: TOPICS & CONTACT --- */}
-        <Grid item xs={12} md={4}>
-          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1.2, mb: 2, display: 'block' }}>
-            QUICK ACCESS
-          </Typography>
-          
-          <Grid container spacing={2} sx={{ mb: 4 }}>
-            {quickTopics.map((topic, index) => (
-              <Grid item xs={6} key={index}>
-                <Card 
-                  sx={{ 
-                    p: 3, 
-                    textAlign: 'center', 
-                    cursor: 'pointer',
-                    border: `1px solid ${theme.palette.divider}`,
-                    boxShadow: 'none',
-                    borderRadius: 3,
-                    transition: 'all 0.2s',
-                    '&:hover': { 
-                      transform: 'translateY(-3px)',
-                      borderColor: theme.palette.primary.main,
-                      color: theme.palette.primary.main,
-                      boxShadow: theme.shadows[2]
-                    }
-                  }}
-                >
-                  <Box sx={{ mb: 1.5, color: 'inherit', display: 'flex', justifyContent: 'center' }}>
-                    {topic.icon}
-                  </Box>
-                  <Typography variant="subtitle2" fontWeight={700}>{topic.label}</Typography>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Card sx={{ 
-            p: 4, 
-            bgcolor: theme.palette.primary.main, 
-            color: '#fff', 
-            textAlign: 'center',
-            borderRadius: 3,
-            boxShadow: theme.shadows[4]
-          }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Need Human Help?</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mb: 3, lineHeight: 1.6 }}>
-              Our support team is available 24/7 for administrative emergencies.
-            </Typography>
-            
-            <Button 
-              variant="contained" 
-              fullWidth 
-              size="large"
-              onClick={handleLiveChat}
-              startIcon={<MessageCircle size={18} />}
-              sx={{ 
-                bgcolor: '#fff', 
-                color: theme.palette.primary.main, 
-                fontWeight: 700, 
-                mb: 2,
-                '&:hover': { bgcolor: '#f5f5f5' }
-              }}
-            >
-              Start Live Chat
-            </Button>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, fontSize: 13, opacity: 0.8 }}>
-              <Mail size={14} />
-              <span>priority@flamecore.com</span>
+        {/* --- LEFT COL: TOPICS --- */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Stack spacing={4}>
+            <Box>
+                <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 800, mb: 3, letterSpacing: 0.5 }}>
+                    QUICK RESOURCES
+                </Typography>
+                <Grid container spacing={2}>
+                    {quickTopics.map((topic, index) => (
+                    <Grid size={{ xs: 6 }} key={index}>
+                        <Card 
+                        sx={{ 
+                            p: 3, 
+                            textAlign: 'center', 
+                            cursor: 'pointer',
+                            borderRadius: 4,
+                            border: `1px solid ${theme.palette.divider}`,
+                            transition: 'all 0.3s ease',
+                            '&:hover': { 
+                                transform: 'translateY(-4px)',
+                                borderColor: theme.palette.primary.main,
+                                bgcolor: alpha(theme.palette.primary.main, 0.02),
+                                boxShadow: `0 12px 24px -8px ${alpha(theme.palette.primary.main, 0.2)}`
+                            }
+                        }}
+                        >
+                        <Box sx={{ mb: 1.5, color: theme.palette.primary.main, display: 'flex', justifyContent: 'center' }}>
+                            {topic.icon}
+                        </Box>
+                        <Typography variant="body2" fontWeight={700}>{topic.label}</Typography>
+                        </Card>
+                    </Grid>
+                    ))}
+                </Grid>
             </Box>
-          </Card>
+
+            <Card sx={{ 
+                p: 4, 
+                background: theme.palette.mode === 'light' 
+                    ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`
+                    : alpha(theme.palette.primary.main, 0.1),
+                color: theme.palette.mode === 'light' ? '#fff' : theme.palette.text.primary, 
+                borderRadius: 4,
+                boxShadow: theme.shadows[8],
+                border: theme.palette.mode === 'dark' ? `1px solid ${alpha(theme.palette.primary.main, 0.2)}` : 'none',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <LifeBuoy size={120} style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.1, transform: 'rotate(-15deg)' }} />
+                
+                <Typography variant="h6" fontWeight={800} gutterBottom>Need dedicated support?</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, mb: 4, lineHeight: 1.6, fontWeight: 500 }}>
+                    Our engineering team is standing by to resolve any mission-critical issues.
+                </Typography>
+                
+                <Button 
+                    variant="contained" 
+                    fullWidth 
+                    size="large"
+                    onClick={handleLiveChat}
+                    startIcon={<MessageCircle size={20} />}
+                    sx={{ 
+                        bgcolor: theme.palette.mode === 'light' ? '#fff' : theme.palette.primary.main, 
+                        color: theme.palette.mode === 'light' ? theme.palette.primary.main : '#fff', 
+                        fontWeight: 800, 
+                        mb: 2,
+                        borderRadius: 3,
+                        '&:hover': { bgcolor: theme.palette.mode === 'light' ? '#f8fafc' : theme.palette.primary.dark }
+                    }}
+                >
+                    Launch Live Chat
+                </Button>
+                
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ opacity: 0.8 }}>
+                    <Mail size={14} />
+                    <Typography variant="caption" fontWeight={700}>support@ricgcw.org</Typography>
+                </Stack>
+            </Card>
+          </Stack>
         </Grid>
 
-        {/* --- RIGHT COL: FAQ ACCORDION --- */}
-        <Grid item xs={12} md={8}>
-          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1.2, mb: 2, display: 'block' }}>
-            {searchTerm ? 'SEARCH RESULTS' : 'FREQUENTLY ASKED'}
+        {/* --- RIGHT COL: FAQ --- */}
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 800, mb: 3, letterSpacing: 0.5 }}>
+            {searchTerm ? `RESULTS FOR "${searchTerm}"` : 'FREQUENTLY ASKED QUESTIONS'}
           </Typography>
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Stack spacing={2}>
             {filteredFaqs.length === 0 ? (
-              // EMPTY STATE
               <Box sx={{ 
                 textAlign: 'center', 
-                py: 8, 
-                px: 2,
-                border: `2px dashed ${theme.palette.divider}`, 
-                borderRadius: 3 
+                py: 10, 
+                borderRadius: 4,
+                bgcolor: alpha(theme.palette.background.default, 0.5),
+                border: `2px dashed ${theme.palette.divider}`
               }}>
                 <SearchX size={48} color={theme.palette.text.disabled} style={{ marginBottom: 16 }} />
-                <Typography variant="h6" color="text.secondary">No results found</Typography>
-                <Typography variant="body2" color="text.disabled">
-                  Try searching for keywords like "export", "user", or "security".
+                <Typography variant="h6" fontWeight={700}>No matches found</Typography>
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                  Try broader keywords or browse the categories on the left.
                 </Typography>
                 <Button 
                   onClick={() => setSearchTerm('')}
-                  sx={{ mt: 2 }}
+                  sx={{ mt: 3, fontWeight: 700 }}
                 >
-                  Clear Search
+                  Clear search query
                 </Button>
               </Box>
             ) : (
-              // FAQ LIST
               filteredFaqs.map((faq) => (
                 <Card 
                   key={faq.id} 
                   sx={{ 
-                    overflow: 'hidden',
+                    borderRadius: 3,
                     border: `1px solid ${theme.palette.divider}`,
-                    boxShadow: 'none',
-                    borderRadius: 2,
-                    transition: 'border-color 0.2s',
-                    '&:hover': { borderColor: theme.palette.action.active }
+                    transition: 'all 0.2s ease',
+                    boxShadow: expandedId === faq.id ? theme.shadows[4] : 'none',
+                    borderColor: expandedId === faq.id ? theme.palette.primary.main : theme.palette.divider,
+                    overflow: 'hidden'
                   }}
                 >
                   <Box 
@@ -262,15 +278,20 @@ const Help = () => {
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
                       cursor: 'pointer',
-                      bgcolor: expandedId === faq.id ? theme.palette.action.selected : 'transparent',
+                      bgcolor: expandedId === faq.id ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
                     }}
                   >
-                    <Typography variant="subtitle1" fontWeight={600} sx={{ color: expandedId === faq.id ? theme.palette.primary.main : theme.palette.text.primary }}>
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ color: expandedId === faq.id ? theme.palette.primary.main : theme.palette.text.primary }}>
                       {faq.question}
                     </Typography>
-                    <IconButton size="small" sx={{ ml: 2 }}>
-                      {expandedId === faq.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </IconButton>
+                    <Avatar sx={{ 
+                        width: 32, 
+                        height: 32, 
+                        bgcolor: expandedId === faq.id ? theme.palette.primary.main : alpha(theme.palette.text.secondary, 0.1),
+                        color: expandedId === faq.id ? '#fff' : theme.palette.text.secondary
+                    }}>
+                      {expandedId === faq.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </Avatar>
                   </Box>
                   
                   <AnimatePresence>
@@ -279,18 +300,18 @@ const Help = () => {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        style={{ overflow: 'hidden' }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
                       >
-                        <Box sx={{ px: 3, pb: 3, pt: 1 }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                        <Box sx={{ px: 3, pb: 3, pt: 1, borderTop: `1px dashed ${theme.palette.divider}` }}>
+                          <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7, fontWeight: 500, mt: 2 }}>
                             {faq.answer}
                           </Typography>
                           <Button 
                             size="small" 
                             endIcon={<ExternalLink size={14} />} 
-                            sx={{ mt: 2, textTransform: 'none', fontWeight: 600 }}
+                            sx={{ mt: 3, fontWeight: 700, borderRadius: 2 }}
                           >
-                            View full documentation
+                            Read technical guide
                           </Button>
                         </Box>
                       </motion.div>
@@ -299,19 +320,18 @@ const Help = () => {
                 </Card>
               ))
             )}
-          </Box>
+          </Stack>
         </Grid>
 
       </Grid>
 
-      {/* --- NOTIFICATIONS --- */}
       <Snackbar 
         open={snackbar.open} 
         autoHideDuration={4000} 
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="info" onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%' }}>
+        <Alert severity="info" sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -21,11 +21,15 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
-  FormLabel
+  FormLabel,
+  alpha,
+  Stack,
+  Avatar,
+  Card,
+  CircularProgress
 } from '@mui/material';
-import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase } from 'lucide-react'; // 🟢 Added Icons
+import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase } from 'lucide-react';
 
-// Transition for the Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
@@ -33,8 +37,8 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const theme = useTheme();
   const { userBranch, isBranchRestricted } = useWorkspace();
+  const [submitting, setSubmitting] = useState(false);
   
-  // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -42,15 +46,13 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     address: '',
     dob: '', 
     branch: isBranchRestricted ? userBranch : '', 
-    department: '', // 🟢 Added department state
-    position: '',   // 🟢 Added position state
+    department: '', 
+    position: '',   
     membershipType: 'Member',
   });
 
-  // Error State
   const [errors, setErrors] = useState({});
 
-  // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setFormData({ 
@@ -60,17 +62,17 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         address: '', 
         dob: '', 
         branch: isBranchRestricted ? userBranch : '', 
-        department: '', // 🟢 Reset
-        position: '',   // 🟢 Reset
+        department: '', 
+        position: '',   
         membershipType: 'Member' 
       });
       setErrors({});
+      setSubmitting(false);
     }
   }, [open, isBranchRestricted, userBranch]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear error when user types
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: '' });
     }
@@ -79,16 +81,32 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const validate = () => {
     let tempErrors = {};
     if (!formData.name.trim()) tempErrors.name = "Full Name is required";
-    if (!formData.branch) tempErrors.branch = "Branch attending is required";
-    // Optional: Add email/phone validation regex here if needed
+    if (!formData.branch) tempErrors.branch = "Branch is required";
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validate()) {
-      onAddMember(formData);
-      onClose();
+      setSubmitting(true);
+      try {
+        const payload = {
+          ...formData,
+          status: 'active',
+          // Clean up empty strings for optional fields to avoid cluttering DB
+          email: formData.email.trim() || null,
+          phone: formData.phone.trim() || null,
+          address: formData.address.trim() || null,
+          dob: formData.dob || null,
+          department: formData.department || null,
+          position: formData.position || null
+        };
+        await onAddMember(payload);
+        // The parent will set open=false upon success, triggering the reset useEffect
+      } catch (err) {
+        console.error("Submission error:", err);
+        setSubmitting(false);
+      }
     }
   };
 
@@ -97,15 +115,13 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
       open={open} 
       onClose={onClose}
       TransitionComponent={Transition}
-      keepMounted
       fullWidth
       maxWidth="sm"
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          boxShadow: theme.shadows[10],
-          bgcolor: theme.palette.background.paper,
-          backgroundImage: 'none'
+          borderRadius: 4,
+          backgroundImage: 'none',
+          overflow: 'hidden'
         }
       }}
     >
@@ -117,35 +133,34 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        bgcolor: theme.palette.primary.main,
-        color: '#fff'
+        bgcolor: alpha(theme.palette.primary.main, 0.03)
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <UserPlus size={22} color="#fff" />
-          <Typography variant="h6" fontWeight={700}>Add New Member</Typography>
-        </Box>
-        <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
-          <X size={20} />
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 2.5 }}>
+            <UserPlus size={20} />
+          </Avatar>
+          <Box>
+            <Typography variant="h6" fontWeight={800}>Register Member</Typography>
+            <Typography variant="caption" color="text.secondary">Create a new registry entry</Typography>
+          </Box>
+        </Stack>
+        <IconButton onClick={onClose} size="small" sx={{ bgcolor: theme.palette.action.hover }}>
+          <X size={18} />
         </IconButton>
       </Box>
 
       {/* --- CONTENT --- */}
       <DialogContent sx={{ p: 4 }}>
         <Box component="form" noValidate autoComplete="off">
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Enter the details below to register a new member into the directory.
-          </Typography>
-
-          <Grid container spacing={3}>
+          <Grid container spacing={2.5}>
             
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 autoFocus
                 label="Full Name"
                 name="name"
                 fullWidth
                 required
-                variant="outlined"
                 value={formData.name}
                 onChange={handleChange}
                 error={!!errors.name}
@@ -154,20 +169,20 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <User size={18} color={theme.palette.text.secondary} />
+                      <User size={18} color={theme.palette.primary.main} />
                     </InputAdornment>
                   ),
                 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Email Address"
                 name="email"
                 type="email"
                 fullWidth
-                variant="outlined"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="john@example.com"
@@ -178,16 +193,16 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Phone Number"
                 name="phone"
                 type="tel"
                 fullWidth
-                variant="outlined"
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="+233 XX XXX XXXX"
@@ -198,22 +213,19 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Grid>
 
-            {/* 🟢 NEW: Date of Birth Field */}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Date of Birth"
                 name="dob"
                 type="date"
                 fullWidth
-                variant="outlined"
                 value={formData.dob}
                 onChange={handleChange}
-                InputLabelProps={{
-                  shrink: true, // Forces label to stay up
-                }}
+                InputLabelProps={{ shrink: true }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -221,19 +233,15 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Grid>
 
-            {/* Address adjusted to share row or full width depending on your preference. 
-                Here it shares a row if you want, or you can make Address full width. 
-                Let's make Address share the row with DOB to keep it compact, or full width. 
-                Below is sharing row (sm=6) to balance the grid. */}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Residential Address"
                 name="address"
                 fullWidth
-                variant="outlined"
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="City / Area"
@@ -244,29 +252,27 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Grid>
 
-            {/* 🟢 NEW: Branch Selection Field */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth variant="outlined" required error={!!errors.branch} disabled={isBranchRestricted}>
-                <InputLabel id="branch-select-label">Branch Attending</InputLabel>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth required error={!!errors.branch} disabled={isBranchRestricted}>
+                <InputLabel id="branch-select-label">Branch</InputLabel>
                 <Select
                   labelId="branch-select-label"
                   id="branch-select"
                   value={formData.branch}
                   onChange={handleChange}
-                  label="Branch Attending"
+                  label="Branch"
                   name="branch"
                   startAdornment={
                     <InputAdornment position="start">
                       <Building size={18} color={theme.palette.text.secondary} />
                     </InputAdornment>
                   }
+                  sx={{ borderRadius: 3 }}
                 >
-                  <MenuItem value="">
-                    <em>None</em>
-                  </MenuItem>
                   <MenuItem value="Langma">Langma</MenuItem>
                   <MenuItem value="Mallam">Mallam</MenuItem>
                   <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
@@ -275,9 +281,8 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
               </FormControl>
             </Grid>
 
-            {/* 🟢 NEW: Department Selection Field */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth variant="outlined">
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
                 <InputLabel id="department-select-label">Department</InputLabel>
                 <Select
                   labelId="department-select-label"
@@ -291,9 +296,10 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                       <Users size={18} color={theme.palette.text.secondary} />
                     </InputAdornment>
                   }
+                  sx={{ borderRadius: 3 }}
                 >
                   <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="Children's Department">Children's Department</MenuItem>
+                  <MenuItem value="Children's Department">Children's Dept</MenuItem>
                   <MenuItem value="Youth">Youth</MenuItem>
                   <MenuItem value="Mens">Mens</MenuItem>
                   <MenuItem value="Women">Women</MenuItem>
@@ -301,9 +307,8 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
               </FormControl>
             </Grid>
 
-            {/* 🟢 NEW: Position Selection Field */}
-            <Grid item xs={12} sm={12}>
-              <FormControl fullWidth variant="outlined">
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth>
                 <InputLabel id="position-select-label">Position</InputLabel>
                 <Select
                   labelId="position-select-label"
@@ -317,6 +322,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                       <Briefcase size={18} color={theme.palette.text.secondary} />
                     </InputAdornment>
                   }
+                  sx={{ borderRadius: 3 }}
                 >
                   <MenuItem value=""><em>None</em></MenuItem>
                   <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
@@ -325,25 +331,24 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   <MenuItem value="Instrumentalist">Instrumentalist</MenuItem>
                   <MenuItem value="Singer">Singer</MenuItem>
                   <MenuItem value="Prayer Warrior">Prayer Warrior</MenuItem>
-                  <MenuItem value="Other">Other Positions</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
-            <Grid item xs={12}>
-              <FormControl component="fieldset">
-                <FormLabel component="legend">Membership Type</FormLabel>
+            <Grid size={{ xs: 12 }}>
+              <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+                <FormLabel component="legend" sx={{ fontWeight: 700, fontSize: '0.75rem', mb: 1, textTransform: 'uppercase', color: theme.palette.text.secondary }}>Membership Type</FormLabel>
                 <RadioGroup
                   row
-                  aria-label="membership-type"
                   name="membershipType"
                   value={formData.membershipType}
                   onChange={handleChange}
                 >
-                  <FormControlLabel value="Member" control={<Radio />} label="Member" />
-                  <FormControlLabel value="Visitor" control={<Radio />} label="Visitor" />
+                  <FormControlLabel value="Member" control={<Radio size="small" />} label={<Typography variant="body2" fontWeight={600}>Member</Typography>} />
+                  <FormControlLabel value="Visitor" control={<Radio size="small" />} label={<Typography variant="body2" fontWeight={600}>Visitor</Typography>} />
                 </RadioGroup>
-              </FormControl>
+              </Card>
             </Grid>
 
           </Grid>
@@ -351,23 +356,28 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
       </DialogContent>
 
       {/* --- ACTIONS --- */}
-      <DialogActions sx={{ px: 4, pb: 4, pt: 1 }}>
+      <DialogActions sx={{ px: 4, pb: 4, pt: 1, gap: 1 }}>
         <Button 
           onClick={onClose} 
-          variant="outlined" 
-          color="inherit"
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, border: `1px solid ${theme.palette.divider}` }}
+          disabled={submitting}
+          sx={{ borderRadius: 2.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary }}
         >
           Cancel
         </Button>
         <Button 
           onClick={handleSubmit} 
           variant="contained"
-          disableElevation
-          disabled={!formData.name}
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 4 }}
+          disabled={!formData.name || submitting}
+          sx={{ 
+            borderRadius: 2.5, 
+            fontWeight: 800, 
+            px: 4, 
+            py: 1.2, 
+            boxShadow: theme.shadows[4],
+            minWidth: 150
+          }}
         >
-          Save Record
+          {submitting ? <CircularProgress size={24} color="inherit" /> : 'Create Member'}
         </Button>
       </DialogActions>
     </Dialog>

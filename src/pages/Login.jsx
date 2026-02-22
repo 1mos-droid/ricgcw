@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
@@ -12,7 +12,8 @@ import {
   useTheme, 
   InputAdornment,
   IconButton,
-  CircularProgress
+  CircularProgress,
+  alpha
 } from '@mui/material';
 import { 
   User, 
@@ -25,15 +26,14 @@ import {
 } from 'lucide-react';
 
 import axios from 'axios'; 
-import { API_BASE_URL } from '../config'; // 🟢 Import from config
+import { API_BASE_URL } from '../config';
 
 const Login = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { refreshUserContext } = useWorkspace();
   
-  // 🟢 NEW: If already authenticated, go to home
-  React.useEffect(() => {
+  useEffect(() => {
     if (localStorage.getItem('isAuthenticated') === 'true') {
       navigate('/');
     }
@@ -56,7 +56,6 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // 🟢 Call Secure Backend Login
       const response = await axios.post(`${API_BASE_URL}/login`, {
         email: formData.email,
         password: formData.password
@@ -64,13 +63,11 @@ const Login = () => {
 
       const user = response.data;
 
-      // Store non-sensitive session data
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('userRole', user.role);
       localStorage.setItem('userBranch', user.branch);
       localStorage.setItem('userEmail', user.email);
       
-      // Update global context
       refreshUserContext();
       
       navigate('/');
@@ -146,29 +143,31 @@ const Login = () => {
         style={{ zIndex: 1, width: '100%', maxWidth: '440px' }}
       >
         <Card sx={{ 
-          p: { xs: 3, sm: 5 }, 
+          p: { xs: 4, sm: 6 }, 
           borderRadius: 6, 
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-          bgcolor: theme.palette.mode === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(30, 41, 59, 0.9)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 40px 80px -20px rgba(0,0,0,0.5)',
+          bgcolor: theme.palette.mode === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(30, 41, 59, 0.8)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
           textAlign: 'center'
         }}>
-          <Box sx={{ mb: 4 }}>
-            <Avatar sx={{ 
-              width: 70, 
-              height: 70, 
-              bgcolor: theme.palette.primary.main, 
-              margin: '0 auto',
-              mb: 2,
-              boxShadow: theme.shadows[4]
+          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box sx={{ 
+              p: 2, 
+              borderRadius: '24px', 
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              boxShadow: '0 10px 30px rgba(37, 99, 235, 0.3)',
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}>
-              <Church size={36} color="#fff" />
-            </Avatar>
-            <Typography variant="h4" fontWeight={800} sx={{ color: theme.palette.text.primary, letterSpacing: -1 }}>
+              <Church size={32} color="#fff" strokeWidth={2.5} />
+            </Box>
+            <Typography variant="h4" fontWeight={800} sx={{ color: theme.palette.text.primary, letterSpacing: '-0.03em' }}>
               RICGCW
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
+            <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mt: 1 }}>
               Inner Court Gospel Church Management
             </Typography>
           </Box>
@@ -176,7 +175,7 @@ const Login = () => {
           <form onSubmit={handleLogin}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               {error && (
-                <Typography variant="caption" color="error" sx={{ fontWeight: 700, bgcolor: 'rgba(211, 47, 47, 0.1)', p: 1.5, borderRadius: 2, textAlign: 'center' }}>
+                <Typography variant="caption" color="error" sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.error.main, 0.1), p: 1.5, borderRadius: 2, textAlign: 'center' }}>
                   {error}
                 </Typography>
               )}
@@ -199,7 +198,10 @@ const Login = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    bgcolor: theme.palette.mode === 'light' ? '#fff' : 'rgba(255,255,255,0.05)',
+                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.common.white, 0.05),
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: theme.palette.mode === 'light' ? '#f8fafc' : alpha(theme.palette.common.white, 0.1) },
+                    '&.Mui-focused': { boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}` }
                   }
                 }}
               />
@@ -230,21 +232,13 @@ const Login = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    bgcolor: theme.palette.mode === 'light' ? '#fff' : 'rgba(255,255,255,0.05)',
+                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.common.white, 0.05),
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: theme.palette.mode === 'light' ? '#f8fafc' : alpha(theme.palette.common.white, 0.1) },
+                    '&.Mui-focused': { boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}` }
                   }
                 }}
               />
-
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -1 }}>
-                <Typography variant="caption" sx={{ 
-                  color: theme.palette.primary.main, 
-                  fontWeight: 700, 
-                  cursor: 'pointer',
-                  '&:hover': { opacity: 0.8 }
-                }}>
-                  Forgot Password?
-                </Typography>
-              </Box>
 
               <Button
                 type="submit"
@@ -252,14 +246,17 @@ const Login = () => {
                 size="large"
                 disabled={loading}
                 sx={{ 
-                  py: 1.5, 
+                  py: 1.8, 
+                  mt: 1,
                   borderRadius: 3, 
                   fontSize: '1rem', 
-                  fontWeight: 700,
+                  fontWeight: 800,
                   textTransform: 'none',
-                  boxShadow: `0 8px 16px -4px ${theme.palette.primary.main}4D`,
+                  letterSpacing: '0.02em',
+                  boxShadow: `0 10px 20px -5px ${alpha(theme.palette.primary.main, 0.4)}`,
                   '&:hover': {
-                    boxShadow: `0 12px 20px -4px ${theme.palette.primary.main}66`,
+                    boxShadow: `0 15px 25px -5px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    transform: 'translateY(-2px)'
                   }
                 }}
               >
@@ -275,16 +272,10 @@ const Login = () => {
           <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, color: 'text.secondary', opacity: 0.7 }}>
             <ShieldCheck size={14} />
             <Typography variant="caption" fontWeight={600}>
-              Enterprise Grade Security Active
+              Enterprise Grade Security
             </Typography>
           </Box>
         </Card>
-
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-            Powered by RICGCW IT © 2026
-          </Typography>
-        </Box>
       </motion.div>
     </Box>
   );

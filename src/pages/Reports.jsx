@@ -19,7 +19,8 @@ import {
   IconButton,
   Skeleton,
   Snackbar,
-  Alert
+  Alert,
+  alpha
 } from '@mui/material';
 import Divider from '@mui/material/Divider';
 import { 
@@ -38,14 +39,12 @@ import { API_BASE_URL } from '../config';
 const Reports = () => {
   const theme = useTheme();
   const workspaceContext = useWorkspace();
-  const workspace = workspaceContext?.workspace || 'main';
-  const filterData = workspaceContext?.filterData || ((d) => d);
+  const { workspace, filterData, showNotification } = workspaceContext;
   
   // --- STATE ---
   const [stats, setStats] = useState({ members: 0, funds: 0, events: 0 });
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(null); // Tracks which report is downloading
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // --- FETCH SUMMARY DATA ---
   useEffect(() => {
@@ -75,19 +74,15 @@ const Reports = () => {
         });
       } catch (err) {
         console.error("Stats Sync Error:", err);
-        showSnackbar("Failed to sync dashboard stats.", "error");
+        showNotification("Failed to sync dashboard stats.", "error");
       } finally {
         setLoading(false);
       }
     };
     fetchStats();
-  }, [workspace, filterData]);
+  }, [workspace, filterData, showNotification]);
 
   // --- HANDLERS ---
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
   const downloadReport = async (type) => {
     setGenerating(type);
     
@@ -105,7 +100,7 @@ const Reports = () => {
       const data = filterData(rawData);
 
       if (!data || data.length === 0) {
-        showSnackbar("No data available to generate report.", "warning");
+        showNotification("No data available to generate report.", "warning");
         setGenerating(null);
         return;
       }
@@ -124,10 +119,10 @@ const Reports = () => {
       link.click();
       document.body.removeChild(link);
       
-      showSnackbar(`${type.charAt(0).toUpperCase() + type.slice(1)} report downloaded successfully.`);
+      showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} report downloaded successfully.`);
     } catch (error) {
       console.error(error);
-      showSnackbar("Failed to generate document.", "error");
+      showNotification("Failed to generate document.", "error");
     } finally {
       setGenerating(null);
     }
@@ -142,8 +137,11 @@ const Reports = () => {
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
       
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
-          Executive Reports
+        <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={1.2}>
+          DOCUMENTS
+        </Typography>
+        <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, color: theme.palette.text.primary, letterSpacing: '-0.02em' }}>
+          Reports
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Generate and export official documentation
@@ -151,15 +149,24 @@ const Reports = () => {
       </Box>
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[3], borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ 
+            p: 3, 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            borderRadius: 4,
+            border: `1px solid ${theme.palette.divider}`,
+            transition: 'all 0.2s',
+            '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] }
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+              <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, borderRadius: 3 }}>
                 <Users size={20} />
               </Avatar>
-              <Chip label="Directory" size="small" sx={{ fontWeight: 600 }} />
+              <Chip label="Directory" size="small" sx={{ fontWeight: 700, borderRadius: 2 }} />
             </Box>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Membership Registry</Typography>
+            <Typography variant="h6" fontWeight={800} gutterBottom>Membership Registry</Typography>
             <Box sx={{ mb: 3, flexGrow: 1 }}>
               {loading ? <Skeleton variant="text" width="90%" /> : (
                 <Typography variant="body2" color="text.secondary">
@@ -172,23 +179,32 @@ const Reports = () => {
               fullWidth 
               onClick={() => downloadReport('members')}
               disabled={generating === 'members' || loading}
-              startIcon={<Download size={16} />}
-              sx={{ borderRadius: 2 }}
+              startIcon={<Download size={18} />}
+              sx={{ borderRadius: 3, py: 1, fontWeight: 600, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary }}
             >
               {generating === 'members' ? 'Generating...' : 'Download CSV'}
             </Button>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[3], borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Avatar sx={{ bgcolor: theme.palette.success.light, color: theme.palette.success.main }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ 
+            p: 3, 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            borderRadius: 4,
+            border: `1px solid ${theme.palette.divider}`,
+            transition: 'all 0.2s',
+            '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] }
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+              <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main, borderRadius: 3 }}>
                 <DollarSign size={20} />
               </Avatar>
-              <Chip label="Finance" size="small" color="success" />
+              <Chip label="Finance" size="small" color="success" sx={{ fontWeight: 700, borderRadius: 2 }} />
             </Box>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Financial Statement</Typography>
+            <Typography variant="h6" fontWeight={800} gutterBottom>Financial Statement</Typography>
             <Box sx={{ mb: 3, flexGrow: 1 }}>
               {loading ? <Skeleton variant="text" width="90%" /> : (
                 <Typography variant="body2" color="text.secondary">
@@ -197,28 +213,36 @@ const Reports = () => {
               )}
             </Box>
             <Button 
-              variant="contained" 
-              color="success"
+              variant="outlined" 
               fullWidth 
               onClick={() => downloadReport('financial')}
               disabled={generating === 'financial' || loading}
-              startIcon={<Download size={16} />}
-              sx={{ borderRadius: 2 }}
+              startIcon={<Download size={18} />}
+              sx={{ borderRadius: 3, py: 1, fontWeight: 600, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary }}
             >
               {generating === 'financial' ? 'Generating...' : 'Download CSV'}
             </Button>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[3], borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Avatar sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.warning.main }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card sx={{ 
+            p: 3, 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            borderRadius: 4,
+            border: `1px solid ${theme.palette.divider}`,
+            transition: 'all 0.2s',
+            '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] }
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+              <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.main, borderRadius: 3 }}>
                 <Calendar size={20} />
               </Avatar>
-              <Chip label="Activity" size="small" color="warning" />
+              <Chip label="Activity" size="small" color="warning" sx={{ fontWeight: 700, borderRadius: 2 }} />
             </Box>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Attendance Logs</Typography>
+            <Typography variant="h6" fontWeight={800} gutterBottom>Attendance Logs</Typography>
             <Box sx={{ mb: 3, flexGrow: 1 }}>
               {loading ? <Skeleton variant="text" width="90%" /> : (
                 <Typography variant="body2" color="text.secondary">Historical attendance data.</Typography>
@@ -226,45 +250,69 @@ const Reports = () => {
             </Box>
             <Button 
               variant="outlined" 
-              color="warning"
               fullWidth 
               onClick={() => downloadReport('attendance')}
               disabled={generating === 'attendance' || loading}
-              startIcon={<Download size={16} />}
-              sx={{ borderRadius: 2 }}
+              startIcon={<Download size={18} />}
+              sx={{ borderRadius: 3, py: 1, fontWeight: 600, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary }}
             >
               {generating === 'attendance' ? 'Generating...' : 'Download CSV'}
             </Button>
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>Archive</Typography>
-          <Card sx={{ borderRadius: 3 }}>
-            <List>
+        <Grid size={{ xs: 12 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 800, mt: 2 }}>Archive</Typography>
+          <Card sx={{ borderRadius: 4, overflow: 'hidden' }}>
+            <List sx={{ p: 0 }}>
               <ListItem 
-                secondaryAction={<IconButton edge="end"><ArrowRight size={18} /></IconButton>}
-                sx={{ py: 2 }}
+                secondaryAction={<IconButton edge="end" sx={{ color: theme.palette.primary.main }}><ArrowRight size={20} /></IconButton>}
+                sx={{ 
+                  py: 2.5, 
+                  px: 3, 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) } 
+                }}
               >
-                <ListItemAvatar><Avatar><FileText size={20} /></Avatar></ListItemAvatar>
-                <ListItemText primary="Monthly_Report_Jan.pdf" secondary="Jan 01, 2026" />
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: theme.palette.background.default, borderRadius: 3, color: theme.palette.text.secondary }}>
+                    <FileText size={20} />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText 
+                  primary="Monthly_Report_Jan.pdf" 
+                  primaryTypographyProps={{ fontWeight: 600 }}
+                  secondary="Jan 01, 2026" 
+                />
               </ListItem>
               <Divider variant="inset" component="li" />
               <ListItem 
-                secondaryAction={<IconButton edge="end"><ArrowRight size={18} /></IconButton>}
-                sx={{ py: 2 }}
+                secondaryAction={<IconButton edge="end" sx={{ color: theme.palette.primary.main }}><ArrowRight size={20} /></IconButton>}
+                sx={{ 
+                  py: 2.5, 
+                  px: 3, 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) } 
+                }}
               >
-                <ListItemAvatar><Avatar><PieChart size={20} /></Avatar></ListItemAvatar>
-                <ListItemText primary="Annual_Review_2025.pdf" secondary="Dec 31, 2025" />
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: theme.palette.background.default, borderRadius: 3, color: theme.palette.text.secondary }}>
+                    <PieChart size={20} />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText 
+                  primary="Annual_Review_2025.pdf" 
+                  primaryTypographyProps={{ fontWeight: 600 }}
+                  secondary="Dec 31, 2025" 
+                />
               </ListItem>
             </List>
           </Card>
         </Grid>
       </Grid>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
-      </Snackbar>
     </Box>
   );
 };

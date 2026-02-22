@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
@@ -15,10 +16,10 @@ import {
   Divider,
   Menu,
   MenuItem,
-  Snackbar,
-  Alert,
   Skeleton,
-  Tooltip
+  Tooltip,
+  alpha,
+  Stack
 } from '@mui/material';
 import { 
   Shield, 
@@ -33,11 +34,12 @@ import {
   Lock,
   UserX,
   Mail,
-  RefreshCw
+  Fingerprint
 } from 'lucide-react';
 
 const UserManagement = () => {
   const theme = useTheme();
+  const { showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,18 +51,14 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const openMenu = Boolean(anchorEl);
 
-  // Notification State
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
   // --- MOCK DATA LOAD ---
   useEffect(() => {
-    // Simulate API fetch
     const loadData = async () => {
       setLoading(true);
-      await new Promise(r => setTimeout(r, 800)); // Fake network delay
+      await new Promise(r => setTimeout(r, 800)); 
       setUsers([
         { id: 1, name: "Kumesi Moses", email: "isemuk8@gmail.com", role: "Super Admin", status: "Active", lastActive: "Just now" },
-        { id: 2, name: "Pastor Nicholas Dobeng", email: "", role: "Moderator", status: "Active", lastActive: "2 hours ago" },
+        { id: 2, name: "Pastor Nicholas Dobeng", email: "pastor.nicholas@ricgcw.org", role: "Moderator", status: "Active", lastActive: "2 hours ago" },
         { id: 3, name: "System Bot", email: "bot@automation.com", role: "API Key", status: "Active", lastActive: "1 min ago" },
       ]);
       setLoading(false);
@@ -79,29 +77,32 @@ const UserManagement = () => {
     setSelectedUser(null);
   };
 
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
   const handleDelete = () => {
     if (selectedUser) {
       if(selectedUser.role === 'Super Admin') {
-        showSnackbar("Cannot remove Super Admin.", "error");
+        showNotification("Cannot remove Super Admin.", "error");
         handleMenuClose();
         return;
       }
-      setUsers(users.filter(u => u.id !== selectedUser.id));
-      showSnackbar(`Access revoked for ${selectedUser.name}`, 'info');
+      
+      showConfirmation({
+        title: "Revoke Access",
+        message: `Are you sure you want to revoke system access for ${selectedUser.name}?`,
+        onConfirm: () => {
+          setUsers(users.filter(u => u.id !== selectedUser.id));
+          showNotification(`Access revoked for ${selectedUser.name}`, 'info');
+        }
+      });
     }
     handleMenuClose();
   };
 
   const handleInvite = () => {
-    showSnackbar("Invitation sent to new user.", "success");
+    showNotification("Invitation sent to new user.", "success");
   };
 
   const handleResetPassword = () => {
-    showSnackbar(`Password reset email sent to ${selectedUser?.email}`, "info");
+    showNotification(`Password reset email sent to ${selectedUser?.email}`, "info");
     handleMenuClose();
   };
 
@@ -134,34 +135,37 @@ const UserManagement = () => {
         display: 'flex', 
         flexDirection: { xs: 'column', sm: 'row' },
         justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', sm: 'center' },
+        alignItems: { xs: 'flex-start', sm: 'flex-end' },
         gap: 2
       }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary, fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+          <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={1.2}>
+            PERMISSIONS
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.02em' }}>
             Access Control
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage system administrators and permissions
+            Manage system administrators and security permissions
           </Typography>
         </Box>
         <Button 
           variant="contained" 
           startIcon={<UserPlus size={18} />}
           onClick={handleInvite}
-          sx={{ borderRadius: 2, px: 3, width: { xs: '100%', sm: 'auto' } }}
+          sx={{ borderRadius: 3, px: 3, py: 1.2, fontWeight: 700, boxShadow: theme.shadows[4] }}
         >
           Grant Access
         </Button>
       </Box>
 
-      {/* --- SEARCH BAR --- */}
-      <Card sx={{ mb: 4, p: 2, boxShadow: theme.shadows[2], borderRadius: 3 }}>
-        <Grid container alignItems="center" spacing={2}>
-          <Grid item xs={12} md={6}>
+      {/* --- SEARCH & STATS --- */}
+      <Card sx={{ mb: 4, p: 2, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+        <Grid container alignItems="center" spacing={3}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
-              placeholder="Search users by name or email..."
+              placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -173,33 +177,33 @@ const UserManagement = () => {
               }}
               sx={{ 
                 '& .MuiOutlinedInput-root': { 
-                  bgcolor: theme.palette.action.hover,
-                  borderRadius: 2,
-                  '& fieldset': { border: 'none' } 
+                  bgcolor: theme.palette.background.paper,
+                  borderRadius: 3,
+                  '& fieldset': { border: 'none' },
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                 } 
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 2, flexWrap: 'wrap' }}>
-            <Chip 
-              icon={<Shield size={14} />} 
-              label={`${users.filter(u => u.role === 'Super Admin').length} Admins`} 
-              variant="outlined" 
-              sx={{ fontWeight: 600, borderRadius: 2 }}
-            />
-            <Chip 
-              icon={<CheckCircle size={14} />} 
-              label={`${users.filter(u => u.status === 'Active').length} Active`} 
-              sx={{ 
-                borderColor: theme.palette.success.light, 
-                color: theme.palette.success.dark, 
-                bgcolor: theme.palette.success.light + '20',
-                fontWeight: 600,
-                borderRadius: 2,
-                '& .MuiChip-icon': { color: theme.palette.success.dark } 
-              }}
-              variant="outlined" 
-            />
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Stack direction="row" spacing={2} justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+                <Chip 
+                    icon={<Shield size={14} />} 
+                    label={`${users.filter(u => u.role === 'Super Admin').length} Admins`} 
+                    sx={{ fontWeight: 700, borderRadius: 2, bgcolor: theme.palette.background.paper }}
+                />
+                <Chip 
+                    icon={<CheckCircle size={14} />} 
+                    label={`${users.filter(u => u.status === 'Active').length} Active`} 
+                    sx={{ 
+                        fontWeight: 700, 
+                        borderRadius: 2, 
+                        bgcolor: alpha(theme.palette.success.main, 0.1),
+                        color: theme.palette.success.main,
+                        '& .MuiChip-icon': { color: 'inherit' }
+                    }}
+                />
+            </Stack>
           </Grid>
         </Grid>
       </Card>
@@ -207,124 +211,120 @@ const UserManagement = () => {
       {/* --- USERS GRID --- */}
       <Grid container spacing={3}>
         {loading ? (
-            // SKELETON LOADING
             Array.from(new Array(3)).map((_, i) => (
-                <Grid item xs={12} sm={6} md={4} key={i}>
-                    <Card sx={{ p: 3, height: '100%' }}>
-                        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+                    <Card sx={{ p: 3, height: '100%', borderRadius: 4 }}>
+                        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
                             <Skeleton variant="circular" width={56} height={56} />
                             <Box sx={{ flexGrow: 1 }}>
                                 <Skeleton variant="text" width="60%" height={30} />
                                 <Skeleton variant="text" width="90%" />
                             </Box>
                         </Box>
-                        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 2 }} />
+                        <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 3 }} />
                     </Card>
                 </Grid>
             ))
         ) : filteredUsers.length === 0 ? (
-            // EMPTY STATE
-            <Grid item xs={12}>
-                <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
-                    <UserX size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-                    <Typography variant="h6">No users found</Typography>
-                    <Typography variant="body2">Try adjusting your search criteria.</Typography>
+            <Grid size={{ xs: 12 }}>
+                <Box sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>
+                    <Box sx={{ bgcolor: alpha(theme.palette.text.secondary, 0.1), width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+                        <UserX size={40} />
+                    </Box>
+                    <Typography variant="h6" fontWeight={700}>No users found</Typography>
+                    <Typography variant="body2">Try adjusting your search filters.</Typography>
                 </Box>
             </Grid>
         ) : (
-            filteredUsers.map((user) => (
-            <Grid item xs={12} sm={6} md={4} key={user.id}>
+            filteredUsers.map((user) => {
+            const roleColor = getRoleColor(user.role);
+            return (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={user.id}>
                 <Card 
                 sx={{ 
                     p: 3, 
                     height: '100%', 
                     display: 'flex', 
                     flexDirection: 'column',
-                    position: 'relative',
-                    transition: 'all 0.2s',
-                    borderRadius: 3,
+                    borderRadius: 4,
+                    transition: 'all 0.3s ease',
                     border: `1px solid ${theme.palette.divider}`,
                     '&:hover': { 
-                        transform: 'translateY(-4px)',
-                        boxShadow: theme.shadows[4],
-                        borderColor: theme.palette.primary.main
+                        transform: 'translateY(-6px)',
+                        boxShadow: `0 20px 40px -12px ${alpha(roleColor, 0.2)}`,
+                        borderColor: alpha(roleColor, 0.5)
                     }
                 }}
                 >
-                {/* Card Header */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                     <Avatar 
                     sx={{ 
-                        width: 56, 
-                        height: 56, 
-                        bgcolor: getRoleColor(user.role),
-                        color: '#fff',
-                        fontSize: 20,
-                        fontWeight: 700,
-                        boxShadow: theme.shadows[2]
+                        width: 60, 
+                        height: 60, 
+                        bgcolor: alpha(roleColor, 0.1),
+                        color: roleColor,
+                        fontSize: 22,
+                        fontWeight: 800,
+                        borderRadius: 3,
+                        border: `2px solid ${alpha(roleColor, 0.2)}`
                     }}
                     >
                     {user.name.charAt(0)}
                     </Avatar>
-                    <IconButton size="small" onClick={(e) => handleMenuClick(e, user)}>
+                    <IconButton size="small" onClick={(e) => handleMenuClick(e, user)} sx={{ bgcolor: theme.palette.action.hover }}>
                         <MoreVertical size={18} />
                     </IconButton>
                 </Box>
 
-                {/* User Info */}
-                <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1.2, mb: 0.5 }}>
                     {user.name}
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, mt: 0.5, color: theme.palette.text.secondary }}>
-                    <Mail size={12} />
-                    <Typography variant="caption">{user.email}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, color: theme.palette.text.secondary }}>
+                    <Mail size={14} color={theme.palette.primary.main} />
+                    <Typography variant="caption" fontWeight={500}>{user.email || 'No email provided'}</Typography>
                 </Box>
 
-                <Divider sx={{ mb: 2, borderStyle: 'dashed' }} />
+                <Divider sx={{ mb: 3, borderStyle: 'dashed' }} />
 
-                {/* Details Row */}
-                <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    
+                <Stack spacing={2} sx={{ mt: 'auto' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="caption" fontWeight={700} color="text.secondary">ROLE</Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Fingerprint size={14} color={theme.palette.text.secondary} />
+                            <Typography variant="caption" fontWeight={700} color="text.secondary">PRIVILEGE</Typography>
+                        </Stack>
                         <Chip 
                             label={user.role} 
                             size="small" 
                             sx={{ 
-                                fontWeight: 700, 
+                                fontWeight: 800, 
                                 height: 24, 
-                                bgcolor: getRoleColor(user.role) + '22',
-                                color: getRoleColor(user.role),
-                                border: 'none'
+                                bgcolor: alpha(roleColor, 0.1),
+                                color: roleColor,
+                                borderRadius: '6px',
+                                fontSize: '0.7rem',
+                                textTransform: 'uppercase'
                             }} 
                         />
                     </Box>
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="caption" fontWeight={700} color="text.secondary">STATUS</Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            {user.status === 'Active' ? 
-                                <CheckCircle size={14} color={theme.palette.success.main} /> : 
-                                <XCircle size={14} color={theme.palette.text.disabled} />
-                            }
-                            <Typography variant="caption" fontWeight={600} sx={{ color: user.status === 'Active' ? theme.palette.success.main : theme.palette.text.disabled }}>
-                            {user.status}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: user.status === 'Active' ? theme.palette.success.main : theme.palette.text.disabled }} />
+                            <Typography variant="caption" fontWeight={700} sx={{ color: user.status === 'Active' ? theme.palette.success.main : theme.palette.text.disabled }}>
+                                {user.status.toUpperCase()}
                             </Typography>
                         </Box>
                     </Box>
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="caption" fontWeight={700} color="text.secondary">LAST ACTIVE</Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: theme.palette.text.secondary }}>
-                            <Clock size={12} />
-                            <Typography variant="caption">{user.lastActive}</Typography>
-                        </Box>
+                        <Typography variant="caption" fontWeight={700} color="text.secondary">LAST SEEN</Typography>
+                        <Typography variant="caption" fontWeight={600} color="text.primary">{user.lastActive}</Typography>
                     </Box>
-
-                </Box>
+                </Stack>
                 </Card>
             </Grid>
-            ))
+            );})
         )}
       </Grid>
 
@@ -333,36 +333,24 @@ const UserManagement = () => {
         anchorEl={anchorEl}
         open={openMenu}
         onClose={handleMenuClose}
-        PaperProps={{ sx: { minWidth: 160, borderRadius: 2, boxShadow: theme.shadows[4] } }}
+        PaperProps={{ sx: { minWidth: 200, mt: 1, borderRadius: 3, boxShadow: theme.shadows[8], border: `1px solid ${theme.palette.divider}` } }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <MenuItem onClick={handleMenuClose} sx={{ gap: 2, py: 1.5 }}>
-          <Edit2 size={16} />
-          <Typography variant="body2" fontWeight={500}>Edit Permissions</Typography>
+          <Edit2 size={18} color={theme.palette.primary.main} />
+          <Typography variant="body2" fontWeight={600}>Edit Permissions</Typography>
         </MenuItem>
         <MenuItem onClick={handleResetPassword} sx={{ gap: 2, py: 1.5 }}>
-          <Lock size={16} />
-          <Typography variant="body2" fontWeight={500}>Reset Password</Typography>
+          <Lock size={18} color={theme.palette.warning.main} />
+          <Typography variant="body2" fontWeight={600}>Reset Password</Typography>
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleDelete} sx={{ color: theme.palette.error.main, gap: 2, py: 1.5 }}>
-          <Trash2 size={16} />
-          <Typography variant="body2" fontWeight={600}>Revoke Access</Typography>
+          <Trash2 size={18} />
+          <Typography variant="body2" fontWeight={700}>Revoke Access</Typography>
         </MenuItem>
       </Menu>
-
-      {/* --- NOTIFICATIONS --- */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })} sx={{ width: '100%', borderRadius: 2 }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
 
     </Box>
   );

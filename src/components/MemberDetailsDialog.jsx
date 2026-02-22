@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
+import { useWorkspace } from '../context/WorkspaceContext';
 import {
   Button,
   Dialog,
@@ -25,7 +26,10 @@ import {
   FormControl, 
   InputLabel, 
   Select, 
-  MenuItem 
+  MenuItem,
+  alpha,
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import { 
   X, 
@@ -43,7 +47,8 @@ import {
   Building,
   Cake,
   Users,
-  Briefcase
+  Briefcase,
+  History
 } from 'lucide-react';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -54,6 +59,7 @@ import { API_BASE_URL } from '../config';
 
 const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
   const theme = useTheme();
+  const { showNotification } = useWorkspace();
   const [isEditing, setIsEditing] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [contributions, setContributions] = useState([]);
@@ -71,11 +77,11 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     email: '',
     phone: '',
     address: '',
-    dob: '', // 🟢 Added dob to formData
+    dob: '', 
     status: '',
-    branch: '', // NEW: Added branch to formData
-    department: '', // 🟢 Added department
-    position: ''    // 🟢 Added position
+    branch: '', 
+    department: '', 
+    position: ''    
   });
 
   const getStatusChip = (status) => {
@@ -84,25 +90,23 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
       inactive: { label: 'Inactive', color: 'warning' },
       discontinued: { label: 'Discontinued', color: 'error' },
     };
-    const { label, color } = statusMap[status] || { label: 'Unknown', color: 'default' };
+    const { label, color } = statusMap[status] || { label: 'Unknown', color: 'secondary' };
 
     return (
       <Chip
         label={label}
         size="small"
-        color={color}
-        variant="outlined"
         sx={{
-          bgcolor: theme.palette[color]?.light || theme.palette.grey[200],
-          color: theme.palette[color]?.dark || theme.palette.text.secondary,
-          border: 'none',
+          bgcolor: alpha(theme.palette[color]?.main || theme.palette.primary.main, 0.1),
+          color: theme.palette[color]?.main || theme.palette.primary.main,
           fontWeight: 700,
-          textTransform: 'capitalize',
+          borderRadius: '6px',
+          textTransform: 'uppercase',
+          fontSize: '0.65rem'
         }}
       />
     );
   };
-
 
   const [errors, setErrors] = useState({});
 
@@ -113,11 +117,11 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         email: member.email || '',
         phone: member.phone || '',
         address: member.address || '',
-        dob: member.dob || '', // 🟢 Set dob from member data
+        dob: member.dob || '', 
         status: member.status || 'active',
-        branch: member.branch || '', // NEW: Set branch from member data
-        department: member.department || '', // 🟢 Set department
-        position: member.position || ''      // 🟢 Set position
+        branch: member.branch || '', 
+        department: member.department || '', 
+        position: member.position || ''      
       });
       setErrors({});
       setIsEditing(false);
@@ -131,20 +135,14 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     }
   }, [member, open, tabValue]);
 
-  // 🔴 FAIL-SAFE FETCH: Get all transactions and filter for this member locally
   const fetchContributions = async () => {
     if (!member) return;
     setLoadingContributions(true);
     try {
-      // We fetch from the main transactions endpoint
       const response = await axios.get(`${API_BASE_URL}/transactions`);
-      
-      // We filter right here to ensure we ONLY see this member's data
-      // This works even if the backend filter failed to deploy
       const memberContributions = response.data.filter(
         item => String(item.memberId) === String(member.id)
       );
-      
       setContributions(memberContributions);
     } catch (err) {
       console.log("Error fetching contributions:", err);
@@ -154,38 +152,24 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     }
   };
 
-  // 🔴 FAIL-SAFE SAVE: Save to transactions with the 'Private' flag
   const handleAddContribution = async () => {
     if (!newContribution.amount || !member) return;
-    
-    // Optimistic Update (Show it immediately)
-    const tempId = Date.now().toString();
     const payload = {
       ...newContribution,
-      memberId: String(member.id), // Ensure ID is a string
+      memberId: String(member.id), 
       memberName: member.name,
       amount: Number(newContribution.amount),
-      isPrivateMemberRecord: true // <--- THIS HIDES IT FROM DASHBOARD TOTALS
+      isPrivateMemberRecord: true 
     };
 
-    setContributions(prev => [...prev, { ...payload, id: tempId }]);
-
-    // Reset Form
-    setNewContribution({ 
-        type: 'tithe', 
-        amount: '', 
-        description: '', 
-        date: new Date().toISOString().split('T')[0] 
-    });
-
     try {
-      // Save to the working URL
       await axios.post(`${API_BASE_URL}/transactions`, payload);
-      console.log("Saved successfully to server!");
-      // Optionally refresh to get the real ID, but not strictly necessary immediately
+      setNewContribution({ type: 'tithe', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+      fetchContributions();
+      showNotification("Contribution recorded successfully", "success");
     } catch (err) {
       console.error("Server save failed:", err);
-      alert("Saved locally. Server update failed.");
+      showNotification("Failed to save contribution", "error");
     }
   };
 
@@ -216,11 +200,11 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         email: member.email || '',
         phone: member.phone || '',
         address: member.address || '',
-        dob: member.dob || '', // 🟢 Reset dob
+        dob: member.dob || '', 
         status: member.status || 'active',
-        branch: member.branch || '', // 🟢 Reset branch
-        department: member.department || '', // 🟢 Reset
-        position: member.position || ''       // 🟢 Reset
+        branch: member.branch || '', 
+        department: member.department || '', 
+        position: member.position || ''       
     });
     setIsEditing(false);
     setErrors({});
@@ -235,7 +219,6 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     }
   };
 
-  // Calculate totals for THIS member only
   const totalTithe = contributions
     .filter(c => c.type === 'tithe')
     .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
@@ -255,196 +238,173 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
       maxWidth="sm"
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: 4,
           backgroundImage: 'none',
-          boxShadow: theme.shadows[10],
-          bgcolor: theme.palette.background.paper
+          overflow: 'hidden'
         }
       }}
     >
       {/* --- HEADER --- */}
       <Box sx={{
         px: 3,
-        py: 2.5,
+        py: 3,
         borderBottom: `1px solid ${theme.palette.divider}`,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        bgcolor: 'transparent'
+        bgcolor: alpha(theme.palette.primary.main, 0.03)
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {!isEditing && (
-            <Avatar sx={{ bgcolor: theme.palette.primary.main, color: '#fff', fontWeight: 700, width: 40, height: 40 }}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar 
+                sx={{ 
+                    width: 56, 
+                    height: 56, 
+                    bgcolor: theme.palette.primary.main, 
+                    color: '#fff', 
+                    fontWeight: 800,
+                    borderRadius: 3,
+                    boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
+                }}
+            >
               {member.name.charAt(0).toUpperCase()}
             </Avatar>
-          )}
-          <Box>
-            <Typography variant="h6" fontWeight={700}>
-                {isEditing ? 'Edit Profile' : member.name}
-            </Typography>
-            {!isEditing && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                {getStatusChip(member.status)}
-                <Typography variant="caption" color="text.secondary">Member ID: #{member.id}</Typography>
-              </Box>
-            )}
-          </Box>
-        </Box>
-        <IconButton onClick={onClose} size="small">
-          <X size={20} />
-        </IconButton>
+            <Box>
+                <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1.2 }}>
+                    {isEditing ? 'Update Profile' : member.name}
+                </Typography>
+                {!isEditing && (
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                    {getStatusChip(member.status)}
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>ID: #{member.id.toString().slice(-4)}</Typography>
+                </Stack>
+                )}
+            </Box>
+          </Stack>
+          <IconButton onClick={onClose} size="small" sx={{ bgcolor: theme.palette.action.hover }}>
+            <X size={18} />
+          </IconButton>
+        </Stack>
       </Box>
 
       {/* --- CONTENT --- */}
       <DialogContent sx={{ p: 0 }}>
-        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
-          <Tab label="Profile" icon={<User size={16} />} iconPosition="start" />
-          <Tab label="Contributions" icon={<DollarSign size={16} />} iconPosition="start" />
+        <Tabs 
+            value={tabValue} 
+            onChange={(e, v) => setTabValue(v)} 
+            sx={{ 
+                borderBottom: 1, 
+                borderColor: 'divider', 
+                px: 3,
+                '& .MuiTab-root': { fontWeight: 700, minHeight: 64 }
+            }}
+        >
+          <Tab label="Profile Details" />
+          <Tab label="Contributions" />
         </Tabs>
 
         {tabValue === 0 ? (
         <Box sx={{ p: 4 }}>
           {isEditing ? (
-            // EDIT MODE FORM
-            <Box component="form" noValidate autoComplete="off">
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
+            <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12 }}>
                   <TextField 
                       autoFocus 
                       label="Full Name" 
                       name="name" 
                       fullWidth 
                       required
-                      variant="outlined" 
                       value={formData.name} 
                       onChange={handleChange} 
                       error={!!errors.name}
                       helperText={errors.name}
-                      InputProps={{
-                          startAdornment: <InputAdornment position="start"><User size={18} color={theme.palette.text.secondary}/></InputAdornment>
-                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
                       label="Email Address" 
                       name="email" 
                       type="email" 
                       fullWidth 
-                      variant="outlined" 
                       value={formData.email} 
                       onChange={handleChange} 
-                      InputProps={{
-                          startAdornment: <InputAdornment position="start"><Mail size={18} color={theme.palette.text.secondary}/></InputAdornment>
-                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
                       label="Phone Number" 
                       name="phone" 
                       type="tel" 
                       fullWidth 
-                      variant="outlined" 
                       value={formData.phone} 
                       onChange={handleChange} 
-                      InputProps={{
-                          startAdornment: <InputAdornment position="start"><Phone size={18} color={theme.palette.text.secondary}/></InputAdornment>
-                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField 
-                      label="Residential Address" 
+                      label="Address" 
                       name="address" 
                       fullWidth 
-                      variant="outlined" 
                       value={formData.address} 
                       onChange={handleChange} 
-                      InputProps={{
-                          startAdornment: <InputAdornment position="start"><MapPin size={18} color={theme.palette.text.secondary}/></InputAdornment>
-                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
-                      label="Date of Birth" 
+                      label="Birth Date" 
                       name="dob" 
                       type="date" 
                       fullWidth 
-                      variant="outlined" 
                       value={formData.dob} 
                       onChange={handleChange} 
                       InputLabelProps={{ shrink: true }}
-                      InputProps={{
-                          startAdornment: <InputAdornment position="start"><Cake size={18} color={theme.palette.text.secondary}/></InputAdornment>
-                      }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="branch-select-label">Branch Attending</InputLabel>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Branch</InputLabel>
                     <Select
-                      labelId="branch-select-label"
-                      id="branch-select"
                       value={formData.branch}
                       onChange={handleChange}
-                      label="Branch Attending"
+                      label="Branch"
                       name="branch"
-                      startAdornment={
-                        <InputAdornment position="start">
-                          <Building size={18} color={theme.palette.text.secondary} />
-                        </InputAdornment>
-                      }
+                      sx={{ borderRadius: 3 }}
                     >
-                      <MenuItem value="">
-                        <em>None</em>
-                      </MenuItem>
                       <MenuItem value="Langma">Langma</MenuItem>
                       <MenuItem value="Mallam">Mallam</MenuItem>
                       <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="department-select-label">Department</InputLabel>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Department</InputLabel>
                     <Select
-                      labelId="department-select-label"
-                      id="department-select"
                       value={formData.department}
                       onChange={handleChange}
                       label="Department"
                       name="department"
-                      startAdornment={
-                        <InputAdornment position="start">
-                          <Users size={18} color={theme.palette.text.secondary} />
-                        </InputAdornment>
-                      }
+                      sx={{ borderRadius: 3 }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
-                      <MenuItem value="Children's Department">Children's Department</MenuItem>
+                      <MenuItem value="Children's Department">Children's Dept</MenuItem>
                       <MenuItem value="Youth">Youth</MenuItem>
                       <MenuItem value="Mens">Mens</MenuItem>
                       <MenuItem value="Women">Women</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="position-select-label">Position</InputLabel>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Position</InputLabel>
                     <Select
-                      labelId="position-select-label"
-                      id="position-select"
                       value={formData.position}
                       onChange={handleChange}
                       label="Position"
                       name="position"
-                      startAdornment={
-                        <InputAdornment position="start">
-                          <Briefcase size={18} color={theme.palette.text.secondary} />
-                        </InputAdornment>
-                      }
+                      sx={{ borderRadius: 3 }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
@@ -452,202 +412,162 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       <MenuItem value="Branch Pastor">Branch Pastor</MenuItem>
                       <MenuItem value="Instrumentalist">Instrumentalist</MenuItem>
                       <MenuItem value="Singer">Singer</MenuItem>
-                      <MenuItem value="Prayer Warrior">Prayer Warrior</MenuItem>
-                      <MenuItem value="Other">Other Positions</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
-              </Grid>
-            </Box>
+            </Grid>
           ) : (
-            // VIEW MODE DETAILS
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Mail size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>EMAIL</Typography>
-                          <Typography variant="body1">{member.email || 'N/A'}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Phone size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>PHONE</Typography>
-                          <Typography variant="body1">{member.phone || 'N/A'}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
-              <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <MapPin size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>ADDRESS</Typography>
-                          <Typography variant="body1">{member.address || 'N/A'}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Cake size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>DATE OF BIRTH</Typography>
-                          <Typography variant="body1">{formatDOB(member.dob)}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Building size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>BRANCH</Typography>
-                          <Typography variant="body1">{member.branch || 'N/A'}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Users size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>DEPARTMENT</Typography>
-                          <Typography variant="body1">{member.department || 'N/A'}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Briefcase size={18} color={theme.palette.text.secondary} />
-                      <Box>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>POSITION</Typography>
-                          <Typography variant="body1">{member.position || 'N/A'}</Typography>
-                      </Box>
-                  </Box>
-              </Grid>
+            <Grid container spacing={4}>
+              {[
+                { icon: <Mail size={18}/>, label: 'EMAIL', value: member.email },
+                { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
+                { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
+                { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) },
+                { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
+                { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
+                { icon: <Briefcase size={18}/>, label: 'POSITION', value: member.position }
+              ].map((item, idx) => (
+                <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main }}>
+                        {item.icon}
+                    </Box>
+                    <Box>
+                        <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5 }}>{item.label}</Typography>
+                        <Typography variant="body1" fontWeight={600} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
+                    </Box>
+                  </Stack>
+                </Grid>
+              ))}
             </Grid>
           )}
         </Box>
         ) : (
-          // CONTRIBUTIONS TAB
           <Box sx={{ p: 3 }}>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6}>
-                <Card sx={{ p: 2, bgcolor: theme.palette.primary.light, borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <DollarSign size={20} color={theme.palette.primary.main} />
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+              <Grid size={{ xs: 6 }}>
+                <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}><DollarSign size={18}/></Avatar>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Total Tithe</Typography>
-                      <Typography variant="h6" fontWeight={700}>GHC{totalTithe.toLocaleString()}</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>TOTAL TITHE</Typography>
+                      <Typography variant="h6" fontWeight={800}>GHC{totalTithe.toLocaleString()}</Typography>
                     </Box>
-                  </Box>
+                  </Stack>
                 </Card>
               </Grid>
-              <Grid item xs={6}>
-                <Card sx={{ p: 2, bgcolor: theme.palette.success.light, borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <HeartHandshake size={20} color={theme.palette.success.main} />
+              <Grid size={{ xs: 6 }}>
+                <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.success.main, 0.03) }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar sx={{ bgcolor: theme.palette.success.main, width: 32, height: 32 }}><HeartHandshake size={18}/></Avatar>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Total Welfare</Typography>
-                      <Typography variant="h6" fontWeight={700}>GHC{totalWelfare.toLocaleString()}</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>WELFARE</Typography>
+                      <Typography variant="h6" fontWeight={800}>GHC{totalWelfare.toLocaleString()}</Typography>
                     </Box>
-                  </Box>
+                  </Stack>
                 </Card>
               </Grid>
             </Grid>
 
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>Add New Contribution</Typography>
-            <Card sx={{ p: 2, mb: 3, bgcolor: theme.palette.action.hover }}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm={3}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="Type"
-                    value={newContribution.type}
-                    onChange={(e) => setNewContribution({ ...newContribution, type: e.target.value })}
-                    SelectProps={{ native: true }}
-                    size="small"
-                  >
-                    <option value="tithe">Tithe</option>
-                    <option value="welfare">Welfare</option>
-                    <option value="other">Other</option>
-                  </TextField>
+            <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Plus size={16} /> LOG CONTRIBUTION
+                </Typography>
+                <Card variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                <Grid container spacing={2} alignItems="center">
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Type"
+                        value={newContribution.type}
+                        onChange={(e) => setNewContribution({ ...newContribution, type: e.target.value })}
+                        SelectProps={{ native: true }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    >
+                        <option value="tithe">Tithe</option>
+                        <option value="welfare">Welfare</option>
+                        <option value="other">Other</option>
+                    </TextField>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                    <TextField
+                        fullWidth
+                        label="Amount"
+                        type="number"
+                        value={newContribution.amount}
+                        onChange={(e) => setNewContribution({ ...newContribution, amount: e.target.value })}
+                        InputProps={{ startAdornment: <InputAdornment position="start">GHC</InputAdornment> }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                    <Button 
+                        variant="contained" 
+                        fullWidth 
+                        onClick={handleAddContribution}
+                        sx={{ height: 56, borderRadius: 2, fontWeight: 700, boxShadow: 'none' }}
+                    >
+                        Save Entry
+                    </Button>
+                    </Grid>
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <TextField
-                    fullWidth
-                    label="Amount"
-                    type="number"
-                    value={newContribution.amount}
-                    onChange={(e) => setNewContribution({ ...newContribution, amount: e.target.value })}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">GHC</InputAdornment>
-                    }}
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    value={newContribution.description}
-                    onChange={(e) => setNewContribution({ ...newContribution, description: e.target.value })}
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={2}>
-                  <Button variant="contained" startIcon={<Plus size={16} />} onClick={handleAddContribution} fullWidth>
-                    Add
-                  </Button>
-                </Grid>
-              </Grid>
-            </Card>
+                </Card>
+            </Box>
 
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Contribution History</Typography>
-            <List sx={{ maxHeight: 250, overflow: 'auto', bgcolor: 'background.paper', borderRadius: 1, border: `1px solid ${theme.palette.divider}` }}>
-              {loadingContributions ? (
-                <ListItem><Typography variant="body2">Loading...</Typography></ListItem>
-              ) : contributions.length === 0 ? (
-                <ListItem><Typography variant="body2" color="text.secondary">No contributions recorded yet.</Typography></ListItem>
-              ) : (
-                contributions.map((c, index) => (
-                  <React.Fragment key={c.id || index}>
-                    <ListItem sx={{ py: 1.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                        <Chip 
-                          label={c.type.charAt(0).toUpperCase() + c.type.slice(1)} 
-                          size="small" 
-                          color={c.type === 'tithe' ? 'primary' : c.type === 'welfare' ? 'success' : 'default'}
-                          variant="outlined"
-                        />
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2" fontWeight={600}>GHC{Number(c.amount).toLocaleString()}</Typography>
-                          {c.description && <Typography variant="caption" color="text.secondary">{c.description}</Typography>}
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">{c.date}</Typography>
-                      </Box>
-                    </ListItem>
-                    {index < contributions.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))
-              )}
-            </List>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <History size={16} /> RECENT TRANSACTIONS
+            </Typography>
+            <Card variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                <List sx={{ maxHeight: 300, overflow: 'auto', p: 0 }}>
+                {loadingContributions ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={24}/></Box>
+                ) : contributions.length === 0 ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}><Typography variant="body2" color="text.secondary" fontWeight={500}>No history found.</Typography></Box>
+                ) : (
+                    contributions.map((c, index) => (
+                    <React.Fragment key={c.id || index}>
+                        <ListItem sx={{ py: 2, px: 3, '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
+                            <ListItemText
+                                primary={<Typography variant="body2" fontWeight={700}>GHC{Number(c.amount).toLocaleString()}</Typography>}
+                                secondary={format(new Date(c.date || Date.now()), 'MMM dd, yyyy • p')}
+                                secondaryTypographyProps={{ fontWeight: 500 }}
+                            />
+                            <Chip 
+                                label={c.type.toUpperCase()} 
+                                size="small" 
+                                sx={{ 
+                                    fontWeight: 800, 
+                                    fontSize: '0.6rem', 
+                                    borderRadius: 1,
+                                    bgcolor: c.type === 'tithe' ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.success.main, 0.1),
+                                    color: c.type === 'tithe' ? theme.palette.primary.main : theme.palette.success.main
+                                }}
+                            />
+                        </ListItem>
+                        {index < contributions.length - 1 && <Divider />}
+                    </React.Fragment>
+                    ))
+                )}
+                </List>
+            </Card>
           </Box>
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 4, pb: 4, pt: 1, justifyContent: 'space-between' }}>
+      {/* --- ACTIONS --- */}
+      <DialogActions sx={{ px: 4, pb: 4, pt: 2, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
         {isEditing ? (
-            <Box sx={{ display: 'flex', gap: 2, width: '100%', justifyContent: 'flex-end' }}>
-                <Button onClick={handleCancelEdit} variant="outlined" color="inherit" startIcon={<ArrowLeft size={16}/>}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" startIcon={<Save size={16}/>}>Save Changes</Button>
-            </Box>
+            <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="flex-end">
+                <Button onClick={handleCancelEdit} sx={{ borderRadius: 2.5, fontWeight: 700, color: theme.palette.text.secondary }}>Cancel</Button>
+                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 2.5, fontWeight: 800, px: 4, boxShadow: theme.shadows[4] }}>Update Member</Button>
+            </Stack>
         ) : (
-            <>
-                <Button onClick={() => onDelete(member.id)} variant="outlined" color="error" startIcon={<Trash2 size={16} />}>Delete Member</Button>
-                <Button onClick={() => setIsEditing(true)} variant="contained" color="primary" startIcon={<Edit size={16} />}>Edit Profile</Button>
-            </>
+            <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="space-between">
+                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 2.5 }}>Revoke</Button>
+                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 2.5, px: 4, boxShadow: theme.shadows[4] }}>Modify Profile</Button>
+            </Stack>
         )}
       </DialogActions>
     </Dialog>
