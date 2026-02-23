@@ -1,46 +1,37 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Box, CircularProgress } from '@mui/material';
+import { useAuth } from '../context/AuthContext';
 
-// --- PAGE IMPORTS ---
-import Dashboard from '../pages/Dashboard';
-import Members from '../pages/Members';
-import Attendance from '../pages/Attendance';
-import Financials from '../pages/Financials';
-import Events from '../pages/Events';
-import Reports from '../pages/Reports';
-import UserManagement from '../pages/UserManagement';
-import QuickSwitch from '../pages/QuickSwitch';
-import Help from '../pages/Help';
-import Settings from '../pages/Settings';
-import BibleStudies from '../pages/BibleStudies';
-import Graph from '../pages/Graph';
-import Login from '../pages/Login'; // 🟢 Added
+// --- PAGE IMPORTS (Lazy Loaded) ---
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const Members = lazy(() => import('../pages/Members'));
+const Attendance = lazy(() => import('../pages/Attendance'));
+const Financials = lazy(() => import('../pages/Financials'));
+const Events = lazy(() => import('../pages/Events'));
+const Reports = lazy(() => import('../pages/Reports'));
+const UserManagement = lazy(() => import('../pages/UserManagement'));
+const QuickSwitch = lazy(() => import('../pages/QuickSwitch'));
+const Help = lazy(() => import('../pages/Help'));
+const Settings = lazy(() => import('../pages/Settings'));
+const BibleStudies = lazy(() => import('../pages/BibleStudies'));
+const Graph = lazy(() => import('../pages/Graph'));
+const Login = lazy(() => import('../pages/Login'));
 
 // --- ANIMATION CONFIGURATION ---
-// "CareOS" Feel: Fast, snappy, subtle fade-up
 const pageVariants = {
-  initial: {
-    opacity: 0,
-    y: 8, // Subtle lift
-  },
-  in: {
-    opacity: 1,
-    y: 0,
-  },
-  out: {
-    opacity: 0,
-    y: -8, // Subtle drop
-  },
+  initial: { opacity: 0, y: 8 },
+  in: { opacity: 1, y: 0 },
+  out: { opacity: 0, y: -8 },
 };
 
 const pageTransition = {
   type: 'tween',
   ease: 'easeInOut',
-  duration: 0.25, // Snappy response
+  duration: 0.25,
 };
 
-// Wrapper Component to apply animations automatically
 const MotionWrap = ({ children }) => (
   <motion.div
     initial="initial"
@@ -48,45 +39,90 @@ const MotionWrap = ({ children }) => (
     exit="out"
     variants={pageVariants}
     transition={pageTransition}
-    style={{ width: '100%' }} // Removing fixed height prevents double scrollbars
+    style={{ width: '100%' }}
   >
     {children}
   </motion.div>
 );
 
-// 🟢 NEW: Authentication Guard
+const PageLoader = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+    <CircularProgress size={40} />
+  </Box>
+);
+
+// 🟢 Unified Authentication & Authorization Guards
 const RequireAuth = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) return <PageLoader />;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+const RequireRole = ({ roles, children }) => {
+  const { user, hasRole, loading } = useAuth();
+  
+  if (loading) return <PageLoader />;
+  if (!user || !hasRole(roles)) {
+    return <Navigate to="/" replace />; // Unauthorized: back to dashboard
+  }
+  return children;
 };
 
 const AppRouter = () => {
   const location = useLocation();
   
   return (
-    // AnimatePresence is required for exit animations to work
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        {/* Public Routes */}
-        <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
+    <Suspense fallback={<PageLoader />}>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
+          
+          {/* Protected Routes (Authenticated) */}
+          <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />
+          <Route path="/members" element={<RequireAuth><MotionWrap><Members /></MotionWrap></RequireAuth>} />
+          <Route path="/attendance" element={<RequireAuth><MotionWrap><Attendance /></MotionWrap></RequireAuth>} />
+          <Route path="/financials" element={<RequireAuth><MotionWrap><Financials /></MotionWrap></RequireAuth>} />
+          <Route path="/events" element={<RequireAuth><MotionWrap><Events /></MotionWrap></RequireAuth>} />
+          <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
+          <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><MotionWrap><Settings /></MotionWrap></RequireAuth>} />
+          <Route path="/help" element={<RequireAuth><MotionWrap><Help /></MotionWrap></RequireAuth>} />
 
-        {/* Protected Routes */}
-        <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />
-        <Route path="/members" element={<RequireAuth><MotionWrap><Members /></MotionWrap></RequireAuth>} />
-        <Route path="/attendance" element={<RequireAuth><MotionWrap><Attendance /></MotionWrap></RequireAuth>} />
-        <Route path="/financials" element={<RequireAuth><MotionWrap><Financials /></MotionWrap></RequireAuth>} />
-        <Route path="/events" element={<RequireAuth><MotionWrap><Events /></MotionWrap></RequireAuth>} />
-        <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
-        
-        {/* Utility Pages */}
-        <Route path="/user-management" element={<RequireAuth><MotionWrap><UserManagement /></MotionWrap></RequireAuth>} />
-        <Route path="/quick-switch" element={<RequireAuth><MotionWrap><QuickSwitch /></MotionWrap></RequireAuth>} />
-        <Route path="/help" element={<RequireAuth><MotionWrap><Help /></MotionWrap></RequireAuth>} />
-        <Route path="/settings" element={<RequireAuth><MotionWrap><Settings /></MotionWrap></RequireAuth>} />
-        <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
-        <Route path="/graph" element={<RequireAuth><MotionWrap><Graph /></MotionWrap></RequireAuth>} />
-      </Routes>
-    </AnimatePresence>
+          {/* Admin Restricted Routes */}
+          <Route 
+            path="/user-management" 
+            element={
+              <RequireAuth>
+                <RequireRole roles={['admin']}>
+                  <MotionWrap><UserManagement /></MotionWrap>
+                </RequireRole>
+              </RequireAuth>
+            } 
+          />
+          <Route 
+            path="/quick-switch" 
+            element={
+              <RequireAuth>
+                <RequireRole roles={['admin']}>
+                  <MotionWrap><QuickSwitch /></MotionWrap>
+                </RequireRole>
+              </RequireAuth>
+            } 
+          />
+          <Route 
+            path="/graph" 
+            element={
+              <RequireAuth>
+                <RequireRole roles={['admin']}>
+                  <MotionWrap><Graph /></MotionWrap>
+                </RequireRole>
+              </RequireAuth>
+            } 
+          />
+        </Routes>
+      </AnimatePresence>
+    </Suspense>
   );
 };
 

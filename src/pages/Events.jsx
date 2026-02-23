@@ -16,14 +16,14 @@ import {
   Avatar,
   CircularProgress,
   InputAdornment,
-  Snackbar,
-  Alert,
   Skeleton,
   Tooltip,
   Switch, 
   FormControlLabel,
   alpha,
-  Stack
+  Stack,
+  Container,
+  Paper
 } from '@mui/material';
 import { 
   Calendar as CalendarIcon, 
@@ -32,10 +32,10 @@ import {
   Plus, 
   Trash2, 
   Edit,
-  AlertCircle,
   Video, 
   Wifi,
-  Globe
+  Globe,
+  Sparkles
 } from 'lucide-react';
 import EditEventDialog from '../components/EditEventDialog';
 
@@ -70,19 +70,17 @@ const Events = () => {
 
   const fetchEvents = useCallback(async () => {
     try {
-      if (events.length === 0) setLoading(true);
-      console.log("Fetching events from:", `${API_BASE_URL}/events/`);
+      setLoading(true);
       const res = await axios.get(`${API_BASE_URL}/events/`);
-      
-      const sorted = res.data.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+      const sorted = (res.data || []).sort((a, b) => parseDate(a.date) - parseDate(b.date));
       setEvents(sorted);
     } catch (err) {
-      console.error("Calendar Sync Error:", err.response?.data || err.message);
+      console.error("Calendar Sync Error:", err);
       showNotification("Failed to sync events.", "error");
     } finally {
       setLoading(false);
     }
-  }, [events.length, showNotification]);
+  }, [showNotification]);
 
   useEffect(() => {
     fetchEvents();
@@ -117,7 +115,7 @@ const Events = () => {
       await fetchEvents();
       showNotification("Event scheduled successfully!", "success");
     } catch (error) {
-      console.error("Schedule Event Error:", error.response?.data || error.message);
+      console.error("Schedule Event Error:", error);
       showNotification("Failed to schedule event.", "error");
     } finally {
       setSubmitting(false);
@@ -127,14 +125,14 @@ const Events = () => {
   const handleDelete = async (id) => {
     showConfirmation({
       title: "Delete Event",
-      message: "Are you sure you want to delete this event? This action cannot be undone.",
+      message: "Delete this event permanently?",
       onConfirm: async () => {
         try {
           await axios.delete(`${API_BASE_URL}/events/${id}/`);
           await fetchEvents(); 
           showNotification("Event deleted.", "info");
         } catch (err) {
-          console.error("Delete Event Error:", err.response?.data || err.message);
+          console.error("Delete Event Error:", err);
           showNotification('Failed to delete event.', "error");
         }
       }
@@ -144,11 +142,11 @@ const Events = () => {
   const handleEditEvent = async (id, updatedEvent) => {
     try {
       await axios.put(`${API_BASE_URL}/events/${id}/`, updatedEvent);
-      fetchEvents();
+      await fetchEvents();
       setEditingEvent(null);
       showNotification("Event updated successfully.", "success");
     } catch (err) {
-      console.error("Update Event Error:", err.response?.data || err.message);
+      console.error("Update Event Error:", err);
       showNotification('Failed to update event.', "error");
     }
   };
@@ -159,30 +157,29 @@ const Events = () => {
   };
 
   return (
-    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
+    <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible" sx={{ pb: 8 }}>
       
-      {/* --- HEADER --- */}
+      {/* --- HERO HEADER --- */}
       <Box sx={{ 
-        mb: 4, 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: { xs: 'flex-start', sm: 'flex-end' }, 
-        flexDirection: { xs: 'column', sm: 'row' },
-        gap: 2
+        py: { xs: 4, md: 6 }, 
+        mb: 6, 
+        textAlign: 'center',
+        position: 'relative',
+        borderRadius: 8,
+        background: theme.palette.mode === 'light' 
+           ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
+           : alpha(theme.palette.primary.main, 0.05),
+        overflow: 'hidden'
       }}>
-        <Box>
-          <Typography variant="overline" color="primary" fontWeight={700} letterSpacing={1.2}>
-            CALENDAR
-          </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.02em' }}>
-            Events
-          </Typography>
-        </Box>
-        <Chip 
-          icon={<CalendarIcon size={14} />} 
-          label={format(new Date(), 'MMMM yyyy')} 
-          sx={{ fontWeight: 700, borderRadius: 3, height: 40, px: 1, bgcolor: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}` }}
-        />
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2 }}>
+            <Chip icon={<CalendarIcon size={14} />} label={format(new Date(), 'MMMM yyyy')} size="small" sx={{ mb: 2, fontWeight: 700, bgcolor: theme.palette.background.paper }} />
+            <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: '-0.03em', mb: 1 }}>
+                Event Schedule
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
+                Plan, manage, and track upcoming church activities and services.
+            </Typography>
+        </Container>
       </Box>
 
       <Grid container spacing={4}>
@@ -193,16 +190,19 @@ const Events = () => {
             p: 3, 
             position: { md: 'sticky' }, 
             top: { md: 20 },
-            boxShadow: theme.shadows[3],
-            borderRadius: 4
+            boxShadow: theme.shadows[4],
+            borderRadius: 5,
+            border: `1px solid ${theme.palette.divider}`,
+            bgcolor: alpha(theme.palette.background.paper, 0.8),
+            backdropFilter: 'blur(20px)'
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, pb: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
               <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 48, height: 48, borderRadius: 3 }}>
                 <Plus size={24} />
               </Avatar>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>New Event</Typography>
-                <Typography variant="caption" color="text.secondary">Add to schedule</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>Create Event</Typography>
+                <Typography variant="caption" color="text.secondary">Add to calendar</Typography>
               </Box>
             </Box>
 
@@ -249,7 +249,7 @@ const Events = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
-                  <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.action.hover, 0.5) }}>
                     <FormControlLabel
                       control={
                         <Switch 
@@ -261,32 +261,28 @@ const Events = () => {
                       }
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Avatar sx={{ width: 32, height: 32, bgcolor: formData.isOnline ? theme.palette.success.main : theme.palette.grey[300] }}>
+                          <Avatar sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: formData.isOnline ? theme.palette.success.main : theme.palette.action.disabled }}>
                              {formData.isOnline ? <Globe size={16} color="#fff" /> : <MapPin size={16} color="#fff" />}
                           </Avatar>
-                          <Typography variant="body2" fontWeight={600}>{formData.isOnline ? "Online / Virtual" : "In-Person Event"}</Typography>
+                          <Typography variant="body2" fontWeight={700}>{formData.isOnline ? "Virtual Event" : "In-Person Event"}</Typography>
                         </Box>
                       }
                     />
-                  </Card>
+                  </Paper>
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
-                    label={formData.isOnline ? "Meeting Link / Platform" : "Location"}
+                    label={formData.isOnline ? "Link / Platform" : "Location"}
                     name="location"
                     value={formData.location}
                     onChange={handleChange}
-                    placeholder={formData.isOnline ? "e.g. Zoom Link or Google Meet" : "Main Auditorium"}
+                    placeholder={formData.isOnline ? "e.g. Zoom Link" : "Main Auditorium"}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          {formData.isOnline ? (
-                            <Video size={18} color={theme.palette.text.secondary} />
-                          ) : (
-                            <MapPin size={18} color={theme.palette.text.secondary} />
-                          )}
+                          {formData.isOnline ? <Video size={18} /> : <MapPin size={18} />}
                         </InputAdornment>
                       ),
                     }}
@@ -301,7 +297,7 @@ const Events = () => {
                     fullWidth 
                     size="large"
                     disabled={submitting}
-                    sx={{ mt: 1, py: 1.8, borderRadius: 3, fontWeight: 700, boxShadow: theme.shadows[4] }}
+                    sx={{ mt: 1, py: 1.8, borderRadius: 3, fontWeight: 800, boxShadow: theme.shadows[4] }}
                   >
                     {submitting ? <CircularProgress size={24} color="inherit" /> : 'Publish Event'}
                   </Button>
@@ -316,21 +312,21 @@ const Events = () => {
           <Stack spacing={2}>
             {loading ? (
                Array.from(new Array(3)).map((_, i) => (
-                 <Card key={i} sx={{ p: 2, display: 'flex', alignItems: 'center', borderRadius: 3 }}>
-                   <Skeleton variant="rounded" width={80} height={80} sx={{ mr: 3, borderRadius: 3 }} />
+                 <Card key={i} sx={{ p: 2, display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+                   <Skeleton variant="rounded" width={100} height={100} sx={{ mr: 3, borderRadius: 3 }} />
                    <Box sx={{ flexGrow: 1 }}>
-                     <Skeleton width="60%" height={24} sx={{ mb: 1 }} />
+                     <Skeleton width="60%" height={28} sx={{ mb: 1 }} />
                      <Skeleton width="40%" height={20} />
                    </Box>
                  </Card>
                ))
             ) : filteredEvents.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8, opacity: 0.6, bgcolor: theme.palette.background.paper, borderRadius: 4 }}>
+              <Box sx={{ textAlign: 'center', py: 10, opacity: 0.6, bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 6 }}>
                 <Box sx={{ bgcolor: alpha(theme.palette.text.secondary, 0.1), width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
                     <CalendarIcon size={40} />
                 </Box>
                 <Typography variant="h6" fontWeight={700}>No upcoming events</Typography>
-                <Typography variant="body2">Use the form to create your first event.</Typography>
+                <Typography variant="body2">Your schedule is clear.</Typography>
               </Box>
             ) : (
               filteredEvents.map((event) => {
@@ -343,9 +339,9 @@ const Events = () => {
                     display: 'flex', 
                     flexDirection: { xs: 'column', sm: 'row' },
                     alignItems: { xs: 'stretch', sm: 'center' },
-                    transition: 'all 0.2s',
-                    '&:hover': { transform: 'translateY(-3px)', boxShadow: theme.shadows[8] },
-                    borderRadius: 4,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[8] },
+                    borderRadius: 5,
                     overflow: 'hidden',
                     border: `1px solid ${theme.palette.divider}`
                   }}
@@ -357,16 +353,16 @@ const Events = () => {
                     alignItems: 'center', 
                     justifyContent: 'center',
                     p: { xs: 2, sm: 3 },
-                    bgcolor: theme.palette.primary.main,
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                     color: '#fff',
-                    minWidth: { sm: 120 },
+                    minWidth: { sm: 130 },
                     gap: { xs: 2, sm: 0 },
                     textAlign: 'center'
                   }}>
-                    <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                    <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
                       {format(eventDate, 'dd')}
                     </Typography>
-                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, opacity: 0.8, letterSpacing: 1, mt: { sm: 0.5 } }}>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 800, opacity: 0.9, letterSpacing: 1.5, mt: { sm: 0.5 } }}>
                       {format(eventDate, 'MMM')}
                     </Typography>
                   </Box>
@@ -374,7 +370,7 @@ const Events = () => {
                   {/* Details */}
                   <Box sx={{ flexGrow: 1, p: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.text.primary, lineHeight: 1.2 }}>
                         {event.name}
                       </Typography>
                       {event.isOnline && (
@@ -383,17 +379,18 @@ const Events = () => {
                           label="Online" 
                           size="small" 
                           color="success" 
-                          sx={{ height: 24, fontWeight: 700, borderRadius: '6px' }} 
+                          variant="outlined"
+                          sx={{ height: 24, fontWeight: 700, borderRadius: 1 }} 
                         />
                       )}
                     </Box>
                     
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2, color: theme.palette.text.secondary }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: theme.palette.action.hover, py: 0.5, px: 1.5, borderRadius: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Clock size={16} color={theme.palette.primary.main} />
                         <Typography variant="body2" fontWeight={600}>{event.time}</Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: theme.palette.action.hover, py: 0.5, px: 1.5, borderRadius: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {event.isOnline ? <Video size={16} color={theme.palette.primary.main} /> : <MapPin size={16} color={theme.palette.primary.main} />}
                         <Typography variant="body2" fontWeight={600}>{event.location}</Typography>
                       </Box>
@@ -409,15 +406,15 @@ const Events = () => {
                     borderTop: { xs: `1px solid ${theme.palette.divider}`, sm: 'none' },
                     borderLeft: { sm: `1px solid ${theme.palette.divider}` },
                     justifyContent: { xs: 'flex-end', sm: 'center' },
-                    bgcolor: theme.palette.background.default
+                    bgcolor: theme.palette.action.hover
                   }}>
-                    <Tooltip title="Edit Event">
-                      <IconButton size="small" onClick={() => setEditingEvent(event)} sx={{ color: theme.palette.primary.main }}>
+                    <Tooltip title="Edit">
+                      <IconButton size="small" onClick={() => setEditingEvent(event)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: theme.palette.primary.main } }}>
                         <Edit size={18} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete Event">
-                      <IconButton size="small" onClick={() => handleDelete(event.id)} sx={{ color: theme.palette.error.main, '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
+                    <Tooltip title="Delete">
+                      <IconButton size="small" onClick={() => handleDelete(event.id)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
                         <Trash2 size={18} />
                       </IconButton>
                     </Tooltip>

@@ -72,12 +72,18 @@ export default defineConfig({
     })
   ],
   server: {
+    port: 4000,
     proxy: {
       '/api': {
         target: 'https://us-central1-thegatheringplace-app.cloudfunctions.net',
         changeOrigin: true,
       }
     }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
   }
 })
 

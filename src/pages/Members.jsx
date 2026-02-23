@@ -23,12 +23,9 @@ import {
   Tooltip,
   Grid,
   useMediaQuery,
-  Snackbar,
-  Alert,
   Skeleton,
   CircularProgress,
   FormControl, 
-  InputLabel, 
   Select, 
   MenuItem,
   alpha,
@@ -36,7 +33,9 @@ import {
   Stack,
   Divider,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Container,
+  Menu
 } from '@mui/material';
 import { 
   UserPlus, 
@@ -47,27 +46,27 @@ import {
   Phone, 
   MapPin,
   UserX,
-  Cake,
-  Filter,
+  Sparkles,
   LayoutGrid,
   Table as TableIcon,
   Download,
-  CheckCircle2,
-  XCircle,
-  Building2,
   CalendarDays,
-  Sparkles,
-  Zap
+  Building2,
+  Filter,
+  FileText,
+  FileSpreadsheet
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
 
 import { API_BASE_URL } from '../config';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const Members = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const { filterData, showNotification, showConfirmation, userRole, userBranch, isBranchRestricted } = useWorkspace();
   
   // --- STATE ---
@@ -79,102 +78,81 @@ const Members = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : '');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [exportAnchorEl, setExportAnchorEl] = useState(null);
 
   // --- FETCH DATA ---
   const fetchMembers = useCallback(async (isSilent = false) => {
     try {
       if (!isSilent) setLoading(true);
-      console.log("Members: Fetching from", `${API_BASE_URL}/members`);
       const response = await axios.get(`${API_BASE_URL}/members`);
-      console.log("Members: Received", response.data?.length || 0, "items");
       setMembers(response.data || []);
     } catch (err) {
-      console.error("Members Fetch Error:", err.response?.data || err.message);
-      showNotification("Failed to sync member database. Check console.", "error");
+      console.error("Members Fetch Error:", err);
+      showNotification("Failed to sync member database.", "error");
     } finally {
       setLoading(false);
     }
   }, [showNotification]);
 
-  const handleCleanupDuplicates = () => {
-    showConfirmation({
-      title: "Remove Historical Duplicates",
-      message: "This will scan the registry for identical names and permanently delete older duplicate entries, keeping only the most recent record for each person. Continue?",
-      severity: "warning",
-      onConfirm: async () => {
-        setMaintenanceLoading(true);
-        try {
-          // Use current members state
-          const groups = {};
-          members.forEach(m => {
-            if (!m.name) return;
-            const key = m.name.trim().toLowerCase();
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(m);
-          });
-
-          const toDelete = [];
-          Object.values(groups).forEach(group => {
-            if (group.length > 1) {
-              // Sort by date descending (newest first)
-              const sorted = group.sort((a, b) => {
-                const dateA = new Date(a.createdAt || 0);
-                const dateB = new Date(b.createdAt || 0);
-                return dateB - dateA;
-              });
-              // Mark all but the newest (index 0) for deletion
-              for (let i = 1; i < sorted.length; i++) {
-                toDelete.push(sorted[i].id);
-              }
-            }
-          });
-
-          if (toDelete.length === 0) {
-            showNotification("No duplicates found. Your registry is clean!", "success");
-          } else {
-            await Promise.all(toDelete.map(id => axios.delete(`${API_BASE_URL}/members/${id}`)));
-            showNotification(`Optimization complete! Removed ${toDelete.length} old duplicate records.`, "success");
-            await fetchMembers(true);
-          }
-        } catch (err) {
-          console.error("Cleanup Error:", err);
-          showNotification("Registry cleanup encountered an issue.", "error");
-        } finally {
-          setMaintenanceLoading(false);
-        }
-      }
-    });
-  };
-
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
 
-  const handleAddMember = async (newMember) => {
-    // 🟢 Duplicate Name Check (Case-Insensitive)
-    const nameExists = members.some(m => 
-      m.name.trim().toLowerCase() === newMember.name.trim().toLowerCase()
-    );
+  const handleExport = (formatType) => {
+    setExportAnchorEl(null);
+    const data = filteredMembers;
+    if (data.length === 0) return;
 
-    if (nameExists) {
-      showNotification(`Registry Alert: A member named "${newMember.name}" already exists.`, "warning");
-      throw new Error("Duplicate member name"); // Stop submission and reset dialog loading state
+    const fileName = `member_directory_${new Date().toISOString().slice(0,10)}`;
+
+    if (formatType === 'pdf') {
+      const doc = new jsPDF();
+      doc.text("MEMBER DIRECTORY", 14, 20);
+      doc.setFontSize(10);
+      doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 28);
+      
+      const headers = [["Name", "Email", "Phone", "Branch", "Status", "Joined"]];
+      const rows = data.map(m => [
+        m.name,
+        m.email || 'N/A',
+        m.phone || 'N/A',
+        m.branch || 'Main',
+        m.status || 'Active',
+        m.createdAt ? format(new Date(m.createdAt), 'yyyy-MM-dd') : 'N/A'
+      ]);
+
+      doc.autoTable({
+        head: headers,
+        body: rows,
+        startY: 35,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] }
+      });
+      doc.save(`${fileName}.pdf`);
+    } else {
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Members");
+      XLSX.writeFile(workbook, `${fileName}.xlsx`);
     }
+    showNotification(`Member directory exported as ${formatType.toUpperCase()}`);
+  };
 
+  const handleAddMember = async (newMember) => {
+    const nameExists = members.some(m => m.name.trim().toLowerCase() === newMember.name.trim().toLowerCase());
+    if (nameExists) {
+      showNotification(`"${newMember.name}" already exists.`, "warning");
+      throw new Error("Duplicate member name");
+    }
     try {
       setLoading(true);
-      console.log("Members: Adding new", newMember);
       const response = await axios.post(`${API_BASE_URL}/members`, newMember);
-      console.log("Members: Add success", response.data);
-      
       await fetchMembers(true); 
       setOpenAddMemberDialog(false);
-      showNotification("New member successfully registered!", "success");
+      showNotification("Member registered!", "success");
       return response.data;
     } catch (err) {
-      console.error("Members Add Error:", err.response?.data || err.message);
-      showNotification(`Failed to register member: ${err.response?.status} ${err.message}`, "error");
+      showNotification(`Failed to register: ${err.message}`, "error");
       throw err;
     } finally {
       setLoading(false);
@@ -186,26 +164,24 @@ const Members = () => {
       await axios.put(`${API_BASE_URL}/members/${id}`, updatedMember);
       await fetchMembers(true);
       setSelectedMember(null);
-      showNotification("Member profile synchronized.", "success");
+      showNotification("Profile updated.", "success");
     } catch (err) {
-      console.error("Members Edit Error:", err.response?.data || err.message);
-      showNotification("Failed to update profile.", "error");
+      showNotification("Update failed.", "error");
     }
   };
 
   const handleDelete = async (id) => {
     showConfirmation({
       title: "Remove Member",
-      message: "Are you sure you want to remove this member from the directory? This action cannot be undone.",
+      message: "Permanently remove this member?",
       onConfirm: async () => {
         try {
           await axios.delete(`${API_BASE_URL}/members/${id}`);
           await fetchMembers(true);
           setSelectedMember(null);
-          showNotification("Member removed from directory.", "info");
+          showNotification("Member removed.", "info");
         } catch (err) {
-          console.error("Members Delete Error:", err.response?.data || err.message);
-          showNotification("Failed to remove member.", "error");
+          showNotification("Delete failed.", "error");
         }
       }
     });
@@ -215,11 +191,9 @@ const Members = () => {
     const environmentFiltered = filterData(members);
     return environmentFiltered.filter(m => {
       const matchesSearch = (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           (m.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (m.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
+                           (m.email || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesBranch = selectedBranch === '' || (m.branch || '').toLowerCase() === selectedBranch.toLowerCase();
       const matchesStatus = selectedStatus === 'all' || (m.status || 'active').toLowerCase() === selectedStatus.toLowerCase();
-      
       return matchesSearch && matchesBranch && matchesStatus;
     });
   }, [members, searchTerm, selectedBranch, selectedStatus, filterData]);
@@ -231,19 +205,12 @@ const Members = () => {
       discontinued: { main: '#EF4444', bg: alpha('#EF4444', 0.1) },
     };
     const color = colors[status.toLowerCase()] || colors.active;
-    
     return (
       <Chip 
-        label={status}
-        size="small"
+        label={status} size="small"
         sx={{ 
-          bgcolor: color.bg, 
-          color: color.main, 
-          fontWeight: 800, 
-          textTransform: 'uppercase', 
-          fontSize: '0.65rem',
-          letterSpacing: 0.5,
-          borderRadius: 2
+          bgcolor: color.bg, color: color.main, fontWeight: 800, 
+          textTransform: 'uppercase', fontSize: '0.65rem', borderRadius: 2 
         }} 
       />
     );
@@ -252,133 +219,129 @@ const Members = () => {
   const renderMemberCard = (member, index) => (
     <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={member.id}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.05 }}
       >
         <Card 
           onClick={() => setSelectedMember(member)}
           sx={{ 
             p: 3, 
-            borderRadius: 5, 
+            borderRadius: 6, 
             cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:hover': { 
-              transform: 'translateY(-4px)',
-              boxShadow: theme.shadows[8],
-              borderColor: alpha(theme.palette.primary.main, 0.2)
-            },
+            height: '100%',
             position: 'relative',
             overflow: 'hidden',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            border: `1px solid ${theme.palette.divider}`,
+            '&:hover': { 
+              transform: 'translateY(-8px)',
+              boxShadow: theme.shadows[10],
+              borderColor: theme.palette.primary.main,
+              '& .member-avatar': { transform: 'scale(1.1)' }
+            }
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Avatar 
-              sx={{ 
-                width: 56, height: 56, 
-                borderRadius: '16px', 
-                bgcolor: alpha(theme.palette.primary.main, 0.1), 
-                color: theme.palette.primary.main,
-                fontWeight: 800,
-                fontSize: '1.2rem',
-                boxShadow: `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.2)}`
-              }}
-            >
-              {member.name?.charAt(0).toUpperCase()}
-            </Avatar>
-            {getStatusChip(member.status)}
-          </Box>
-          
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: '-0.01em' }}>{member.name}</Typography>
-            <Typography variant="body2" color="text.secondary" fontWeight={500} noWrap sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-              <Building2 size={14} /> {member.branch || 'Main Sanctuary'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.6 }}>
-               Contact Information
-            </Typography>
-            <Stack spacing={1} sx={{ mt: 1 }}>
-               <Typography variant="body2" color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-                  <Mail size={14} color={theme.palette.text.secondary} /> {member.email || 'No email set'}
-               </Typography>
-               <Typography variant="body2" color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-                  <Phone size={14} color={theme.palette.text.secondary} /> {member.phone || 'N/A'}
-               </Typography>
-            </Stack>
-          </Box>
+          {/* Decorative Top Gradient */}
+          <Box sx={{ 
+            position: 'absolute', top: 0, left: 0, right: 0, height: 6, 
+            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` 
+          }} />
 
-          <Divider sx={{ my: 2.5, opacity: 0.5 }} />
+          <Stack alignItems="center" spacing={2} sx={{ mb: 2 }}>
+            <Box className="member-avatar" sx={{ transition: 'transform 0.3s' }}>
+                <Avatar 
+                sx={{ 
+                    width: 80, height: 80, 
+                    borderRadius: 6, 
+                    bgcolor: alpha(theme.palette.primary.main, 0.08), 
+                    color: theme.palette.primary.main,
+                    fontWeight: 800,
+                    fontSize: '2rem',
+                    boxShadow: `0 8px 24px -6px ${alpha(theme.palette.primary.main, 0.2)}`
+                }}
+                >
+                {member.name?.charAt(0).toUpperCase()}
+                </Avatar>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h6" fontWeight={800}>{member.name}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1, display: 'block', mt: 0.5 }}>
+                   {member.branch || 'Main Sanctuary'}
+                </Typography>
+            </Box>
+            {getStatusChip(member.status)}
+          </Stack>
+
+          <Divider sx={{ my: 2, opacity: 0.5 }} />
           
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" fontWeight={700} sx={{ color: theme.palette.primary.main }}>
-              #{member.id?.toString().slice(-4)}
-            </Typography>
-            <IconButton size="small"><MoreVertical size={16} /></IconButton>
-          </Box>
+          <Stack spacing={1.5}>
+             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary }}>
+                <Mail size={16} />
+                <Typography variant="body2" fontWeight={500} noWrap>{member.email || 'No email'}</Typography>
+             </Box>
+             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary }}>
+                <Phone size={16} />
+                <Typography variant="body2" fontWeight={500}>{member.phone || 'N/A'}</Typography>
+             </Box>
+          </Stack>
         </Card>
       </motion.div>
     </Grid>
   );
 
   return (
-    <Box sx={{ pb: 6 }}>
+    <Box sx={{ pb: 8 }}>
       
-      {/* --- HEADER --- */}
-      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'flex-end' }} spacing={3} sx={{ mb: 5 }}>
-        <Box>
-          <Typography variant="overline" color="primary" fontWeight={800} letterSpacing={2} sx={{ opacity: 0.7 }}>
-             GLOBAL DIRECTORY
-          </Typography>
-          <Typography variant="h2" sx={{ fontWeight: 800, mt: 0.5, letterSpacing: '-0.04em' }}>
-            Church Registry
-          </Typography>
-        </Box>
+      {/* --- HERO HEADER --- */}
+      <Box sx={{ 
+        py: { xs: 4, md: 6 }, 
+        mb: 4, 
+        textAlign: 'center',
+        position: 'relative',
+        borderRadius: 8,
+        background: theme.palette.mode === 'light' 
+           ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
+           : alpha(theme.palette.primary.main, 0.05),
+        overflow: 'hidden'
+      }}>
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2 }}>
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+                <Chip icon={<Sparkles size={14} />} label="Global Directory" size="small" sx={{ mb: 2, fontWeight: 700, bgcolor: theme.palette.background.paper }} />
+                <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: '-0.03em', mb: 1 }}>
+                    Church Members
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
+                    Manage and connect with the congregation. View profiles, track attendance eligibility, and update contact information.
+                </Typography>
+            </motion.div>
+        </Container>
+        
+        {/* Background blobs */}
+        <Box sx={{ position: 'absolute', top: -100, left: '10%', width: 300, height: 300, borderRadius: '50%', background: alpha(theme.palette.primary.main, 0.05), filter: 'blur(60px)' }} />
+        <Box sx={{ position: 'absolute', top: 50, right: '10%', width: 200, height: 200, borderRadius: '50%', background: alpha(theme.palette.secondary.main, 0.05), filter: 'blur(40px)' }} />
+      </Box>
 
-        <Stack direction="row" spacing={2} sx={{ width: { xs: '100%', md: 'auto' } }}>
-          {userRole === 'admin' && (
-            <Button 
-              variant="outlined" 
-              color="warning"
-              startIcon={maintenanceLoading ? <CircularProgress size={16} color="inherit" /> : <Sparkles size={18} />}
-              onClick={handleCleanupDuplicates}
-              disabled={maintenanceLoading || members.length === 0}
-              sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
-            >
-              {maintenanceLoading ? 'Cleaning...' : 'Clean Duplicates'}
-            </Button>
-          )}
-          <Button 
-            variant="outlined" 
-            startIcon={<Printer size={18} />}
-            onClick={() => window.print()}
-            sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
-          >
-            Export
-          </Button>
-          <Button 
-            variant="contained" 
-            startIcon={<UserPlus size={18} />} 
-            onClick={() => setOpenAddMemberDialog(true)}
-            sx={{ 
-              borderRadius: 3, px: 4, py: 1.5, fontWeight: 800,
-              boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}` 
-            }}
-          >
-            Add New Member
-          </Button>
-        </Stack>
-      </Stack>
-
-      {/* --- FILTERS & TOOLS --- */}
-      <Paper elevation={0} sx={{ p: 2, borderRadius: 5, mb: 4, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.paper, 0.4), backdropFilter: 'blur(10px)' }}>
+      {/* --- COMMAND BAR (Sticky) --- */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          borderRadius: 4, 
+          mb: 5, 
+          border: `1px solid ${theme.palette.divider}`, 
+          bgcolor: alpha(theme.palette.background.paper, 0.8), 
+          backdropFilter: 'blur(20px)',
+          position: 'sticky',
+          top: 20,
+          zIndex: 10
+        }}
+      >
         <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
-              placeholder="Quick search members..."
+              placeholder="Search by name, email, or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -387,8 +350,9 @@ const Members = () => {
                     <Search size={18} color={theme.palette.text.secondary} />
                   </InputAdornment>
                 ),
+                sx: { borderRadius: 3, bgcolor: theme.palette.background.default }
               }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: theme.palette.background.paper } }}
+              variant="outlined"
             />
           </Grid>
           <Grid size={{ xs: 6, md: 2 }}>
@@ -397,7 +361,7 @@ const Members = () => {
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   displayEmpty
-                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.paper }}
+                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.default }}
                 >
                   <MenuItem value="">All Branches</MenuItem>
                   <MenuItem value="Langma">Langma</MenuItem>
@@ -411,7 +375,7 @@ const Members = () => {
                 <Select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.paper }}
+                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.default }}
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -419,37 +383,62 @@ const Members = () => {
                 </Select>
              </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1 }}>
               <ToggleButtonGroup
                 value={viewMode}
                 exclusive
                 onChange={(e, v) => v && setViewMode(v)}
-                size="small"
-                sx={{ bgcolor: theme.palette.background.paper, borderRadius: 3 }}
+                size="medium"
+                sx={{ bgcolor: theme.palette.background.default, borderRadius: 3 }}
               >
-                <ToggleButton value="grid" sx={{ px: 2, borderRadius: '12px 0 0 12px !important' }}><LayoutGrid size={18} /></ToggleButton>
-                <ToggleButton value="table" sx={{ px: 2, borderRadius: '0 12px 12px 0 !important' }}><TableIcon size={18} /></ToggleButton>
+                <ToggleButton value="grid" sx={{ px: 2, border: 'none' }}><LayoutGrid size={18} /></ToggleButton>
+                <ToggleButton value="table" sx={{ px: 2, border: 'none' }}><TableIcon size={18} /></ToggleButton>
               </ToggleButtonGroup>
-              <IconButton sx={{ bgcolor: theme.palette.background.paper, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}><Download size={18} /></IconButton>
+
+              <Button 
+                variant="outlined" 
+                startIcon={<Download size={18} />}
+                onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                sx={{ borderRadius: 3, px: 2, fontWeight: 700 }}
+              >
+                Export
+              </Button>
+              <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+                  <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1 }}><FileText size={18} /> Export as PDF</MenuItem>
+                  <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
+              </Menu>
+
+              <Tooltip title="Add New Member">
+                <Button 
+                    variant="contained" 
+                    onClick={() => setOpenAddMemberDialog(true)}
+                    sx={{ 
+                        borderRadius: 3, px: 3, fontWeight: 700,
+                        boxShadow: `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` 
+                    }}
+                >
+                    <UserPlus size={20} />
+                </Button>
+              </Tooltip>
           </Grid>
         </Grid>
       </Paper>
 
-      {/* --- CONTENT --- */}
+      {/* --- CONTENT AREA --- */}
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
              <Grid container spacing={3}>
-               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <Grid key={i} size={{ xs: 12, md: 3 }}><Skeleton variant="rectangular" height={220} sx={{ borderRadius: 5 }} /></Grid>)}
+               {[1, 2, 3, 4, 5, 6].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={260} sx={{ borderRadius: 6 }} /></Grid>)}
              </Grid>
           </motion.div>
         ) : filteredMembers.length === 0 ? (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-            <Box sx={{ py: 15, textAlign: 'center' }}>
-              <UserX size={80} color={theme.palette.text.disabled} style={{ opacity: 0.3, marginBottom: 16 }} />
-              <Typography variant="h5" fontWeight={800} color="text.secondary">No members found</Typography>
-              <Typography variant="body2" color="text.secondary">Try adjusting your filters or search terms</Typography>
-              <Button sx={{ mt: 3, fontWeight: 700 }} onClick={() => { setSearchTerm(''); setSelectedBranch(''); setSelectedStatus('all'); }}>Clear All Filters</Button>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+            <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 8 }}>
+              <UserX size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />
+              <Typography variant="h6" fontWeight={800} color="text.secondary">No members found</Typography>
+              <Typography variant="body2" color="text.secondary">Adjust your filters to see results.</Typography>
+              <Button sx={{ mt: 3, fontWeight: 700 }} onClick={() => { setSearchTerm(''); setSelectedBranch(''); setSelectedStatus('all'); }}>Clear Filters</Button>
             </Box>
           </motion.div>
         ) : viewMode === 'grid' ? (
@@ -460,41 +449,40 @@ const Members = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 6, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
               <Table>
-                <TableHead sx={{ bgcolor: alpha(theme.palette.text.primary, 0.02) }}>
+                <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                   <TableRow>
-                    {['Member', 'Contact Details', 'Location', 'Registered', 'Status', 'Actions'].map(h => <TableCell key={h} sx={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: theme.palette.text.secondary }}>{h}</TableCell>)}
+                    {['Member', 'Contact', 'Location', 'Joined', 'Status', ''].map((h, i) => (
+                        <TableCell key={i} sx={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: theme.palette.text.secondary }}>{h}</TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredMembers.map((member) => (
-                    <TableRow key={member.id} hover onClick={() => setSelectedMember(member)} sx={{ cursor: 'pointer', transition: 'background 0.2s' }}>
+                    <TableRow key={member.id} hover onClick={() => setSelectedMember(member)} sx={{ cursor: 'pointer', transition: 'background 0.1s' }}>
                       <TableCell>
                         <Stack direction="row" spacing={2} alignItems="center">
-                          <Avatar sx={{ width: 40, height: 40, borderRadius: 2.5, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800 }}>{member.name?.charAt(0)}</Avatar>
+                          <Avatar sx={{ width: 40, height: 40, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800 }}>{member.name?.charAt(0)}</Avatar>
                           <Box>
                             <Typography variant="subtitle2" fontWeight={800}>{member.name}</Typography>
-                            <Typography variant="caption" color="text.secondary" fontWeight={600}>#{member.id?.toString().slice(-4)}</Typography>
+                            <Typography variant="caption" color="text.secondary">#{member.id?.toString().slice(-4)}</Typography>
                           </Box>
                         </Stack>
                       </TableCell>
                       <TableCell>
-                         <Stack spacing={0.2}>
-                            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>{member.email}</Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{member.phone}</Typography>
-                         </Stack>
+                         <Typography variant="body2" fontWeight={600}>{member.email || '—'}</Typography>
+                         <Typography variant="caption" color="text.secondary">{member.phone}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" fontWeight={600}>{member.branch || 'Main Sanctuary'}</Typography>
-                        <Typography variant="caption" color="text.secondary">{member.address || 'No Address'}</Typography>
+                        <Chip label={member.branch || 'Main'} size="small" sx={{ borderRadius: 1, fontWeight: 700, height: 20, fontSize: '0.65rem' }} />
                       </TableCell>
                       <TableCell>
-                         <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
-                            <CalendarDays size={14} /> {member.createdAt ? format(new Date(member.createdAt), 'MMM dd, yyyy') : 'N/A'}
+                         <Typography variant="body2" fontWeight={500}>
+                            {member.createdAt ? format(new Date(member.createdAt), 'MMM yyyy') : '—'}
                          </Typography>
                       </TableCell>
                       <TableCell>{getStatusChip(member.status)}</TableCell>
-                      <TableCell>
-                        <IconButton size="small"><MoreVertical size={18} /></IconButton>
+                      <TableCell align="right">
+                        <IconButton size="small"><MoreVertical size={16} /></IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -505,19 +493,8 @@ const Members = () => {
         )}
       </AnimatePresence>
 
-      <AddMemberDialog
-        open={openAddMemberDialog}
-        onClose={() => setOpenAddMemberDialog(false)}
-        onAddMember={handleAddMember}
-      />
-      
-      <MemberDetailsDialog
-        open={selectedMember !== null}
-        onClose={() => setSelectedMember(null)}
-        member={selectedMember}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <AddMemberDialog open={openAddMemberDialog} onClose={() => setOpenAddMemberDialog(false)} onAddMember={handleAddMember} />
+      <MemberDetailsDialog open={selectedMember !== null} onClose={() => setSelectedMember(null)} member={selectedMember} onEdit={handleEdit} onDelete={handleDelete} />
 
     </Box>
   );

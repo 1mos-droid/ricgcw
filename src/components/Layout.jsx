@@ -24,7 +24,11 @@ import {
   InputBase,
   alpha,
   Tooltip,
-  Badge
+  Badge,
+  BottomNavigation,
+  BottomNavigationAction,
+  Paper,
+  Grid
 } from '@mui/material';
 
 import { useColorMode } from '../theme';
@@ -32,7 +36,6 @@ import { useWorkspace } from '../context/WorkspaceContext';
 
 // Icons
 import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import EventNoteIcon from '@mui/icons-material/EventNote';
@@ -57,7 +60,7 @@ const drawerWidth = 280;
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
     flexGrow: 1,
-    padding: theme.spacing(4, 4, 6, 4), // More breathing room
+    padding: theme.spacing(3, 2, 12, 2), // Mobile padding (extra bottom for nav)
     transition: theme.transitions.create(['margin', 'width'], {
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
@@ -65,7 +68,8 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
     marginLeft: 0,
     width: '100%',
     [theme.breakpoints.up('md')]: {
-      marginLeft: open ? 0 : 0, // We are doing a persistent drawer that pushes content or overlays? Let's stick to standard behavior but cleaner
+      padding: theme.spacing(4, 4, 6, 4),
+      marginLeft: open ? 0 : 0,
       width: `calc(100% - ${open ? drawerWidth : 0}px)`,
     },
   }),
@@ -75,9 +79,9 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
   ({ theme, open }) => ({
     zIndex: theme.zIndex.drawer + 1,
     boxShadow: 'none',
-    borderBottom: 'none', // Remove border for floating effect
-    backgroundColor: alpha(theme.palette.background.default, 0.8), // Translucent
-    backdropFilter: 'blur(12px)',
+    borderBottom: 'none',
+    backgroundColor: alpha(theme.palette.background.default, 0.8),
+    backdropFilter: 'blur(16px)',
     transition: theme.transitions.create(['width', 'margin'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -154,6 +158,15 @@ const NAV_ITEMS = [
   { text: 'Help', icon: <HelpCenterIcon />, path: '/help' },
 ];
 
+// Bottom Nav Items (Subset for Mobile)
+const BOTTOM_NAV_ITEMS = [
+  { text: 'Home', icon: <DashboardIcon />, path: '/' },
+  { text: 'Members', icon: <PeopleIcon />, path: '/members' },
+  { text: 'Events', icon: <EventIcon />, path: '/events' },
+  { text: 'Finance', icon: <AccountBalanceWalletIcon />, path: '/financials' },
+  { text: 'More', icon: <MenuIcon />, path: '/settings' }, 
+];
+
 const AppLayout = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -171,8 +184,8 @@ const AppLayout = ({ children }) => {
   });
 
   const [open, setOpen] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -187,17 +200,88 @@ const AppLayout = ({ children }) => {
 
   useEffect(() => {
     if (isMobile) {
-      setMobileOpen(false);
       setOpen(false); 
     } else {
       setOpen(true);
     }
-  }, [location.pathname, isMobile]);
+  }, [isMobile]);
 
-  const handleDrawerToggle = () => {
-    if (isMobile) setMobileOpen(!mobileOpen);
-    else setOpen(!open);
-  };
+  // Handle Bottom Nav Change
+  const [bottomNavValue, setBottomNavValue] = useState(location.pathname);
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const matched = BOTTOM_NAV_ITEMS.find(item => item.path === currentPath);
+    if (matched && currentPath !== '/settings') {
+        setBottomNavValue(currentPath);
+    } else if (currentPath === '/settings' || !matched) {
+        setBottomNavValue('/settings'); // Use settings path as 'More' indicator
+    }
+  }, [location.pathname]);
+
+  const MobileMoreMenu = () => (
+    <Drawer
+      anchor="bottom"
+      open={moreOpen}
+      onClose={() => setMoreOpen(false)}
+      PaperProps={{
+        sx: {
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          bgcolor: alpha(theme.palette.background.paper, 0.9),
+          backdropFilter: 'blur(20px)',
+          backgroundImage: 'none',
+          maxHeight: '80vh',
+          p: 3,
+          pb: 12
+        }
+      }}
+    >
+      <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.divider, borderRadius: 2, mx: 'auto', mb: 4 }} />
+      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, px: 1 }}>Explore</Typography>
+      
+      <Grid container spacing={2}>
+        {filteredNavItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Grid size={{ xs: 4 }} key={item.text}>
+              <Box
+                component={motion.div}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  navigate(item.path);
+                  setMoreOpen(false);
+                }}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1,
+                  p: 2,
+                  borderRadius: 4,
+                  bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Avatar 
+                  sx={{ 
+                    bgcolor: isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.05),
+                    color: isActive ? '#fff' : theme.palette.text.primary,
+                    width: 50, height: 50, borderRadius: 3
+                  }}
+                >
+                  {item.icon}
+                </Avatar>
+                <Typography variant="caption" fontWeight={700} align="center" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {item.text}
+                </Typography>
+              </Box>
+            </Grid>
+          );
+        })}
+      </Grid>
+    </Drawer>
+  );
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
@@ -240,23 +324,6 @@ const AppLayout = ({ children }) => {
                 component={Link} 
                 to={item.path} 
                 selected={isActive}
-                sx={{ 
-                  mb: 0.5, 
-                  borderRadius: 3, 
-                  py: 1.5,
-                  px: 2,
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&.Mui-selected': { 
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
-                    '& .MuiListItemIcon-root': { color: theme.palette.primary.main },
-                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
-                  },
-                  '&:hover': {
-                    bgcolor: alpha(theme.palette.text.primary, 0.03),
-                    transform: 'translateX(4px)'
-                  }
-                }}
               >
                 <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary, transition: 'color 0.2s' }}>
                   {item.icon}
@@ -285,22 +352,6 @@ const AppLayout = ({ children }) => {
                 component={Link} 
                 to={item.path} 
                 selected={isActive}
-                sx={{ 
-                  mb: 0.5, 
-                  borderRadius: 3, 
-                  py: 1.2,
-                  px: 2,
-                  transition: 'all 0.2s',
-                  '&.Mui-selected': { 
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
-                    '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
-                  },
-                  '&:hover': {
-                    bgcolor: alpha(theme.palette.text.primary, 0.03),
-                    transform: 'translateX(4px)'
-                  }
-                }}
               >
                 <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary }}>
                   {item.icon}
@@ -333,9 +384,9 @@ const AppLayout = ({ children }) => {
           }}
           onClick={handleMenu}
         >
-          <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>KM</Avatar>
+          <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>ND</Avatar>
           <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <Typography variant="subtitle2" fontWeight={700} noWrap>Kwame M.</Typography>
+            <Typography variant="subtitle2" fontWeight={700} noWrap>Rev. Nicholas Dobeng</Typography>
             <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{userRole || 'Administrator'}</Typography>
           </Box>
         </Box>
@@ -356,18 +407,46 @@ const AppLayout = ({ children }) => {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.palette.background.default }}>
       <CssBaseline />
       
-      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit">
-        <Toolbar sx={{ height: 90 }}>
-          <IconButton color="inherit" onClick={handleDrawerToggle} edge="start" sx={{ mr: 2, ...(open && !isMobile && { display: 'none' }) }}>
-            <MenuIcon />
-          </IconButton>
-          
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+      {/* APP BAR (Only show on Desktop or if needed for mobile header info) */}
+      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" sx={{ top: 0 }}>
+        <Toolbar sx={{ height: { xs: 70, md: 90 }, justifyContent: 'space-between' }}>
+            
+          {/* Logo/Title */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+             {/* Only show logo on mobile here since desktop has sidebar */}
+             {isMobile && (
+                <Box 
+                    sx={{ 
+                    width: 36, 
+                    height: 36, 
+                    mr: 2,
+                    borderRadius: '10px', 
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    boxShadow: `0 4px 12px -2px ${alpha(theme.palette.primary.main, 0.4)}`
+                    }}
+                >
+                    R
+                </Box>
+             )}
+
              <Typography variant="h5" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 4, fontFamily: 'Playfair Display' }}>
                {workspace === 'main' ? 'Sanctuary' : workspace}
              </Typography>
              
-             <Search sx={{ display: { xs: 'none', md: 'block' } }}>
+             {/* Mobile Title */}
+             <Typography variant="h6" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' }, fontFamily: 'Playfair Display' }}>
+                RICGCW
+             </Typography>
+          </Box>
+
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+             <Search>
                 <SearchIconWrapper>
                   <SearchIcon fontSize="small" />
                 </SearchIconWrapper>
@@ -375,8 +454,11 @@ const AppLayout = ({ children }) => {
              </Search>
           </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center">
-            <InstallButton />
+          <Stack direction="row" spacing={1} alignItems="center">
+            {/* Install Button (Hidden on XS if space needed) */}
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <InstallButton />
+            </Box>
             
             <Tooltip title="Notifications">
               <IconButton size="large" color="inherit">
@@ -386,17 +468,24 @@ const AppLayout = ({ children }) => {
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Toggle Theme">
-              <IconButton onClick={toggleColorMode} color="inherit">
-                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-            </Tooltip>
+            {/* Profile Avatar on Mobile Header */}
+             <Box 
+                sx={{ 
+                    ml: 1,
+                    cursor: 'pointer',
+                    display: 'flex', 
+                    alignItems: 'center',
+                }}
+                onClick={handleMenu}
+            >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.secondary.main, fontSize: '0.8rem', fontWeight: 700 }}>KM</Avatar>
+            </Box>
           </Stack>
 
           <Menu
             anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}
-            transformOrigin={{ horizontal: 'left', vertical: 'bottom' }} 
-            anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }} 
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             PaperProps={{ sx: { mb: 1, width: 220, borderRadius: 3, boxShadow: theme.shadows[8], mt: 1.5 } }}
           >
             <Box sx={{ px: 2, py: 1.5 }}>
@@ -405,7 +494,9 @@ const AppLayout = ({ children }) => {
             </Box>
             <Divider />
             <MenuItem onClick={handleClose} sx={{ py: 1.5, px: 2 }}>Profile & Security</MenuItem>
-            <MenuItem onClick={handleClose} sx={{ py: 1.5, px: 2 }}>Workspace Settings</MenuItem>
+            <MenuItem onClick={toggleColorMode} sx={{ py: 1.5, px: 2 }}>
+                {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </MenuItem>
             <Divider />
             <MenuItem onClick={handleLogout} sx={{ color: theme.palette.error.main, fontWeight: 600, py: 1.5, px: 2 }}>
               <ListItemIcon sx={{ color: 'inherit', minWidth: 32 }}><LogoutIcon fontSize="small" /></ListItemIcon>
@@ -415,28 +506,72 @@ const AppLayout = ({ children }) => {
         </Toolbar>
       </AppBarStyled>
 
-      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-        <Drawer 
-            variant={isMobile ? "temporary" : "persistent"}
-            anchor="left" 
-            open={isMobile ? mobileOpen : open} 
-            onClose={handleDrawerToggle}
+      {/* DESKTOP SIDEBAR */}
+      {!isMobile && (
+        <Box component="nav" sx={{ width: drawerWidth, flexShrink: 0 }}>
+            <Drawer 
+                variant="persistent"
+                anchor="left" 
+                open={open} 
+                sx={{ 
+                '& .MuiDrawer-paper': { 
+                    boxSizing: 'border-box', 
+                    width: drawerWidth,
+                    borderRight: 'none', 
+                    backgroundColor: theme.palette.background.paper, 
+                    boxShadow: theme.shadows[4]
+                } 
+                }}
+            >
+                {drawerContent}
+            </Drawer>
+        </Box>
+      )}
+
+      {/* MOBILE BOTTOM NAVIGATION */}
+      {isMobile && (
+          <>
+          <Paper 
             sx={{ 
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
-                width: drawerWidth,
-                borderRight: 'none', 
-                backgroundColor: theme.palette.background.paper, // Solid paper for sidebar
-                boxShadow: theme.shadows[4]
-              } 
-            }}
+                position: 'fixed', 
+                bottom: 0, 
+                left: 0, 
+                right: 0, 
+                zIndex: theme.zIndex.drawer + 2,
+                borderRadius: 0,
+                background: 'transparent',
+                boxShadow: 'none'
+            }} 
+            elevation={3}
           >
-            {drawerContent}
-        </Drawer>
-      </Box>
+             <BottomNavigation
+                showLabels
+                value={bottomNavValue}
+                onChange={(event, newValue) => {
+                    if (newValue === '/settings') {
+                        setMoreOpen(true);
+                    } else {
+                        setBottomNavValue(newValue);
+                        navigate(newValue);
+                    }
+                }}
+             >
+                {BOTTOM_NAV_ITEMS.map((item) => (
+                    <BottomNavigationAction 
+                        key={item.text} 
+                        label={item.text} 
+                        value={item.path} 
+                        icon={item.icon} 
+                    />
+                ))}
+             </BottomNavigation>
+          </Paper>
+          <MobileMoreMenu />
+          </>
+      )}
 
       <Main open={open}>
-        <Toolbar sx={{ height: 90 }} /> {/* Spacer */}
+        <Toolbar sx={{ height: { xs: 70, md: 90 } }} /> {/* Spacer */}
         <AnimatePresence mode="wait">
           <motion.div 
             key={location.pathname} 
