@@ -2,7 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const express = require("express");
-const cors = require("cors");
+const bcrypt = require("bcryptjs");
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -11,36 +11,59 @@ const db = admin.firestore();
 // Initialize Express App
 const app = express();
 
-// 🟢 Simplified CORS for maximum compatibility
-app.use(cors({ origin: true }));
+// 🟢 Manual CORS implementation for maximum control
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+  // Allow all origins for now to solve the immediate issue, but echo the origin if present
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send();
+  }
+  next();
+});
+
 app.use(express.json());
 
 // Add request logging with more detail
 app.use((req, res, next) => {
-  console.log(`[REQUEST] ${new Date().toISOString()} | Method: ${req.method} | Path: ${req.path} | Body: ${JSON.stringify(req.body)}`);
+  console.log(`[REQUEST] ${new Date().toISOString()} | Method: ${req.method} | Path: ${req.path} | Origin: ${req.get('origin')}`);
   next();
 });
 
-// Health check endpoint
+// Health check endpoint with debug info
 app.get("/health", (req, res) => {
   res.status(200).json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
+    origin: req.get('origin'),
+    headers: req.headers,
     env: process.env.NODE_ENV || 'production'
   });
 });
 
 // --- SECURE LOGIN ENDPOINT ---
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   const users = [
-    { email: 'admin@ricgcw.com', password: 'admin123', role: 'admin', branch: 'all' },
-    { email: 'langma@ricgcw.com', password: 'langma123', role: 'branch_admin', branch: 'Langma' },
-    { email: 'mallam@ricgcw.com', password: 'mallam123', role: 'branch_admin', branch: 'Mallam' },
-    { email: 'kokrobetey@ricgcw.com', password: 'kokrobetey123', role: 'branch_admin', branch: 'Kokrobetey' },
+    { email: 'admin@ricgcw.com', passwordHash: '$2b$10$506aHGJtQf6sAxDHZIG89.RkQMSGfm.qP0fms17jZ4x.fkcsbmnL.', role: 'admin', branch: 'all' },
+    { email: 'langma@ricgcw.com', passwordHash: '$2b$10$foOYurLFRryLSOOk63W7Hu//ZjCYmvpDaw3JjNQbqpiKvdy0wFgM6', role: 'branch_admin', branch: 'Langma' },
+    { email: 'mallam@ricgcw.com', passwordHash: '$2b$10$9Rto.mRvVrPBn189gKWDtenjwwhzfdsf9i/76eLWFfGLMM.qoHwmW', role: 'branch_admin', branch: 'Mallam' },
+    { email: 'kokrobetey@ricgcw.com', passwordHash: '$2b$10$fkyfOZTS0LNTGqlcDLbH9e6atNoVsC8oxot57NlOncw/D3KJSCT7a', role: 'branch_admin', branch: 'Kokrobetey' },
   ];
-  const user = users.find(u => u.email === email && u.password === password);
-  if (user) {
+  
+  const user = users.find(u => u.email === email);
+  
+  if (user && await bcrypt.compare(password, user.passwordHash)) {
     res.status(200).json({ isAuthenticated: true, role: user.role, branch: user.branch, email: user.email });
   } else {
     res.status(401).json({ message: "Invalid credentials" });
@@ -169,4 +192,4 @@ exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
 });
 
 // --- EXPORT THE FUNCTION ---
-exports.api = onRequest({ cors: true, maxInstances: 10 }, app);
+exports.api = onRequest({ maxInstances: 10 }, app);

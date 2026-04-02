@@ -1,3 +1,3 @@
-// 🟢 API CONFIGURATION
-// Standard Live URL
-export const API_BASE_URL = "https://us-central1-thegatheringplace-app.cloudfunctions.net/api";
+// 🟢 FIREBASE CONFIGURATION (Spark Plan)
+// No API_BASE_URL needed as we use the Firestore SDK directly.
+export const IS_SPARK_PLAN = true;

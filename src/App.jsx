@@ -60,6 +60,8 @@ function App() {
               width: 100,
               height: 'auto',
               mb: 4,
+              borderRadius: 3,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
             }}
             onError={(e) => {
               e.target.style.display = 'none';

@@ -1,11 +1,14 @@
 {
   "emulators": {
-    "dataconnect": {
-      "dataDir": "dataconnect/.dataconnect/pgliteData"
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true
+    },
+    "hosting": {
+      "port": 4000
     }
-  },
-  "dataconnect": {
-    "source": "dataconnect"
   },
   "firestore": {
     "database": "(default)",
@@ -14,6 +17,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
+    "site": "ricgcw",
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -22,27 +26,9 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "api"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
     ]
-  },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "disallowLegacyRuntimeConfig": true,
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    }
-  ]
+  }
 }

@@ -33,6 +33,7 @@ import {
 
 import { useColorMode } from '../theme';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { useAuth } from '../context/AuthContext';
 
 // Icons
 import MenuIcon from '@mui/icons-material/Menu';
@@ -150,6 +151,7 @@ const NAV_ITEMS = [
   { text: 'Financials', icon: <AccountBalanceWalletIcon />, path: '/financials' },
   { text: 'Events', icon: <EventIcon />, path: '/events' },
   { text: 'Bible Studies', icon: <MenuBookIcon />, path: '/bible-studies' },
+  { text: 'Live Bible', icon: <MenuBookIcon />, path: '/live-bible' },
   { text: 'Reports', icon: <DescriptionIcon />, path: '/reports' },
   { text: 'Graph', icon: <BarChartIcon />, path: '/graph' },
   { text: 'Users', icon: <SupervisedUserCircleIcon />, path: '/user-management' },
@@ -171,6 +173,7 @@ const AppLayout = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { mode, toggleColorMode } = useColorMode();
+  const { logout } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const { userRole, workspace } = useWorkspace(); 
@@ -191,9 +194,7 @@ const AppLayout = ({ children }) => {
   const handleClose = () => setAnchorEl(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userBranch');
+    logout();
     handleClose();
     navigate('/login');
   };
@@ -225,8 +226,8 @@ const AppLayout = ({ children }) => {
       onClose={() => setMoreOpen(false)}
       PaperProps={{
         sx: {
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
           bgcolor: alpha(theme.palette.background.paper, 0.9),
           backdropFilter: 'blur(20px)',
           backgroundImage: 'none',

@@ -15,8 +15,9 @@ import {
   useTheme
 } from '@mui/material';
 import { X, Upload, FileText, Music } from 'lucide-react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
   const theme = useTheme();
@@ -53,22 +54,25 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
     setLoading(true);
     setError('');
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('type', type);
-
     try {
-      const response = await axios.post(`${API_BASE_URL}/resources/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      onResourceAdded(response.data);
+      // In a real Firebase migration, we would upload to Storage first.
+      // For now, as per Firestore SDK migration instructions, we store metadata.
+      const resourceData = {
+        title,
+        type,
+        fileName: file.name,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+        createdAt: new Date().toISOString(),
+        link: 'https://firebasestorage.googleapis.com/v0/b/thegatheringplace-app.appspot.com/o/placeholder.pdf?alt=media' // Placeholder
+      };
+
+      const docRef = await addDoc(collection(db, "resources"), resourceData);
+      
+      onResourceAdded({ id: docRef.id, ...resourceData });
       handleClose();
     } catch (err) {
-      console.error('Upload error:', err.response?.data || err.message);
-      setError(err.response?.data?.error || 'Failed to upload resource. Please try again.');
+      console.error('Firestore save error:', err);
+      setError('Failed to save resource metadata to Firestore. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -89,7 +93,7 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
       fullWidth 
       maxWidth="xs"
       PaperProps={{
-        sx: { borderRadius: 3 }
+        sx: { borderRadius: 4 }
       }}
     >
       <DialogTitle sx={{ 
@@ -98,10 +102,11 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        borderBottom: `1px solid ${theme.palette.divider}`
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        bgcolor: alpha(theme.palette.primary.main, 0.02)
       }}>
-        <Typography variant="h6" fontWeight={700}>Add New Resource</Typography>
-        <IconButton onClick={handleClose} size="small">
+        <Typography variant="h6" fontWeight={800}>Add New Resource</Typography>
+        <IconButton onClick={handleClose} size="small" sx={{ bgcolor: theme.palette.action.hover }}>
           <X size={20} />
         </IconButton>
       </DialogTitle>
@@ -116,11 +121,11 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
             placeholder="e.g. Weekly Study Guide"
             required
             variant="outlined"
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
           />
 
           <Box>
-            <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
+            <Typography variant="subtitle2" gutterBottom fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>
               Resource Type
             </Typography>
             <Stack direction="row" spacing={1}>
@@ -128,7 +133,7 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
                 variant={type === 'pdf' ? 'contained' : 'outlined'}
                 onClick={() => setType('pdf')}
                 startIcon={<FileText size={18} />}
-                sx={{ flex: 1, borderRadius: 2, textTransform: 'none' }}
+                sx={{ flex: 1, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}
               >
                 PDF
               </Button>
@@ -136,7 +141,7 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
                 variant={type === 'audio' ? 'contained' : 'outlined'}
                 onClick={() => setType('audio')}
                 startIcon={<Music size={18} />}
-                sx={{ flex: 1, borderRadius: 2, textTransform: 'none' }}
+                sx={{ flex: 1, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}
               >
                 Audio
               </Button>
@@ -154,7 +159,7 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
             <label htmlFor="resource-file-upload">
               <Box sx={{
                 border: `2px dashed ${theme.palette.divider}`,
-                borderRadius: 3,
+                borderRadius: 4,
                 p: 4,
                 textAlign: 'center',
                 cursor: 'pointer',
@@ -162,11 +167,12 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
                 bgcolor: alpha(theme.palette.primary.main, 0.02),
                 '&:hover': {
                   borderColor: theme.palette.primary.main,
-                  bgcolor: alpha(theme.palette.primary.main, 0.05)
+                  bgcolor: alpha(theme.palette.primary.main, 0.05),
+                  transform: 'scale(1.01)'
                 }
               }}>
                 <Upload size={32} color={theme.palette.primary.main} style={{ marginBottom: 8 }} />
-                <Typography variant="body2" fontWeight={600} color="text.primary">
+                <Typography variant="body2" fontWeight={700} color="text.primary">
                   {file ? file.name : 'Click to select or drag file'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -177,15 +183,15 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
           </Box>
 
           {error && (
-            <Typography color="error" variant="caption" sx={{ fontWeight: 600 }}>
+            <Typography color="error" variant="caption" sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.error.main, 0.05), p: 1, borderRadius: 2 }}>
               {error}
             </Typography>
           )}
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button onClick={handleClose} color="inherit" sx={{ fontWeight: 600 }}>
+      <DialogActions sx={{ p: 3, pt: 0, gap: 1 }}>
+        <Button onClick={handleClose} color="inherit" sx={{ fontWeight: 700, borderRadius: 2.5 }}>
           Cancel
         </Button>
         <Button 
@@ -193,10 +199,11 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
           variant="contained" 
           disabled={loading || !file || !title}
           sx={{ 
-            borderRadius: 2, 
-            fontWeight: 700, 
+            borderRadius: 2.5, 
+            fontWeight: 800, 
             px: 4,
-            minWidth: 120
+            minWidth: 120,
+            boxShadow: theme.shadows[4]
           }}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Upload'}

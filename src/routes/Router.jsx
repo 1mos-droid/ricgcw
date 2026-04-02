@@ -16,6 +16,7 @@ const QuickSwitch = lazy(() => import('../pages/QuickSwitch'));
 const Help = lazy(() => import('../pages/Help'));
 const Settings = lazy(() => import('../pages/Settings'));
 const BibleStudies = lazy(() => import('../pages/BibleStudies'));
+const LiveBible = lazy(() => import('../pages/LiveBible'));
 const Graph = lazy(() => import('../pages/Graph'));
 const Login = lazy(() => import('../pages/Login'));
 
@@ -86,6 +87,7 @@ const AppRouter = () => {
           <Route path="/events" element={<RequireAuth><MotionWrap><Events /></MotionWrap></RequireAuth>} />
           <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
           <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
+          <Route path="/live-bible" element={<RequireAuth><MotionWrap><LiveBible /></MotionWrap></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><MotionWrap><Settings /></MotionWrap></RequireAuth>} />
           <Route path="/help" element={<RequireAuth><MotionWrap><Help /></MotionWrap></RequireAuth>} />
 

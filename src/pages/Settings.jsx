@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   Box, 
   Typography, 
@@ -42,6 +43,7 @@ import {
 const Settings = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const { showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
@@ -183,7 +185,7 @@ const Settings = () => {
                                 <Typography variant="body1" fontWeight={700}>Revoke Session</Typography>
                                 <Typography variant="caption" color="text.secondary">Instantly sign out from all active devices</Typography>
                             </Box>
-                            <Button variant="contained" color="error" size="small" startIcon={<LogOut size={16} />} onClick={() => navigate('/login')} sx={{ borderRadius: 2, fontWeight: 700 }}>Log Out</Button>
+                            <Button variant="contained" color="error" size="small" startIcon={<LogOut size={16} />} onClick={() => { logout(); navigate('/login'); }} sx={{ borderRadius: 2, fontWeight: 700 }}>Log Out</Button>
                         </Box>
                     </Stack>
                 </Card>

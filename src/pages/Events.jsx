@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -39,7 +38,8 @@ import {
 } from 'lucide-react';
 import EditEventDialog from '../components/EditEventDialog';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const Events = () => {
   const theme = useTheme();
@@ -71,8 +71,27 @@ const Events = () => {
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/events/`);
-      const sorted = (res.data || []).sort((a, b) => parseDate(a.date) - parseDate(b.date));
+      const querySnapshot = await getDocs(collection(db, "events"));
+      const eventsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const now = new Date();
+      
+      const upcomingEvents = (eventsData || []).filter(event => {
+        // Combine date and time to check if it has passed
+        const eventDateStr = event.date.split('T')[0]; // Get YYYY-MM-DD
+        const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
+        
+        // If eventDateTime is invalid, fallback to checking just the date
+        if (isNaN(eventDateTime.getTime())) {
+          const justDate = parseDate(event.date);
+          justDate.setHours(23, 59, 59, 999); // Allow until end of day
+          return justDate >= now;
+        }
+        
+        return eventDateTime >= now;
+      });
+
+      const sorted = upcomingEvents.sort((a, b) => parseDate(a.date) - parseDate(b.date));
       setEvents(sorted);
     } catch (err) {
       console.error("Calendar Sync Error:", err);
@@ -103,7 +122,7 @@ const Events = () => {
 
     setSubmitting(true);
     try {
-      await axios.post(`${API_BASE_URL}/events/`, {
+      await addDoc(collection(db, "events"), {
         ...formData,
         date: new Date(formData.date).toISOString(), 
         location: formData.location || (formData.isOnline ? 'Zoom / Online' : (isBranchRestricted ? `${userBranch} Sanctuary` : 'Main Auditorium')),
@@ -128,7 +147,7 @@ const Events = () => {
       message: "Delete this event permanently?",
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_BASE_URL}/events/${id}/`);
+          await deleteDoc(doc(db, "events", id));
           await fetchEvents(); 
           showNotification("Event deleted.", "info");
         } catch (err) {
@@ -141,7 +160,7 @@ const Events = () => {
 
   const handleEditEvent = async (id, updatedEvent) => {
     try {
-      await axios.put(`${API_BASE_URL}/events/${id}/`, updatedEvent);
+      await setDoc(doc(db, "events", id), updatedEvent, { merge: true });
       await fetchEvents();
       setEditingEvent(null);
       showNotification("Event updated successfully.", "success");

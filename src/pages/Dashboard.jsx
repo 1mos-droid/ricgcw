@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useWorkspace } from '../context/WorkspaceContext';
 import {
   Box,
@@ -41,7 +40,8 @@ import {
   ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis 
 } from 'recharts';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 // --- SUB-COMPONENTS ---
 
@@ -156,18 +156,33 @@ const Dashboard = () => {
       try {
         setLoading(true);
         
-        const [membersRes, txRes, eventsRes, attendanceRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/members`),
-          axios.get(`${API_BASE_URL}/transactions`),
-          axios.get(`${API_BASE_URL}/events`),
-          axios.get(`${API_BASE_URL}/attendance`)
+        const [membersSnapshot, txSnapshot, eventsSnapshot, attendanceSnapshot] = await Promise.all([
+          getDocs(collection(db, "members")),
+          getDocs(collection(db, "transactions")),
+          getDocs(collection(db, "events")),
+          getDocs(collection(db, "attendance"))
         ]);
 
+        const now = new Date();
+        const eventsData = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const upcomingEvents = (eventsData || []).filter(event => {
+          const eventDateStr = event.date.split('T')[0];
+          const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
+          
+          if (isNaN(eventDateTime.getTime())) {
+            const justDate = new Date(event.date);
+            justDate.setHours(23, 59, 59, 999);
+            return justDate >= now;
+          }
+          return eventDateTime >= now;
+        });
+
         setData({
-          members: membersRes.data || [],
-          transactions: txRes.data || [],
-          events: eventsRes.data || [],
-          attendance: attendanceRes.data || []
+          members: membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [],
+          transactions: txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [],
+          events: upcomingEvents,
+          attendance: attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []
         });
 
       } catch (err) {
@@ -262,9 +277,9 @@ const Dashboard = () => {
   if (loading) {
      return (
        <Box sx={{ p: 1 }}>
-         <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 6, mb: 4 }} />
+         <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 8, mb: 4 }} />
          <Grid container spacing={3}>
-           {[1, 2, 3].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={160} sx={{ borderRadius: 5 }} /></Grid>)}
+           {[1, 2, 3].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={160} sx={{ borderRadius: 6 }} /></Grid>)}
          </Grid>
        </Box>
      );
@@ -288,7 +303,7 @@ const Dashboard = () => {
               ? `linear-gradient(120deg, ${theme.palette.primary.main} 0%, #2563EB 50%, #1E40AF 100%)`
               : `linear-gradient(120deg, #1E293B 0%, #0F172A 100%)`,
             color: '#fff',
-            borderRadius: 6,
+            borderRadius: 8,
             position: 'relative',
             overflow: 'hidden',
             display: 'flex',
@@ -354,7 +369,7 @@ const Dashboard = () => {
                 bgcolor: 'rgba(255,255,255,0.1)', 
                 color: '#fff', 
                 backdropFilter: 'blur(10px)',
-                width: 50, height: 50, borderRadius: 3,
+                width: 50, height: 50, borderRadius: '50%',
                 border: '1px solid rgba(255,255,255,0.1)',
                 display: { xs: 'none', sm: 'flex' }
               }}

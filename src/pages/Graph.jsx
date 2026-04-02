@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { Box, Typography, Card, useTheme, Skeleton, Grid, alpha, Stack, Chip, Container } from '@mui/material';
@@ -9,7 +8,8 @@ import {
 import { format, parseISO, startOfDay } from 'date-fns';
 import { TrendingUp, BarChart2, Activity } from 'lucide-react';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -23,15 +23,19 @@ const Graph = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [attendanceRes, transactionsRes, membersRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/attendance`),
-          axios.get(`${API_BASE_URL}/transactions`),
-          axios.get(`${API_BASE_URL}/members`),
+        const [attendanceSnapshot, transactionsSnapshot, membersSnapshot] = await Promise.all([
+          getDocs(collection(db, "attendance")),
+          getDocs(collection(db, "transactions")),
+          getDocs(collection(db, "members")),
         ]);
 
-        const filteredMembers = filterData(membersRes.data || []);
-        const filteredTransactions = filterData(transactionsRes.data || []);
-        const filteredAttendance = filterData(attendanceRes.data || []);
+        const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const transactionsData = transactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const attendanceData = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const filteredMembers = filterData(membersData || []);
+        const filteredTransactions = filterData(transactionsData || []);
+        const filteredAttendance = filterData(attendanceData || []);
 
         const totalMembers = filteredMembers.length;
         const incomeTransactions = filteredTransactions.filter(t => t && t.type === 'contribution');

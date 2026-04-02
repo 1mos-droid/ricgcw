@@ -1,8 +1,18 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { account } from '../appwrite';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import bcrypt from 'bcryptjs';
 
 const AuthContext = createContext();
+
+// --- BUILT-IN ACCOUNTS (Same as the original Cloud Function) ---
+const BUILT_IN_USERS = [
+  { email: 'admin@ricgcw.com', passwordHash: '$2b$10$506aHGJtQf6sAxDHZIG89.RkQMSGfm.qP0fms17jZ4x.fkcsbmnL.', role: 'admin', branch: 'all' },
+  { email: 'langma@ricgcw.com', passwordHash: '$2b$10$foOYurLFRryLSOOk63W7Hu//ZjCYmvpDaw3JjNQbqpiKvdy0wFgM6', role: 'branch_admin', branch: 'Langma' },
+  { email: 'mallam@ricgcw.com', passwordHash: '$2b$10$9Rto.mRvVrPBn189gKWDtenjwwhzfdsf9i/76eLWFfGLMM.qoHwmW', role: 'branch_admin', branch: 'Mallam' },
+  { email: 'kokrobetey@ricgcw.com', passwordHash: '$2b$10$fkyfOZTS0LNTGqlcDLbH9e6atNoVsC8oxot57NlOncw/D3KJSCT7a', role: 'branch_admin', branch: 'Kokrobetey' },
+];
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -17,13 +27,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Persistence for Built-in Accounts
   const refreshUser = useCallback(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
     if (isAuthenticated) {
+      const storedEmail = localStorage.getItem('userEmail');
+      const storedRole = localStorage.getItem('userRole');
+      const storedBranch = localStorage.getItem('userBranch');
+      
       setUser({
-        email: localStorage.getItem('userEmail'),
-        role: localStorage.getItem('userRole'),
-        branch: localStorage.getItem('userBranch'),
+        email: storedEmail,
+        role: storedRole,
+        branch: storedBranch,
       });
     } else {
       setUser(null);
@@ -32,32 +47,101 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    refreshUser();
+    const checkSession = async () => {
+      try {
+        const sessionUser = await account.get();
+        if (sessionUser) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', sessionUser.email));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              const combinedUser = {
+                email: sessionUser.email,
+                role: userData.role || 'guest',
+                branch: userData.branch || 'all',
+              };
+              setUser(combinedUser);
+              saveToLocal(combinedUser);
+            } else {
+              setUser({ email: sessionUser.email, role: 'guest', branch: 'all' });
+            }
+          } catch (_) {
+            setUser({ email: sessionUser.email, role: 'guest', branch: 'all' });
+          }
+        } else {
+          refreshUser();
+        }
+      } catch (_) {
+        // Appwrite account.get() throws if no session exists
+        refreshUser();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
   }, [refreshUser]);
+
+  const saveToLocal = (userData) => {
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userEmail', userData.email);
+    localStorage.setItem('userRole', userData.role);
+    localStorage.setItem('userBranch', userData.branch);
+  };
 
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
+    
+    // --- Step 1: Check Built-in Mock Auth ---
+    const builtInUser = BUILT_IN_USERS.find(u => u.email === email);
+    if (builtInUser) {
+      try {
+        const isMatch = await bcrypt.compare(password, builtInUser.passwordHash);
+        if (isMatch) {
+          const userData = {
+            email: builtInUser.email,
+            role: builtInUser.role,
+            branch: builtInUser.branch
+          };
+          setUser(userData);
+          saveToLocal(userData);
+          setLoading(false);
+          return userData;
+        }
+      } catch (err) {
+        console.error("Bcrypt Error:", err);
+      }
+    }
+
+    // --- Step 2: Fallback to Real Appwrite Auth ---
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, { email, password });
-      const userData = response.data;
-
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userRole', userData.role);
-      localStorage.setItem('userBranch', userData.branch);
-      localStorage.setItem('userEmail', userData.email);
-
-      setUser({
-        email: userData.email,
-        role: userData.role,
-        branch: userData.branch,
-      });
+      await account.createEmailPasswordSession(email, password);
+      const sessionUser = await account.get();
       
+      let userData;
+      try {
+        const userDoc = await getDoc(doc(db, 'users', sessionUser.email));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          userData = {
+            email: sessionUser.email,
+            role: data.role || 'guest',
+            branch: data.branch || 'all',
+          };
+        } else {
+          userData = { email: sessionUser.email, role: 'guest', branch: 'all' };
+        }
+      } catch (_) {
+        userData = { email: sessionUser.email, role: 'guest', branch: 'all' };
+      }
+      
+      setUser(userData);
+      saveToLocal(userData);
       return userData;
     } catch (err) {
-      const message = err.response?.status === 401 
-        ? 'Invalid email or password.' 
-        : 'Connection failed. Please check your network.';
+      console.error("Appwrite Auth Error:", err);
+      let message = err.message || 'Invalid email or password.';
       setError(message);
       throw new Error(message);
     } finally {
@@ -65,11 +149,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await account.deleteSession('current');
+    } catch (_) {
+      // Ignore session delete errors on logout
+    }
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userBranch');
-    localStorage.removeItem('userEmail');
     setUser(null);
   }, []);
 

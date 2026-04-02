@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
 import { format, isValid, subDays, isSameDay } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
@@ -54,7 +53,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const Attendance = () => {
   const theme = useTheme();
@@ -76,7 +76,15 @@ const Attendance = () => {
   const [editedAttendees, setEditedAttendees] = useState(new Set());
 
   const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
-  const filteredRecords = useMemo(() => filterData(attendanceRecords), [attendanceRecords, filterData]);
+  const filteredRecords = useMemo(() => {
+    let records = filterData(attendanceRecords);
+    if (selectedBranch) {
+      records = records.filter(r => 
+        String(r.branch || '').toLowerCase() === String(selectedBranch).toLowerCase()
+      );
+    }
+    return records;
+  }, [attendanceRecords, filterData, selectedBranch]);
 
   const parseDate = (dateVal) => {
     if (!dateVal) return new Date();
@@ -95,23 +103,34 @@ const Attendance = () => {
 
   const getAbsentMembers = (record) => {
     if (!record || !filteredMembers) return [];
+    
+    // Filter relevant members for this branch to ensure stats are relative
+    const recordBranch = record.branch || '';
+    const relevantMembers = filteredMembers.filter(m => {
+      if (!recordBranch) return true;
+      return String(m.branch).toLowerCase() === String(recordBranch).toLowerCase();
+    });
+
     const attendees = record.attendees || [];
     const presentIds = new Set(attendees.filter(a => a && a.id).map(a => a.id));
-    return filteredMembers.filter(m => m && m.id && !presentIds.has(m.id));
+    return relevantMembers.filter(m => m && m.id && !presentIds.has(m.id));
   };
 
   const fetchData = useCallback(async () => {
     try {
       if (members.length === 0) setLoading(true); 
       
-      const [membersRes, attendanceRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/members/`),
-        axios.get(`${API_BASE_URL}/attendance/`)
+      const [membersSnapshot, attendanceSnapshot] = await Promise.all([
+        getDocs(collection(db, "members")),
+        getDocs(collection(db, "attendance"))
       ]);
       
-      setMembers(membersRes.data || []); 
+      const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const attendanceData = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      const sortedRecords = (attendanceRes.data || []).sort((a, b) => 
+      setMembers(membersData || []); 
+      
+      const sortedRecords = attendanceData.sort((a, b) => 
         parseDate(b.date) - parseDate(a.date)
       );
       
@@ -161,7 +180,7 @@ const Attendance = () => {
         createdAt: new Date().toISOString()
       };
 
-      await axios.post(`${API_BASE_URL}/attendance/`, recordData);
+      await addDoc(collection(db, "attendance"), recordData);
       
       setSelectedAttendees(new Set());
       await fetchData(); 
@@ -186,7 +205,8 @@ const Attendance = () => {
         attendees: attendeesList,
       };
 
-      await axios.put(`${API_BASE_URL}/attendance/${selectedRecord.id}/`, updatedRecord);
+      const { id, ...dataToSave } = updatedRecord;
+      await setDoc(doc(db, "attendance", id), dataToSave, { merge: true });
 
       await fetchData(); 
       showNotification("Attendance updated successfully!", "success");
@@ -209,7 +229,7 @@ const Attendance = () => {
       onConfirm: async () => {
         setSubmitting(true);
         try {
-          await axios.delete(`${API_BASE_URL}/attendance/${selectedRecord.id}/`);
+          await deleteDoc(doc(db, "attendance", selectedRecord.id));
           setSelectedRecord(null);
           await fetchData();
           showNotification("Attendance record deleted successfully!", "success");
@@ -227,15 +247,17 @@ const Attendance = () => {
     window.print();
   };
 
-  // --- HEATMAP MOCK DATA ---
-  // Generate last 30 days status (randomized for demo)
+  // --- HEATMAP ACTUAL DATA ---
   const heatmapData = useMemo(() => {
       return Array.from({ length: 28 }).map((_, i) => {
           const date = subDays(new Date(), 27 - i);
-          const hasRecord = attendanceRecords.some(r => isSameDay(new Date(r.date), date));
-          return { date, count: hasRecord ? Math.floor(Math.random() * 50) + 20 : 0 };
+          const record = filteredRecords.find(r => isSameDay(new Date(r.date), date));
+          return { 
+            date, 
+            count: record ? (record.attendees?.length || 0) : 0 
+          };
       });
-  }, [attendanceRecords]);
+  }, [filteredRecords]);
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -335,15 +357,17 @@ const Attendance = () => {
                                 flex: 1
                             }}
                         />
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={isBranchRestricted}>
                             <Select 
                                 value={selectedBranch} 
                                 onChange={(e) => setSelectedBranch(e.target.value)} 
                                 displayEmpty
                                 sx={{ borderRadius: 3 }}
                             >
-                                <MenuItem value="">All</MenuItem>
-                                <MenuItem value="Main">Main</MenuItem>
+                                <MenuItem value="">All Branches</MenuItem>
+                                <MenuItem value="Langma">Langma</MenuItem>
+                                <MenuItem value="Mallam">Mallam</MenuItem>
+                                <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
@@ -361,7 +385,10 @@ const Attendance = () => {
                  ))
               ) : (
                 <Grid container spacing={1.5}>
-                  {filteredMembers.filter(m => !selectedBranch || m.branch === selectedBranch).map((member) => {
+                  {filteredMembers.filter(m => {
+                    if (!selectedBranch) return true;
+                    return String(m.branch).toLowerCase() === String(selectedBranch).toLowerCase();
+                  }).map((member) => {
                     const isSelected = selectedAttendees.has(member.id);
                     return (
                       <Grid size={{ xs: 12, sm: 6 }} key={member.id}>
@@ -485,7 +512,11 @@ const Attendance = () => {
               {isEditing ? (
                 <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto' }}>
                   <Grid container spacing={1}>
-                    {filteredMembers.map((member) => {
+                    {filteredMembers.filter(m => {
+                      const recordBranch = selectedRecord?.branch || '';
+                      if (!recordBranch) return true;
+                      return String(m.branch).toLowerCase() === String(recordBranch).toLowerCase();
+                    }).map((member) => {
                       const isSelected = editedAttendees.has(member.id);
                       return (
                         <Grid size={{ xs: 12, sm: 6 }} key={member.id}>

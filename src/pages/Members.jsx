@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -59,7 +58,8 @@ import {
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -84,8 +84,9 @@ const Members = () => {
   const fetchMembers = useCallback(async (isSilent = false) => {
     try {
       if (!isSilent) setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/members`);
-      setMembers(response.data || []);
+      const querySnapshot = await getDocs(collection(db, "members"));
+      const membersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMembers(membersData || []);
     } catch (err) {
       console.error("Members Fetch Error:", err);
       showNotification("Failed to sync member database.", "error");
@@ -146,11 +147,14 @@ const Members = () => {
     }
     try {
       setLoading(true);
-      const response = await axios.post(`${API_BASE_URL}/members`, newMember);
+      const docRef = await addDoc(collection(db, "members"), {
+        ...newMember,
+        createdAt: new Date().toISOString()
+      });
       await fetchMembers(true); 
       setOpenAddMemberDialog(false);
       showNotification("Member registered!", "success");
-      return response.data;
+      return { id: docRef.id, ...newMember };
     } catch (err) {
       showNotification(`Failed to register: ${err.message}`, "error");
       throw err;
@@ -161,7 +165,7 @@ const Members = () => {
 
   const handleEdit = async (id, updatedMember) => {
     try {
-      await axios.put(`${API_BASE_URL}/members/${id}`, updatedMember);
+      await setDoc(doc(db, "members", id), updatedMember, { merge: true });
       await fetchMembers(true);
       setSelectedMember(null);
       showNotification("Profile updated.", "success");
@@ -176,7 +180,7 @@ const Members = () => {
       message: "Permanently remove this member?",
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_BASE_URL}/members/${id}`);
+          await deleteDoc(doc(db, "members", id));
           await fetchMembers(true);
           setSelectedMember(null);
           showNotification("Member removed.", "info");

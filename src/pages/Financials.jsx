@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
@@ -58,7 +57,8 @@ import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -144,12 +144,14 @@ const Financials = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [txRes, memRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/transactions/`),
-        axios.get(`${API_BASE_URL}/members/`)
+      const [txSnapshot, memSnapshot] = await Promise.all([
+        getDocs(collection(db, "transactions")),
+        getDocs(collection(db, "members"))
       ]);
-      setTransactions((txRes.data || []).reverse()); // Newest first
-      setMembers(memRes.data || []);
+      const txData = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const memData = memSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTransactions((txData || []).reverse()); // Newest first
+      setMembers(memData || []);
     } catch (err) {
       console.error("Finance Sync Error:", err);
       showNotification("Failed to sync financial data.", "error");
@@ -178,10 +180,10 @@ const Financials = () => {
       };
       
       if (editingTransaction) {
-        await axios.put(`${API_BASE_URL}/transactions/${editingTransaction.id}/`, txData);
+        await setDoc(doc(db, "transactions", editingTransaction.id), txData, { merge: true });
         showNotification("Transaction updated successfully.", "success");
       } else {
-        await axios.post(`${API_BASE_URL}/transactions/`, txData);
+        await addDoc(collection(db, "transactions"), txData);
         showNotification("Transaction recorded successfully.", "success");
       }
       
@@ -219,7 +221,7 @@ const Financials = () => {
       message: "Permanently delete this record?",
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_BASE_URL}/transactions/${id}/`);
+          await deleteDoc(doc(db, "transactions", id));
           await fetchData();
           showNotification("Deleted.", "success");
         } catch (error) {

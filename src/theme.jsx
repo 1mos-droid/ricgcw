@@ -51,10 +51,10 @@ const getDesignTokens = (mode) => {
       subtitle2: { fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.7rem' },
       body1: { lineHeight: 1.6, fontSize: '1rem' }, // Larger body text
       body2: { lineHeight: 1.6, fontSize: '0.875rem' },
-      button: { textTransform: 'none', fontWeight: 700, borderRadius: 4 },
+      button: { textTransform: 'none', fontWeight: 700 },
     },
     shape: {
-      borderRadius: 1,
+      borderRadius: 4,
     },
     components: {
       MuiCssBaseline: {
@@ -78,7 +78,7 @@ const getDesignTokens = (mode) => {
           }
           ::-webkit-scrollbar-thumb {
             background: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
-            border-radius: 4px;
+            border-radius: 10px;
           }
           ::-webkit-scrollbar-thumb:hover {
             background: ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'};
@@ -89,6 +89,7 @@ const getDesignTokens = (mode) => {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
+            borderRadius: 16,
           },
           elevation1: {
             boxShadow: isLight 
@@ -100,8 +101,9 @@ const getDesignTokens = (mode) => {
       MuiButton: {
         styleOverrides: {
           root: { 
-            padding: '12px 28px',
-            fontSize: '0.95rem',
+            borderRadius: 12,
+            padding: '10px 24px',
+            fontSize: '0.925rem',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:active': { transform: 'scale(0.98)' },
           },
@@ -121,6 +123,7 @@ const getDesignTokens = (mode) => {
       MuiCard: {
         styleOverrides: {
           root: {
+            borderRadius: 20,
             backgroundColor: isLight ? 'rgba(255, 255, 255, 0.7)' : 'rgba(30, 41, 59, 0.6)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
@@ -131,6 +134,13 @@ const getDesignTokens = (mode) => {
           },
         },
       },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            borderRadius: 12,
+          },
+        },
+      },
       MuiBottomNavigation: {
         styleOverrides: {
           root: {
@@ -138,8 +148,8 @@ const getDesignTokens = (mode) => {
             backdropFilter: 'blur(20px)',
             borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
             height: 80,
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
             boxShadow: isLight 
               ? '0 -10px 40px rgba(0,0,0,0.05)' 
               : '0 -10px 40px rgba(0,0,0,0.3)',
@@ -178,7 +188,7 @@ const getDesignTokens = (mode) => {
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: 12,
             marginBottom: 6,
             padding: '12px 16px',
             '&.Mui-selected': {
@@ -210,7 +220,7 @@ const getDesignTokens = (mode) => {
       MuiDialog: {
         styleOverrides: {
           paper: {
-            borderRadius: 16,
+            borderRadius: 24,
             boxShadow: isLight 
               ? '0px 25px 80px -15px rgba(0, 0, 0, 0.15)' 
               : '0px 25px 80px -15px rgba(0, 0, 0, 0.6)',

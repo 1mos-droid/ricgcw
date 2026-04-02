@@ -130,7 +130,7 @@ const Login = () => {
         >
           <Card sx={{ 
             p: { xs: 4, sm: 5 }, 
-            borderRadius: 124, 
+            borderRadius: 8, 
             bgcolor: theme.palette.mode === 'light' 
               ? 'rgba(255, 255, 255, 0.6)' 
               : 'rgba(30, 41, 59, 0.4)',
@@ -150,7 +150,7 @@ const Login = () => {
               >
                 <Box sx={{ 
                   width: 64, height: 64,
-                  borderRadius: 64, 
+                  borderRadius: 6, 
                   background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                   boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
                   mb: 3,
@@ -186,7 +186,7 @@ const Login = () => {
                       fontWeight: 600, 
                       bgcolor: alpha(theme.palette.error.main, 0.1), 
                       p: 1.5, 
-                      borderRadius: 64, 
+                      borderRadius: 6, 
                       display: 'block',
                       textAlign: 'center' 
                     }}>
@@ -210,7 +210,7 @@ const Login = () => {
                       </InputAdornment>
                     ),
                     sx: { 
-                      borderRadius: 24, 
+                      borderRadius: 4, 
                       bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
                       height: 56,
                       fontSize: '1rem',
@@ -245,7 +245,7 @@ const Login = () => {
                       </InputAdornment>
                     ),
                     sx: { 
-                      borderRadius: 24, 
+                      borderRadius: 4, 
                       bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
                       height: 56,
                       fontSize: '1rem',
@@ -265,7 +265,7 @@ const Login = () => {
                   disabled={loading}
                   sx={{ 
                     py: 2, 
-                    borderRadius: 24, 
+                    borderRadius: 4, 
                     fontSize: '1.05rem', 
                     fontWeight: 800,
                     textTransform: 'none',

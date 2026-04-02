@@ -44,11 +44,11 @@ import {
   Sparkles,
   ExternalLink
 } from 'lucide-react';
-import axios from 'axios';
 import StudyDetailsDialog from '../components/StudyDetailsDialog';
 import AddResourceDialog from '../components/AddResourceDialog';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const SCRIPTURES = [
   { text: "Thy word is a lamp unto my feet, and a light unto my path.", ref: "PSALM 119:105" },
@@ -82,12 +82,12 @@ const BibleStudies = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [seriesRes, resourcesRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/bible-studies/`),
-          axios.get(`${API_BASE_URL}/resources/`),
+        const [seriesSnapshot, resourcesSnapshot] = await Promise.all([
+          getDocs(collection(db, "bible-studies")),
+          getDocs(collection(db, "resources")),
         ]);
-        setStudySeries(seriesRes.data || []);
-        setResources(resourcesRes.data || []);
+        setStudySeries(seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []);
+        setResources(resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []);
       } catch (err) {
         console.error("Bible Studies Sync Error:", err);
         showNotification("Failed to load content.", "error");

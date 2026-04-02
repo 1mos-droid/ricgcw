@@ -10,7 +10,7 @@ describe('App Smoke Test', () => {
     // We wrap in MemoryRouter because App likely uses routing hooks but isn't wrapped in a Router itself (usually index.js does that)
     // Checking main.jsx to confirm wrapping strategy would be good, but this is a safe bet for a unit test of App
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <WorkspaceProvider>
             <App />

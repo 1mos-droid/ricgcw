@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
@@ -45,7 +44,8 @@ import {
   FileCode
 } from 'lucide-react';
 
-import { API_BASE_URL } from '../config';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -64,16 +64,20 @@ const Reports = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const [membersRes, financeRes, eventsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/members`),
-          axios.get(`${API_BASE_URL}/transactions`),
-          axios.get(`${API_BASE_URL}/events`),
+        const [membersSnapshot, financeSnapshot, eventsSnapshot] = await Promise.all([
+          getDocs(collection(db, "members")),
+          getDocs(collection(db, "transactions")),
+          getDocs(collection(db, "events")),
         ]);
 
-        const filteredMembers = filterData(membersRes.data || []);
+        const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const financeData = financeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const eventsData = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const filteredMembers = filterData(membersData || []);
         const memberIds = new Set(filteredMembers.map(m => String(m.id)));
 
-        const totalFunds = (financeRes.data || [])
+        const totalFunds = (financeData || [])
           .filter(t => {
             if (t.type !== 'contribution') return false;
             if (t.memberId) return memberIds.has(String(t.memberId));
@@ -84,7 +88,7 @@ const Reports = () => {
         setStats({
           members: filteredMembers.length,
           funds: totalFunds,
-          events: (eventsRes.data || []).length
+          events: (eventsData || []).length
         });
       } catch (err) {
         console.error("Stats Sync Error:", err);
@@ -101,13 +105,13 @@ const Reports = () => {
     setGenerating(genKey);
     
     try {
-      let endpoint = '';
-      if (type === 'members') endpoint = 'members';
-      if (type === 'financial') endpoint = 'transactions';
-      if (type === 'attendance') endpoint = 'attendance';
+      let collectionName = '';
+      if (type === 'members') collectionName = 'members';
+      if (type === 'financial') collectionName = 'transactions';
+      if (type === 'attendance') collectionName = 'attendance';
 
-      const res = await axios.get(`${API_BASE_URL}/${endpoint}`);
-      const rawData = res.data;
+      const querySnapshot = await getDocs(collection(db, collectionName));
+      const rawData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const data = filterData(rawData);
 
       if (!data || data.length === 0) {

@@ -34,8 +34,9 @@ import {
   CheckCircle,
   Sparkles
 } from 'lucide-react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+
+import { db } from '../firebase';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
 const UserManagement = () => {
   const theme = useTheme();
@@ -51,8 +52,9 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/users`);
-      setUsers(res.data || []);
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersData || []);
     } catch (err) {
       console.error("User Fetch Error:", err);
       showNotification("Failed to load users.", "error");
@@ -83,7 +85,7 @@ const UserManagement = () => {
       message: `Permanently remove access for ${selectedUser.name}?`,
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_BASE_URL}/users/${selectedUser.id}`);
+          await deleteDoc(doc(db, "users", selectedUser.id));
           showNotification("Access revoked.");
           fetchUsers();
         } catch (err) {

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
 import {
@@ -20,6 +19,7 @@ import {
   Divider,
   List,
   ListItem,
+  ListItemText,
   Tab,
   Tabs,
   Card,
@@ -51,11 +51,12 @@ import {
   History
 } from 'lucide-react';
 
+import { db } from '../firebase';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
-
-import { API_BASE_URL } from '../config';
 
 const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
   const theme = useTheme();
@@ -129,18 +130,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     }
   }, [member, open]);
 
-  useEffect(() => {
-    if (member && open) {
-      fetchContributions();
-    }
-  }, [member, open, tabValue]);
-
-  const fetchContributions = async () => {
+  const fetchContributions = useCallback(async () => {
     if (!member) return;
     setLoadingContributions(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/transactions`);
-      const memberContributions = response.data.filter(
+      const querySnapshot = await getDocs(collection(db, "transactions"));
+      const allTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const memberContributions = allTransactions.filter(
         item => String(item.memberId) === String(member.id)
       );
       setContributions(memberContributions);
@@ -150,7 +146,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     } finally {
       setLoadingContributions(false);
     }
-  };
+  }, [member]);
+
+  useEffect(() => {
+    if (member && open) {
+      fetchContributions();
+    }
+  }, [member, open, tabValue, fetchContributions]);
 
   const handleAddContribution = async () => {
     if (!newContribution.amount || !member) return;
@@ -163,12 +165,12 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     };
 
     try {
-      await axios.post(`${API_BASE_URL}/transactions`, payload);
+      await addDoc(collection(db, "transactions"), payload);
       setNewContribution({ type: 'tithe', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
       fetchContributions();
       showNotification("Contribution recorded successfully", "success");
     } catch (err) {
-      console.error("Server save failed:", err);
+      console.error("Firestore save failed:", err);
       showNotification("Failed to save contribution", "error");
     }
   };
@@ -214,7 +216,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     if (!dobString) return 'Not Set';
     try {
       return format(new Date(dobString), 'MMM do, yyyy');
-    } catch (e) {
+    } catch (_) {
       return dobString;
     }
   };
@@ -288,7 +290,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
       <DialogContent sx={{ p: 0 }}>
         <Tabs 
             value={tabValue} 
-            onChange={(e, v) => setTabValue(v)} 
+            onChange={(_, v) => setTabValue(v)} 
             sx={{ 
                 borderBottom: 1, 
                 borderColor: 'divider', 
