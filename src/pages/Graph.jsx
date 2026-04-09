@@ -5,11 +5,12 @@ import { Box, Typography, Card, useTheme, Skeleton, Grid, alpha, Stack, Chip, Co
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell 
 } from 'recharts';
-import { format, parseISO, startOfDay } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { TrendingUp, BarChart2, Activity } from 'lucide-react';
 
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { safeParseDate } from '../utils/dateUtils';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -42,7 +43,7 @@ const Graph = () => {
 
         const dailyData = filteredAttendance.map(record => {
           if (!record) return null;
-          const recordDate = parseISO(record.date || new Date().toISOString());
+          const recordDate = safeParseDate(record.date);
           const formattedDate = format(recordDate, 'MMM dd');
           
           const attendeesCount = Array.isArray(record.attendees) ? record.attendees.length : 0;
@@ -50,7 +51,7 @@ const Graph = () => {
 
           const dailyIncome = incomeTransactions
             .filter(t => {
-              const tDate = parseISO(t.date);
+              const tDate = safeParseDate(t.date);
               return startOfDay(tDate).getTime() === startOfDay(recordDate).getTime();
             })
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -60,7 +61,7 @@ const Graph = () => {
             attendance: attendanceRate,
             income: dailyIncome,
           };
-        }).filter(Boolean).sort((a, b) => new Date(a.date) - new Date(b.date));
+        }).filter(Boolean).sort((a, b) => safeParseDate(a.date) - safeParseDate(b.date));
         
         setChartData(dailyData);
 

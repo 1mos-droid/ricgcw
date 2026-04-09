@@ -34,7 +34,7 @@ import {
   CheckCircle2,
   MoreHorizontal
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { 
   ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis 
@@ -42,6 +42,7 @@ import {
 
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 
 // --- SUB-COMPONENTS ---
 
@@ -167,11 +168,12 @@ const Dashboard = () => {
         const eventsData = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
         const upcomingEvents = (eventsData || []).filter(event => {
-          const eventDateStr = event.date.split('T')[0];
+          if (!event.date) return false;
+          const eventDateStr = getISOStringDate(event.date);
           const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
           
           if (isNaN(eventDateTime.getTime())) {
-            const justDate = new Date(event.date);
+            const justDate = safeParseDate(event.date);
             justDate.setHours(23, 59, 59, 999);
             return justDate >= now;
           }
@@ -214,7 +216,7 @@ const Dashboard = () => {
     const incomeByDate = filteredData.transactions
       .filter(t => t.type === 'contribution')
       .reduce((acc, t) => {
-        const d = format(parseISO(t.date || new Date().toISOString()), 'yyyy-MM-dd');
+        const d = format(safeParseDate(t.date), 'yyyy-MM-dd');
         acc[d] = (acc[d] || 0) + (Number(t.amount) || 0);
         return acc;
       }, {});
@@ -226,7 +228,7 @@ const Dashboard = () => {
 
     // 2. Members Sparkline (Daily Registrations)
     const membersByDate = filteredData.members.reduce((acc, m) => {
-      const d = format(parseISO(m.createdAt || new Date().toISOString()), 'yyyy-MM-dd');
+      const d = format(safeParseDate(m.createdAt), 'yyyy-MM-dd');
       acc[d] = (acc[d] || 0) + 1;
       return acc;
     }, {});
@@ -238,7 +240,7 @@ const Dashboard = () => {
 
     // 3. Events Sparkline (Daily Events)
     const eventsByDate = filteredData.events.reduce((acc, e) => {
-      const d = format(parseISO(e.date || new Date().toISOString()), 'yyyy-MM-dd');
+      const d = format(safeParseDate(e.date), 'yyyy-MM-dd');
       acc[d] = (acc[d] || 0) + 1;
       return acc;
     }, {});
@@ -438,7 +440,7 @@ const Dashboard = () => {
                   <IconButton size="small"><MoreHorizontal size={20} /></IconButton>
                 </Box>
 
-                <Box sx={{ height: 300, width: '100%', minHeight: 0 }}>
+                <Box sx={{ height: 300, width: '100%', minHeight: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={aggregatedData.financial}>
                       <defs>
@@ -504,10 +506,10 @@ const Dashboard = () => {
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                                     }}>
                                         <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
-                                            {format(new Date(event.date), 'MMM')}
+                                            {format(safeParseDate(event.date), 'MMM')}
                                         </Typography>
                                         <Typography sx={{ fontSize: '1.1rem', fontWeight: 900, lineHeight: 1 }}>
-                                            {format(new Date(event.date), 'dd')}
+                                            {format(safeParseDate(event.date), 'dd')}
                                         </Typography>
                                     </Box>
                                     <Box>

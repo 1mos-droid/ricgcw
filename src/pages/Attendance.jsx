@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, isValid, subDays, isSameDay } from 'date-fns';
+import { format, subDays, isSameDay } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
@@ -55,6 +55,7 @@ import { motion } from 'framer-motion';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { safeParseDate } from '../utils/dateUtils';
 
 const Attendance = () => {
   const theme = useTheme();
@@ -86,16 +87,9 @@ const Attendance = () => {
     return records;
   }, [attendanceRecords, filterData, selectedBranch]);
 
-  const parseDate = (dateVal) => {
-    if (!dateVal) return new Date();
-    if (dateVal._seconds) return new Date(dateVal._seconds * 1000); 
-    const d = new Date(dateVal);
-    return isValid(d) ? d : new Date();
-  };
-
   const safeFormat = (dateVal, formatStr) => {
     try {
-      return format(parseDate(dateVal), formatStr);
+      return format(safeParseDate(dateVal), formatStr);
     } catch (e) {
       return "Invalid Date";
     }
@@ -131,7 +125,7 @@ const Attendance = () => {
       setMembers(membersData || []); 
       
       const sortedRecords = attendanceData.sort((a, b) => 
-        parseDate(b.date) - parseDate(a.date)
+        safeParseDate(b.date) - safeParseDate(a.date)
       );
       
       setAttendanceRecords(sortedRecords);
@@ -251,7 +245,7 @@ const Attendance = () => {
   const heatmapData = useMemo(() => {
       return Array.from({ length: 28 }).map((_, i) => {
           const date = subDays(new Date(), 27 - i);
-          const record = filteredRecords.find(r => isSameDay(new Date(r.date), date));
+          const record = filteredRecords.find(r => isSameDay(safeParseDate(r.date), date));
           return { 
             date, 
             count: record ? (record.attendees?.length || 0) : 0 

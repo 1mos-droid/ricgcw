@@ -40,6 +40,7 @@ import EditEventDialog from '../components/EditEventDialog';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 
 const Events = () => {
   const theme = useTheme();
@@ -62,12 +63,6 @@ const Events = () => {
 
   const filteredEvents = useMemo(() => filterData(events), [events, filterData]);
 
-  const parseDate = (dateVal) => {
-    if (!dateVal) return new Date();
-    if (dateVal._seconds) return new Date(dateVal._seconds * 1000); 
-    return new Date(dateVal); 
-  };
-
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
@@ -77,13 +72,14 @@ const Events = () => {
       const now = new Date();
       
       const upcomingEvents = (eventsData || []).filter(event => {
+        if (!event.date) return false;
         // Combine date and time to check if it has passed
-        const eventDateStr = event.date.split('T')[0]; // Get YYYY-MM-DD
+        const eventDateStr = getISOStringDate(event.date); // Get YYYY-MM-DD
         const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
         
         // If eventDateTime is invalid, fallback to checking just the date
         if (isNaN(eventDateTime.getTime())) {
-          const justDate = parseDate(event.date);
+          const justDate = safeParseDate(event.date);
           justDate.setHours(23, 59, 59, 999); // Allow until end of day
           return justDate >= now;
         }
@@ -91,7 +87,7 @@ const Events = () => {
         return eventDateTime >= now;
       });
 
-      const sorted = upcomingEvents.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+      const sorted = upcomingEvents.sort((a, b) => safeParseDate(a.date) - safeParseDate(b.date));
       setEvents(sorted);
     } catch (err) {
       console.error("Calendar Sync Error:", err);
@@ -349,7 +345,7 @@ const Events = () => {
               </Box>
             ) : (
               filteredEvents.map((event) => {
-                const eventDate = parseDate(event.date);
+                const eventDate = safeParseDate(event.date);
                 return (
                 <Card 
                   key={event.id}

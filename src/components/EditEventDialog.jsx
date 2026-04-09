@@ -17,6 +17,7 @@ import {
   Avatar
 } from '@mui/material';
 import { X, Edit, Calendar, Clock, MapPin, Type } from 'lucide-react';
+import { safeParseDate } from '../utils/dateUtils';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -38,7 +39,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
     if (event) {
       setFormData({
         name: event.name || '',
-        date: event.date ? new Date(event.date).toISOString().split('T')[0] : '', 
+        date: event.date ? safeParseDate(event.date).toISOString().split('T')[0] : '', 
         time: event.time || '',
         location: event.location || ''
       });

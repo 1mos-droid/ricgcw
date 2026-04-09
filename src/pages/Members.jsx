@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
+import { safeParseDate } from '../utils/dateUtils';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
@@ -89,8 +90,8 @@ const Members = () => {
       
       // Sort members by 'createdAt' (newest first)
       const sortedMembers = (membersData || []).sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0);
-        const dateB = new Date(b.createdAt || 0);
+        const dateA = safeParseDate(a.createdAt || 0);
+        const dateB = safeParseDate(b.createdAt || 0);
         return dateB - dateA;
       });
       
@@ -127,7 +128,7 @@ const Members = () => {
         m.phone || 'N/A',
         m.branch || 'Main',
         m.status || 'Active',
-        m.createdAt ? format(new Date(m.createdAt), 'yyyy-MM-dd') : 'N/A'
+        m.createdAt ? format(safeParseDate(m.createdAt), 'yyyy-MM-dd') : 'N/A'
       ]);
 
       doc.autoTable({
@@ -489,7 +490,7 @@ const Members = () => {
                       </TableCell>
                       <TableCell>
                          <Typography variant="body2" fontWeight={500}>
-                            {member.createdAt ? format(new Date(member.createdAt), 'MMM yyyy') : '—'}
+                            {member.createdAt ? format(safeParseDate(member.createdAt), 'MMM yyyy') : '—'}
                          </Typography>
                       </TableCell>
                       <TableCell>{getStatusChip(member.status)}</TableCell>

@@ -162,7 +162,9 @@ exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
     const members = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const birthdaysToday = members.filter(member => {
       if (!member.dob) return false;
-      const dob = new Date(member.dob);
+      const dob = (typeof member.dob.toDate === 'function') 
+        ? member.dob.toDate() 
+        : new Date(member.dob);
       return (dob.getMonth() + 1) === targetMonth && dob.getDate() === targetDay;
     });
 

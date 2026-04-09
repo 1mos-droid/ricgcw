@@ -59,6 +59,7 @@ import {
 } from 'recharts';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { safeParseDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -153,8 +154,8 @@ const Financials = () => {
       
       // Sort transactions by date descending (newest first)
       const sortedTx = (txData || []).sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
+        const dateA = safeParseDate(a.date);
+        const dateB = safeParseDate(b.date);
         return dateB - dateA;
       });
       
@@ -256,7 +257,7 @@ const Financials = () => {
 
   const chartData = useMemo(() => {
     return filteredTx.slice(0, 15).reverse().map(t => ({
-      name: format(new Date(t.date), 'MMM dd'),
+      name: format(safeParseDate(t.date), 'MMM dd'),
       amt: Number(t.amount)
     }));
   }, [filteredTx]);
@@ -276,7 +277,7 @@ const Financials = () => {
       
       const headers = [["Date", "Description", "Type", "Location", "Amount"]];
       const rows = data.map(t => [
-        format(new Date(t.date), 'yyyy-MM-dd'),
+        format(safeParseDate(t.date), 'yyyy-MM-dd'),
         t.description,
         t.type,
         t.category,
@@ -449,7 +450,7 @@ const Financials = () => {
                                         </ListItemAvatar>
                                         <ListItemText 
                                             primary={<Typography variant="body2" fontWeight={700}>{tx.description}</Typography>}
-                                            secondary={<Typography variant="caption" color="text.secondary">{format(new Date(tx.date), 'MMM dd • HH:mm')}</Typography>}
+                                            secondary={<Typography variant="caption" color="text.secondary">{format(safeParseDate(tx.date), 'MMM dd • HH:mm')}</Typography>}
                                         />
                                         <Typography variant="body2" fontWeight={800} sx={{ color: tx.type === 'contribution' ? 'success.main' : 'text.primary' }}>
                                             {tx.type === 'contribution' ? '+' : '-'} {Number(tx.amount).toLocaleString()}
@@ -503,7 +504,7 @@ const Financials = () => {
                             ) : (
                                 filteredTx.map((tx) => (
                                     <TableRow key={tx.id} hover>
-                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{format(new Date(tx.date), 'MMM dd, yyyy')}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{format(safeParseDate(tx.date), 'MMM dd, yyyy')}</TableCell>
                                         <TableCell sx={{ fontWeight: 700 }}>{tx.description}</TableCell>
                                         <TableCell><Chip label={tx.type} size="small" color={tx.type === 'contribution' ? 'success' : 'error'} variant="outlined" sx={{ fontWeight: 700, height: 24, borderRadius: 2 }} /></TableCell>
                                         <TableCell>{tx.category}</TableCell>

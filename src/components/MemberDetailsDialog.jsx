@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
+import { safeParseDate } from '../utils/dateUtils';
 import { useWorkspace } from '../context/WorkspaceContext';
 import {
   Button,
@@ -213,10 +214,10 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
   };
 
   const formatDOB = (dobString) => {
-    if (!dobString) return 'Not Set';
+    if (!dobString) return 'N/A';
     try {
-      return format(new Date(dobString), 'MMM do, yyyy');
-    } catch (_) {
+      return format(safeParseDate(dobString), 'MMM do, yyyy');
+    } catch (e) {
       return dobString;
     }
   };
@@ -533,7 +534,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                         <ListItem sx={{ py: 2, px: 3, '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
                             <ListItemText
                                 primary={<Typography variant="body2" fontWeight={700}>GHC{Number(c.amount).toLocaleString()}</Typography>}
-                                secondary={format(new Date(c.date || Date.now()), 'MMM dd, yyyy • p')}
+                                secondary={format(safeParseDate(c.date || Date.now()), 'MMM dd, yyyy • p')}
                                 secondaryTypographyProps={{ fontWeight: 500 }}
                             />
                             <Chip 

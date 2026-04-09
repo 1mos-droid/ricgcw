@@ -46,6 +46,7 @@ import {
 
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { safeParseDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -117,8 +118,8 @@ const Reports = () => {
       // Sort data by date (descending - newest first)
       if (data && data.length > 0) {
         data = data.sort((a, b) => {
-          const dateA = new Date(a.date || a.createdAt || 0);
-          const dateB = new Date(b.date || b.createdAt || 0);
+          const dateA = safeParseDate(a.date || a.createdAt || 0);
+          const dateB = safeParseDate(b.date || b.createdAt || 0);
           return dateB - dateA;
         });
       }
