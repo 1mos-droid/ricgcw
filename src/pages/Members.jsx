@@ -86,7 +86,15 @@ const Members = () => {
       if (!isSilent) setLoading(true);
       const querySnapshot = await getDocs(collection(db, "members"));
       const membersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMembers(membersData || []);
+      
+      // Sort members by 'createdAt' (newest first)
+      const sortedMembers = (membersData || []).sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      });
+      
+      setMembers(sortedMembers);
     } catch (err) {
       console.error("Members Fetch Error:", err);
       showNotification("Failed to sync member database.", "error");

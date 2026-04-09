@@ -150,7 +150,15 @@ const Financials = () => {
       ]);
       const txData = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const memData = memSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTransactions((txData || []).reverse()); // Newest first
+      
+      // Sort transactions by date descending (newest first)
+      const sortedTx = (txData || []).sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+      });
+      
+      setTransactions(sortedTx);
       setMembers(memData || []);
     } catch (err) {
       console.error("Finance Sync Error:", err);

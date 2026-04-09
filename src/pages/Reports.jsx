@@ -112,7 +112,16 @@ const Reports = () => {
 
       const querySnapshot = await getDocs(collection(db, collectionName));
       const rawData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const data = filterData(rawData);
+      let data = filterData(rawData);
+
+      // Sort data by date (descending - newest first)
+      if (data && data.length > 0) {
+        data = data.sort((a, b) => {
+          const dateA = new Date(a.date || a.createdAt || 0);
+          const dateB = new Date(b.date || b.createdAt || 0);
+          return dateB - dateA;
+        });
+      }
 
       if (!data || data.length === 0) {
         showNotification("No data available to generate report.", "warning");

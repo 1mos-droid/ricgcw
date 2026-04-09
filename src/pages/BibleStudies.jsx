@@ -86,8 +86,15 @@ const BibleStudies = () => {
           getDocs(collection(db, "bible-studies")),
           getDocs(collection(db, "resources")),
         ]);
-        setStudySeries(seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []);
-        setResources(resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []);
+        
+        const seriesData = (seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+          
+        const resourcesData = (resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        
+        setStudySeries(seriesData);
+        setResources(resourcesData);
       } catch (err) {
         console.error("Bible Studies Sync Error:", err);
         showNotification("Failed to load content.", "error");
