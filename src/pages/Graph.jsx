@@ -115,7 +115,7 @@ const Graph = () => {
                         <Typography variant="caption" color="text.secondary">Engagement percentage per service</Typography>
                     </Box>
                 </Box>
-                <Box sx={{ height: 350, width: '100%', minHeight: 0 }}>
+                <Box sx={{ height: 350, width: '100%', minHeight: 0, minWidth: 0 }}>
                     {loading ? <Skeleton variant="rectangular" height="100%" /> : (
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData}>
@@ -142,7 +142,7 @@ const Graph = () => {
             <Card sx={{ p: 4, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
                 <Typography variant="h6" fontWeight={800} gutterBottom>Revenue Streams</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 4 }}>Daily contribution totals (GHC)</Typography>
-                <Box sx={{ height: 300, width: '100%', minHeight: 0 }}>
+                <Box sx={{ height: 300, width: '100%', minHeight: 0, minWidth: 0 }}>
                     {loading ? <Skeleton variant="rectangular" height="100%" /> : (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData}>

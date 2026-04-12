@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 
 const AuthContext = createContext();
 
-// --- BUILT-IN ACCOUNTS (Same as the original Cloud Function) ---
+// --- BUILT-IN ACCOUNTS (Emergency Mock Auth) ---
 const BUILT_IN_USERS = [
   { email: 'admin@ricgcw.com', passwordHash: '$2b$10$506aHGJtQf6sAxDHZIG89.RkQMSGfm.qP0fms17jZ4x.fkcsbmnL.', role: 'admin', branch: 'all' },
   { email: 'langma@ricgcw.com', passwordHash: '$2b$10$foOYurLFRryLSOOk63W7Hu//ZjCYmvpDaw3JjNQbqpiKvdy0wFgM6', role: 'branch_admin', branch: 'Langma' },
@@ -27,7 +27,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Persistence for Built-in Accounts
+  const saveToLocal = (userData) => {
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userEmail', userData.email);
+    localStorage.setItem('userRole', userData.role);
+    localStorage.setItem('userBranch', userData.branch);
+  };
+
   const refreshUser = useCallback(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
     if (isAuthenticated) {
@@ -52,6 +58,7 @@ export const AuthProvider = ({ children }) => {
         const sessionUser = await account.get();
         if (sessionUser) {
           try {
+            // Fetch user metadata (role/branch) from Firestore
             const userDoc = await getDoc(doc(db, 'users', sessionUser.email));
             if (userDoc.exists()) {
               const userData = userDoc.data();
@@ -72,7 +79,6 @@ export const AuthProvider = ({ children }) => {
           refreshUser();
         }
       } catch (_) {
-        // Appwrite account.get() throws if no session exists
         refreshUser();
       } finally {
         setLoading(false);
@@ -81,13 +87,6 @@ export const AuthProvider = ({ children }) => {
 
     checkSession();
   }, [refreshUser]);
-
-  const saveToLocal = (userData) => {
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userEmail', userData.email);
-    localStorage.setItem('userRole', userData.role);
-    localStorage.setItem('userBranch', userData.branch);
-  };
 
   const login = async (email, password) => {
     setLoading(true);
@@ -114,13 +113,14 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // --- Step 2: Fallback to Real Appwrite Auth ---
+    // --- Step 2: Appwrite Authentication ---
     try {
       await account.createEmailPasswordSession(email, password);
       const sessionUser = await account.get();
       
       let userData;
       try {
+        // Fetch metadata from Firestore
         const userDoc = await getDoc(doc(db, 'users', sessionUser.email));
         if (userDoc.exists()) {
           const data = userDoc.data();

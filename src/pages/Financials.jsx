@@ -395,7 +395,7 @@ const Financials = () => {
                     <Typography variant="h6" fontWeight={800}>Cash Flow Analysis</Typography>
                     <Chip label="Real-time" size="small" color="success" variant="outlined" sx={{ fontWeight: 700 }} />
                 </Box>
-                <Box sx={{ height: '80%', width: '100%', minHeight: 0 }}>
+                <Box sx={{ height: '80%', width: '100%', minHeight: 0, minWidth: 0 }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartData}>
                         <defs>

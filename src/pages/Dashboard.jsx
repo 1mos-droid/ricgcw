@@ -119,7 +119,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
 
         {/* Mini Sparkline Background */}
         {chartData && (
-          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none' }}>
+          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none', minWidth: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -440,7 +440,7 @@ const Dashboard = () => {
                   <IconButton size="small"><MoreHorizontal size={20} /></IconButton>
                 </Box>
 
-                <Box sx={{ height: 300, width: '100%', minHeight: 300 }}>
+                <Box sx={{ height: 300, width: '100%', minHeight: 300, minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={aggregatedData.financial}>
                       <defs>

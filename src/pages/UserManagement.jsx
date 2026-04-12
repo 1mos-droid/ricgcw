@@ -26,14 +26,9 @@ import {
   Search, 
   UserPlus, 
   MoreVertical, 
-  Edit2, 
-  Trash2, 
-  Lock,
-  Mail,
-  Fingerprint,
-  CheckCircle,
-  Sparkles
+  Mail
 } from 'lucide-react';
+import NewUserDialog from '../components/NewUserDialog';
 
 import { db } from '../firebase';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
@@ -48,6 +43,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isNewUserDialogOpen, setIsNewUserDialogOpen] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -77,6 +73,11 @@ const UserManagement = () => {
     setSelectedUser(null);
   };
 
+  const onUserAdded = (newUser) => {
+    setUsers(prev => [newUser, ...prev]);
+    showNotification("System access granted successfully!", "success");
+  };
+
   const handleDelete = async () => {
     if (!selectedUser) return;
     
@@ -97,7 +98,7 @@ const UserManagement = () => {
   };
 
   const getRoleColor = (role) => {
-    const r = String(role).toLowerCase();
+    const r = String(role || 'guest').toLowerCase();
     if (r.includes('admin')) return theme.palette.primary.main;
     if (r.includes('moderator')) return theme.palette.info.main;
     return theme.palette.text.secondary;
@@ -109,8 +110,8 @@ const UserManagement = () => {
   };
 
   const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -147,8 +148,8 @@ const UserManagement = () => {
             sx={{ width: { xs: '100%', md: 400 }, '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: alpha(theme.palette.background.paper, 0.8) } }}
             InputProps={{ startAdornment: <InputAdornment position="start"><Search size={18} /></InputAdornment> }}
         />
-        <Button variant="contained" startIcon={<UserPlus size={18} />} sx={{ borderRadius: 3, px: 4, fontWeight: 800 }} onClick={() => showNotification("Invite feature coming soon.", "info")}>
-            Invite User
+        <Button variant="contained" startIcon={<UserPlus size={18} />} sx={{ borderRadius: 3, px: 4, fontWeight: 800 }} onClick={() => setIsNewUserDialogOpen(true)}>
+            Add System User
         </Button>
       </Stack>
 
@@ -175,7 +176,7 @@ const UserManagement = () => {
                         }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                                 <Avatar sx={{ width: 64, height: 64, bgcolor: alpha(roleColor, 0.1), color: roleColor, fontWeight: 800, fontSize: '1.5rem', borderRadius: 3 }}>
-                                    {user.name?.charAt(0)}
+                                    {(user.name || '?').charAt(0)}
                                 </Avatar>
                                 <IconButton size="small" onClick={(e) => handleMenuClick(e, user)}><MoreVertical size={20} /></IconButton>
                             </Box>
@@ -215,6 +216,12 @@ const UserManagement = () => {
           <Divider />
           <MenuItem onClick={handleDelete} sx={{ fontWeight: 700, color: 'error.main' }}>Revoke Access</MenuItem>
       </Menu>
+
+      <NewUserDialog 
+        open={isNewUserDialogOpen} 
+        onClose={() => setIsNewUserDialogOpen(false)} 
+        onUserAdded={onUserAdded} 
+      />
 
     </Box>
   );

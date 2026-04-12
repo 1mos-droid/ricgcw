@@ -97,7 +97,7 @@ const FinancialChart = ({ data, loading }) => {
           </Box>
         </Stack>
 
-        <Box sx={{ width: '100%', height: 350 }}>
+        <Box sx={{ width: '100%', height: 350, minWidth: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>

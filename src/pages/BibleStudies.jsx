@@ -21,31 +21,29 @@ import {
   Divider,
   TextField,
   InputAdornment,
-  Skeleton,
+  CircularProgress,
   alpha,
   useTheme,
   Container,
   Paper,
-  Tooltip,
-  Stack,
-  CircularProgress
+  Stack
 } from '@mui/material';
 import { 
   BookOpen, 
   Download, 
-  Play, 
   ChevronRight, 
   FileText, 
   Headphones, 
   Bookmark,
   Plus,
-  Trash2,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Search
 } from 'lucide-react';
 import { safeParseDate } from '../utils/dateUtils';
 import StudyDetailsDialog from '../components/StudyDetailsDialog';
 import AddResourceDialog from '../components/AddResourceDialog';
+import AddStudyDialog from '../components/AddStudyDialog';
 
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -61,7 +59,7 @@ const SCRIPTURES = [
 
 const BibleStudies = () => {
   const theme = useTheme();
-  const { showNotification, showConfirmation } = useWorkspace();
+  const { showNotification } = useWorkspace();
   
   // --- STATE ---
   const [activeTab, setActiveTab] = useState(0);
@@ -70,6 +68,7 @@ const BibleStudies = () => {
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState(null);
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
+  const [isAddStudyOpen, setIsAddStudyOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   // 🟢 Select Random Scripture on Mount
@@ -78,32 +77,33 @@ const BibleStudies = () => {
   }, []);
 
   // --- FETCH DATA ---
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [seriesSnapshot, resourcesSnapshot] = await Promise.all([
+        getDocs(collection(db, "bible-studies")),
+        getDocs(collection(db, "resources")),
+      ]);
+      
+      const seriesData = (seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
+        .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
+        
+      const resourcesData = (resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
+        .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
+      
+      setStudySeries(seriesData);
+      setResources(resourcesData);
+    } catch (err) {
+      console.error("Bible Studies Sync Error:", err);
+      showNotification("Failed to load content.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [seriesSnapshot, resourcesSnapshot] = await Promise.all([
-          getDocs(collection(db, "bible-studies")),
-          getDocs(collection(db, "resources")),
-        ]);
-        
-        const seriesData = (seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
-          .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
-          
-        const resourcesData = (resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
-          .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
-        
-        setStudySeries(seriesData);
-        setResources(resourcesData);
-      } catch (err) {
-        console.error("Bible Studies Sync Error:", err);
-        showNotification("Failed to load content.", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, [showNotification]);
+  }, []);
 
   const handleOpenResource = (res) => {
     if (!res.link) {
@@ -113,13 +113,23 @@ const BibleStudies = () => {
     window.open(res.link, '_blank', 'noopener,noreferrer');
   };
 
+  const onResourceAdded = (newResource) => {
+    setResources(prev => [newResource, ...prev]);
+    showNotification("Resource added successfully!", "success");
+  };
+
+  const onStudyAdded = (newStudy) => {
+    setStudySeries(prev => [newStudy, ...prev]);
+    showNotification("Study module created!", "success");
+  };
+
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
   const filteredResources = resources.filter(res => 
-    res.title?.toLowerCase().includes(searchTerm.toLowerCase())
+    (res.title || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -174,8 +184,14 @@ const BibleStudies = () => {
                     <Tab label="Study Modules" sx={{ fontWeight: 700 }} />
                     <Tab label="Resource Vault" sx={{ fontWeight: 700 }} />
                 </Tabs>
-                <Button variant="contained" size="small" startIcon={<Plus size={16} />} sx={{ borderRadius: 2, ml: 2, display: { xs: 'none', sm: 'flex' } }}>
-                    Add Module
+                <Button 
+                  variant="contained" 
+                  size="small" 
+                  startIcon={<Plus size={16} />} 
+                  onClick={() => activeTab === 0 ? setIsAddStudyOpen(true) : setIsAddResourceOpen(true)}
+                  sx={{ borderRadius: 2, ml: 2, display: { xs: 'none', sm: 'flex' } }}
+                >
+                    {activeTab === 0 ? 'Add Module' : 'Add Resource'}
                 </Button>
             </Box>
 
@@ -199,7 +215,12 @@ const BibleStudies = () => {
                                                 <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, borderRadius: 2 }}>
                                                     <Bookmark size={20} />
                                                 </Avatar>
-                                                {study.active && <Chip label="Live" color="success" size="small" sx={{ fontWeight: 800, height: 20 }} />}
+                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                    {study.active && <Chip label="Live" color="success" size="small" sx={{ fontWeight: 800, height: 20 }} />}
+                                                    <IconButton size="small" color="error" onClick={() => handleDeleteStudy(study.id, study.title)}>
+                                                        <Trash2 size={16} />
+                                                    </IconButton>
+                                                </Stack>
                                             </Box>
                                             <Typography variant="h6" fontWeight={800} gutterBottom>{study.title}</Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>{study.subtitle}</Typography>
@@ -242,7 +263,10 @@ const BibleStudies = () => {
                                                     </Avatar>
                                                 </ListItemAvatar>
                                                 <ListItemText primary={<Typography fontWeight={700}>{res.title}</Typography>} secondary={`${res.type?.toUpperCase()} • ${res.size || 'N/A'}`} />
-                                                <IconButton size="small"><Download size={18} /></IconButton>
+                                                <Stack direction="row" spacing={1}>
+                                                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleOpenResource(res); }}><Download size={18} /></IconButton>
+                                                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteResource(res.id, res.title); }}><Trash2 size={18} /></IconButton>
+                                                </Stack>
                                             </ListItemButton>
                                             {i < filteredResources.length - 1 && <Divider />}
                                         </React.Fragment>
@@ -290,7 +314,26 @@ const BibleStudies = () => {
       </Grid>
 
       <StudyDetailsDialog open={selectedStudy !== null} onClose={() => setSelectedStudy(null)} study={selectedStudy} />
-      <AddResourceDialog open={isAddResourceOpen} onClose={() => setIsAddResourceOpen(false)} />
+      <AddResourceDialog open={isAddResourceOpen} onClose={() => setIsAddResourceOpen(false)} onResourceAdded={onResourceAdded} />
+      <AddStudyDialog open={isAddStudyOpen} onClose={() => setIsAddStudyOpen(false)} onStudyAdded={onStudyAdded} />
+
+    </Box>
+  );
+};
+
+export default BibleStudies;
+er>
+                        ))}
+                    </Stack>
+                </Box>
+            </Stack>
+        </Grid>
+
+      </Grid>
+
+      <StudyDetailsDialog open={selectedStudy !== null} onClose={() => setSelectedStudy(null)} study={selectedStudy} />
+      <AddResourceDialog open={isAddResourceOpen} onClose={() => setIsAddResourceOpen(false)} onResourceAdded={onResourceAdded} />
+      <AddStudyDialog open={isAddStudyOpen} onClose={() => setIsAddStudyOpen(false)} onStudyAdded={onStudyAdded} />
 
     </Box>
   );
