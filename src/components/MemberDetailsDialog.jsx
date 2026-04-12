@@ -185,7 +185,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
 
   const validate = () => {
     let tempErrors = {};
-    if (!formData.name.trim()) tempErrors.name = "Name is required";
+    if (!String(formData.name || "").trim()) tempErrors.name = "Name is required";
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };

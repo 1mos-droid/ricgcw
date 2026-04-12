@@ -56,7 +56,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
 
   const validate = () => {
     let tempErrors = {};
-    if (!formData.name.trim()) tempErrors.name = "Event title is required";
+    if (!String(formData.name || "").trim()) tempErrors.name = "Event title is required";
     if (!formData.date) tempErrors.date = "Date is required";
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;

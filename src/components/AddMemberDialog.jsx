@@ -80,7 +80,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
 
   const validate = () => {
     let tempErrors = {};
-    if (!formData.name.trim()) tempErrors.name = "Full Name is required";
+    if (!String(formData.name || "").trim()) tempErrors.name = "Full Name is required";
     if (!formData.branch) tempErrors.branch = "Branch is required";
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -94,9 +94,9 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           ...formData,
           status: 'active',
           // Clean up empty strings for optional fields to avoid cluttering DB
-          email: formData.email.trim() || null,
-          phone: formData.phone.trim() || null,
-          address: formData.address.trim() || null,
+          email: String(formData.email || "").trim() || null,
+          phone: String(formData.phone || "").trim() || null,
+          address: String(formData.address || "").trim() || null,
           dob: formData.dob || null,
           department: formData.department || null,
           position: formData.position || null

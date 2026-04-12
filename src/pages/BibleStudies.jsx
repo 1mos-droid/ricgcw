@@ -38,7 +38,8 @@ import {
   Plus,
   Sparkles,
   ExternalLink,
-  Search
+  Search,
+  Trash2
 } from 'lucide-react';
 import { safeParseDate } from '../utils/dateUtils';
 import StudyDetailsDialog from '../components/StudyDetailsDialog';
@@ -46,7 +47,7 @@ import AddResourceDialog from '../components/AddResourceDialog';
 import AddStudyDialog from '../components/AddStudyDialog';
 
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
 
 const SCRIPTURES = [
   { text: "Thy word is a lamp unto my feet, and a light unto my path.", ref: "PSALM 119:105" },
@@ -59,7 +60,7 @@ const SCRIPTURES = [
 
 const BibleStudies = () => {
   const theme = useTheme();
-  const { showNotification } = useWorkspace();
+  const { showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
   const [activeTab, setActiveTab] = useState(0);
@@ -121,6 +122,38 @@ const BibleStudies = () => {
   const onStudyAdded = (newStudy) => {
     setStudySeries(prev => [newStudy, ...prev]);
     showNotification("Study module created!", "success");
+  };
+
+  const handleDeleteStudy = async (id, title) => {
+    showConfirmation({
+      title: "Remove Study Module",
+      message: `Permanently delete "${title}"? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "bible-studies", id));
+          setStudySeries(prev => prev.filter(s => s.id !== id));
+          showNotification("Module deleted.");
+        } catch (err) {
+          showNotification("Deletion failed.", "error");
+        }
+      }
+    });
+  };
+
+  const handleDeleteResource = async (id, title) => {
+    showConfirmation({
+      title: "Remove Resource",
+      message: `Permanently delete "${title}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "resources", id));
+          setResources(prev => prev.filter(r => r.id !== id));
+          showNotification("Resource removed.");
+        } catch (err) {
+          showNotification("Deletion failed.", "error");
+        }
+      }
+    });
   };
 
   const containerVariants = {
@@ -305,24 +338,6 @@ const BibleStudies = () => {
                                 </Box>
                                 <IconButton size="small" onClick={() => handleOpenResource(res)}><ExternalLink size={16} /></IconButton>
                             </Paper>
-                        ))}
-                    </Stack>
-                </Box>
-            </Stack>
-        </Grid>
-
-      </Grid>
-
-      <StudyDetailsDialog open={selectedStudy !== null} onClose={() => setSelectedStudy(null)} study={selectedStudy} />
-      <AddResourceDialog open={isAddResourceOpen} onClose={() => setIsAddResourceOpen(false)} onResourceAdded={onResourceAdded} />
-      <AddStudyDialog open={isAddStudyOpen} onClose={() => setIsAddStudyOpen(false)} onStudyAdded={onStudyAdded} />
-
-    </Box>
-  );
-};
-
-export default BibleStudies;
-er>
                         ))}
                     </Stack>
                 </Box>

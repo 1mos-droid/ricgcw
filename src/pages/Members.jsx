@@ -149,8 +149,10 @@ const Members = () => {
   };
 
   const handleAddMember = async (newMember) => {
-    const nameExists = members.some(m => (m.name || "").trim().toLowerCase() === newMember.name.trim().toLowerCase());
-    if (nameExists) {
+    const newName = String(newMember?.name || "").trim().toLowerCase();
+    const nameExists = members.some(m => String(m?.name || "").trim().toLowerCase() === newName);
+    
+    if (newName && nameExists) {
       showNotification(`"${newMember.name}" already exists.`, "warning");
       throw new Error("Duplicate member name");
     }
