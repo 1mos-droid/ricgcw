@@ -61,7 +61,7 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { safeParseDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 // --- SUB-COMPONENTS ---
@@ -284,7 +284,7 @@ const Financials = () => {
         `GHC ${t.amount}`
       ]);
 
-      doc.autoTable({
+      autoTable(doc, {
         head: headers,
         body: rows,
         startY: 35,

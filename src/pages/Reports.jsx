@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
@@ -27,7 +27,12 @@ import {
   TableRow,
   Stack,
   CircularProgress,
-  ButtonGroup
+  ButtonGroup,
+  TextField,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import { 
   Users, 
@@ -41,15 +46,31 @@ import {
   ChevronRight,
   TrendingUp,
   FileSpreadsheet,
-  FileCode
+  FileCode,
+  Filter
 } from 'lucide-react';
 
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { safeParseDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+
+const MONTHS = [
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' }
+];
 
 const Reports = () => {
   const theme = useTheme();
@@ -59,6 +80,15 @@ const Reports = () => {
   const [stats, setStats] = useState({ members: 0, funds: 0, events: 0 });
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(null); // Tracks which report/format is downloading
+  
+  const [reportPeriod, setReportPeriod] = useState('overall'); // 'overall' or 'monthly'
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => currentYear - i);
+  }, []);
 
   // --- FETCH SUMMARY DATA ---
   useEffect(() => {
@@ -115,6 +145,14 @@ const Reports = () => {
       const rawData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       let data = filterData(rawData);
 
+      // --- FILTER BY PERIOD ---
+      if (reportPeriod === 'monthly') {
+        data = data.filter(item => {
+          const itemDate = safeParseDate(item.date || item.createdAt || 0);
+          return itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear;
+        });
+      }
+
       // Sort data by date (descending - newest first)
       if (data && data.length > 0) {
         data = data.sort((a, b) => {
@@ -125,12 +163,16 @@ const Reports = () => {
       }
 
       if (!data || data.length === 0) {
-        showNotification("No data available to generate report.", "warning");
+        showNotification(`No data available for ${reportPeriod === 'monthly' ? MONTHS[selectedMonth].label + ' ' + selectedYear : 'the selected period'}.`, "warning");
         setGenerating(null);
         return;
       }
 
-      const fileName = `${type}_report_${new Date().toISOString().slice(0,10)}`;
+      const dateStr = reportPeriod === 'monthly' 
+        ? `${MONTHS[selectedMonth].label}_${selectedYear}`
+        : new Date().toISOString().slice(0,10);
+      
+      const fileName = `${type}_report_${dateStr}`;
 
       if (format === 'pdf') {
         generatePDF(data, type, fileName);
@@ -149,7 +191,10 @@ const Reports = () => {
 
   const generatePDF = (data, type, fileName) => {
     const doc = new jsPDF();
-    const title = `${type.toUpperCase()} REPORT`;
+    const periodTitle = reportPeriod === 'monthly' 
+      ? `${MONTHS[selectedMonth].label.toUpperCase()} ${selectedYear}` 
+      : 'OVERALL';
+    const title = `${type.toUpperCase()} REPORT - ${periodTitle}`;
     
     // Select relevant fields based on report type to keep the table readable
     let columns = [];
@@ -189,7 +234,7 @@ const Reports = () => {
     doc.setTextColor(100);
     doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 30);
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [headers],
       body: rows,
       startY: 40,
@@ -244,9 +289,71 @@ const Reports = () => {
         </Container>
       </Box>
 
+      {/* --- FILTER BAR --- */}
+      <Paper sx={{ p: 3, mb: 6, borderRadius: 6, border: `1px solid ${theme.palette.divider}` }} elevation={0}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Typography variant="subtitle2" fontWeight={800} color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Filter size={16} /> REPORT SCOPE
+            </Typography>
+            <ButtonGroup fullWidth sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Button 
+                variant={reportPeriod === 'overall' ? 'contained' : 'outlined'}
+                onClick={() => setReportPeriod('overall')}
+                sx={{ fontWeight: 700 }}
+              >
+                Overall
+              </Button>
+              <Button 
+                variant={reportPeriod === 'monthly' ? 'contained' : 'outlined'}
+                onClick={() => setReportPeriod('monthly')}
+                sx={{ fontWeight: 700 }}
+              >
+                Monthly
+              </Button>
+            </ButtonGroup>
+          </Grid>
+          
+          {reportPeriod === 'monthly' && (
+            <>
+              <Grid size={{ xs: 6, md: 4 }}>
+                <FormControl fullWidth size="medium">
+                  <InputLabel>Month</InputLabel>
+                  <Select
+                    value={selectedMonth}
+                    label="Month"
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    sx={{ borderRadius: 3 }}
+                  >
+                    {MONTHS.map((m) => (
+                      <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 6, md: 4 }}>
+                <FormControl fullWidth size="medium">
+                  <InputLabel>Year</InputLabel>
+                  <Select
+                    value={selectedYear}
+                    label="Year"
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    sx={{ borderRadius: 3 }}
+                  >
+                    {years.map((y) => (
+                      <MenuItem key={y} value={y}>{y}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </>
+          )}
+        </Grid>
+      </Paper>
+
       <Grid container spacing={4}>
         {/* Report Category Cards */}
-        {reportTypes.map((report, idx) => (
+        {reportTypes.map((report) => (
             <Grid size={{ xs: 12, md: 4 }} key={report.id}>
                 <Card sx={{ 
                     p: 4, height: '100%', borderRadius: 6, border: `1px solid ${theme.palette.divider}`,

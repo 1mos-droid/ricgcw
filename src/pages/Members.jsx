@@ -54,7 +54,8 @@ import {
   Building2,
   Filter,
   FileText,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Clock
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
@@ -62,7 +63,7 @@ import MemberDetailsDialog from '../components/MemberDetailsDialog';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 const Members = () => {
@@ -108,6 +109,61 @@ const Members = () => {
     fetchMembers();
   }, [fetchMembers]);
 
+  // --- AUTOMATIC ID SYSTEM ---
+  const getBranchPrefix = (branch) => {
+    switch (branch?.toLowerCase()) {
+      case 'mallam': return 'M';
+      case 'kokrobetey': return 'K';
+      case 'langma': return 'L';
+      default: return 'M'; // Default to Mallam if unspecified
+    }
+  };
+
+  const generateMemberId = (branch, currentMembers) => {
+    const prefix = getBranchPrefix(branch);
+    // The user wants the number to be unique and not greater than the number of members.
+    // We'll use the current count + 1. 
+    // To ensure it's "xxx" format, we'll pad with zeros.
+    const nextNum = currentMembers.length + 1;
+    const paddedNum = String(nextNum).padStart(3, '0');
+    return `${prefix}${paddedNum}`;
+  };
+
+  const syncMemberIds = async () => {
+    try {
+      setLoading(true);
+      const querySnapshot = await getDocs(collection(db, "members"));
+      const allMembers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Sort by creation date to assign IDs in order
+      const sorted = [...allMembers].sort((a, b) => {
+        const dateA = safeParseDate(a.createdAt || 0);
+        const dateB = safeParseDate(b.createdAt || 0);
+        return dateA - dateB;
+      });
+
+      let updatedCount = 0;
+      for (let i = 0; i < sorted.length; i++) {
+        const m = sorted[i];
+        const prefix = getBranchPrefix(m.branch);
+        const newId = `${prefix}${String(i + 1).padStart(3, '0')}`;
+        
+        if (m.memberId !== newId) {
+          await setDoc(doc(db, "members", m.id), { memberId: newId }, { merge: true });
+          updatedCount++;
+        }
+      }
+      
+      await fetchMembers(true);
+      showNotification(`System Sync: ${updatedCount} IDs updated.`, "success");
+    } catch (err) {
+      console.error("ID Sync Error:", err);
+      showNotification("Failed to sync member IDs.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExport = (formatType) => {
     setExportAnchorEl(null);
     const data = filteredMembers;
@@ -121,8 +177,9 @@ const Members = () => {
       doc.setFontSize(10);
       doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 28);
       
-      const headers = [["Name", "Email", "Phone", "Branch", "Status", "Joined"]];
+      const headers = [["ID", "Name", "Email", "Phone", "Branch", "Status", "Joined"]];
       const rows = data.map(m => [
+        m.memberId || 'N/A',
         m.name,
         m.email || 'N/A',
         m.phone || 'N/A',
@@ -131,7 +188,7 @@ const Members = () => {
         m.createdAt ? format(safeParseDate(m.createdAt), 'yyyy-MM-dd') : 'N/A'
       ]);
 
-      doc.autoTable({
+      autoTable(doc, {
         head: headers,
         body: rows,
         startY: 35,
@@ -140,7 +197,17 @@ const Members = () => {
       });
       doc.save(`${fileName}.pdf`);
     } else {
-      const worksheet = XLSX.utils.json_to_sheet(data);
+      // Add memberId to Excel export
+      const exportData = data.map(m => ({
+        ID: m.memberId || '',
+        Name: m.name,
+        Email: m.email || '',
+        Phone: m.phone || '',
+        Branch: m.branch || '',
+        Status: m.status || '',
+        Joined: m.createdAt ? format(safeParseDate(m.createdAt), 'yyyy-MM-dd') : ''
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Members");
       XLSX.writeFile(workbook, `${fileName}.xlsx`);
@@ -158,14 +225,19 @@ const Members = () => {
     }
     try {
       setLoading(true);
+      
+      // Auto-generate Member ID
+      const memberId = generateMemberId(newMember.branch, members);
+      
       const docRef = await addDoc(collection(db, "members"), {
         ...newMember,
+        memberId,
         createdAt: new Date().toISOString()
       });
       await fetchMembers(true); 
       setOpenAddMemberDialog(false);
-      showNotification("Member registered!", "success");
-      return { id: docRef.id, ...newMember };
+      showNotification(`Member registered with ID: ${memberId}`, "success");
+      return { id: docRef.id, ...newMember, memberId };
     } catch (err) {
       showNotification(`Failed to register: ${err.message}`, "error");
       throw err;
@@ -206,7 +278,8 @@ const Members = () => {
     const environmentFiltered = filterData(members);
     return environmentFiltered.filter(m => {
       const matchesSearch = (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           (m.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+                           (m.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (m.memberId || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesBranch = selectedBranch === '' || (m.branch || '').toLowerCase() === selectedBranch.toLowerCase();
       const matchesStatus = selectedStatus === 'all' || (m.status || 'active').toLowerCase() === selectedStatus.toLowerCase();
       return matchesSearch && matchesBranch && matchesStatus;
@@ -281,7 +354,10 @@ const Members = () => {
             </Box>
             <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h6" fontWeight={800}>{member.name}</Typography>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1, display: 'block', mt: 0.5 }}>
+                <Typography variant="caption" color="primary" fontWeight={800} sx={{ display: 'block', mb: 0.5 }}>
+                   {member.memberId || 'NO ID'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1, display: 'block' }}>
                    {member.branch || 'Main Sanctuary'}
                 </Typography>
             </Box>
@@ -329,6 +405,16 @@ const Members = () => {
                 <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
                     Manage and connect with the congregation. View profiles, track attendance eligibility, and update contact information.
                 </Typography>
+                
+                <Button 
+                  size="small" 
+                  startIcon={<Clock size={14} />} 
+                  onClick={syncMemberIds}
+                  sx={{ mt: 3, fontWeight: 700, borderRadius: 2 }}
+                  color="inherit"
+                >
+                  Sync Member IDs
+                </Button>
             </motion.div>
         </Container>
         
@@ -356,7 +442,7 @@ const Members = () => {
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search by ID, name, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -466,7 +552,7 @@ const Members = () => {
               <Table>
                 <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                   <TableRow>
-                    {['Member', 'Contact', 'Location', 'Joined', 'Status', ''].map((h, i) => (
+                    {['ID', 'Member', 'Contact', 'Location', 'Joined', 'Status', ''].map((h, i) => (
                         <TableCell key={i} sx={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: theme.palette.text.secondary }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -474,6 +560,11 @@ const Members = () => {
                 <TableBody>
                   {filteredMembers.map((member) => (
                     <TableRow key={member.id} hover onClick={() => setSelectedMember(member)} sx={{ cursor: 'pointer', transition: 'background 0.1s' }}>
+                      <TableCell>
+                        <Typography variant="caption" fontWeight={800} color="primary">
+                          {member.memberId || '—'}
+                        </Typography>
+                      </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Avatar sx={{ width: 40, height: 40, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800 }}>{member.name?.charAt(0)}</Avatar>

@@ -183,6 +183,7 @@ exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
           location: "Main Auditorium",
           isOnline: false,
           description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
+          branch: member.branch || 'Main',
           createdAt: new Date().toISOString()
         };
         await db.collection("events").add(newEvent);

@@ -276,7 +276,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                 {!isEditing && (
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
                     {getStatusChip(member.status)}
-                    <Typography variant="caption" color="text.secondary" fontWeight={600}>ID: #{member.id.toString().slice(-4)}</Typography>
+                    <Typography variant="caption" color="primary" fontWeight={800}>{member.memberId || 'NO ID'}</Typography>
                 </Stack>
                 )}
             </Box>
@@ -320,6 +320,10 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       helperText={errors.name}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
+                </Grid>
+                {/* ID is not editable as per requirements */}
+                <Grid size={{ xs: 12 }}>
+                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 700 }}>MEMBER ID: {member.memberId || 'N/A'}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
