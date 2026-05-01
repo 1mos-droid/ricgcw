@@ -150,8 +150,38 @@ const Reports = () => {
   const generatePDF = (data, type, fileName) => {
     const doc = new jsPDF();
     const title = `${type.toUpperCase()} REPORT`;
-    const headers = Object.keys(data[0]);
-    const rows = data.map(row => Object.values(row).map(v => v === null || v === undefined ? '' : String(v)));
+    
+    // Select relevant fields based on report type to keep the table readable
+    let columns = [];
+    if (type === 'members') {
+      columns = ['name', 'email', 'phone', 'branch', 'status'];
+    } else if (type === 'financial') {
+      columns = ['date', 'description', 'type', 'category', 'amount'];
+    } else if (type === 'attendance') {
+      columns = ['date', 'branch', 'attendeesCount'];
+    } else {
+      columns = Object.keys(data[0]).slice(0, 6); // Fallback
+    }
+
+    const headers = columns.map(c => c.charAt(0).toUpperCase() + c.slice(1));
+    const rows = data.map(item => {
+      // Process specific fields
+      const processedItem = { ...item };
+      if (type === 'attendance') {
+        processedItem.attendeesCount = item.attendees?.length || 0;
+      }
+      if (item.date) {
+        processedItem.date = safeParseDate(item.date).toLocaleDateString();
+      }
+      
+      return columns.map(col => {
+        const val = processedItem[col];
+        if (val === null || val === undefined) return '';
+        if (Array.isArray(val)) return `${val.length} items`;
+        if (typeof val === 'object') return '...';
+        return String(val);
+      });
+    });
 
     doc.setFontSize(18);
     doc.text(title, 14, 22);
@@ -164,7 +194,7 @@ const Reports = () => {
       body: rows,
       startY: 40,
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 2 },
+      styles: { fontSize: 9, cellPadding: 3 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 }
     });
 

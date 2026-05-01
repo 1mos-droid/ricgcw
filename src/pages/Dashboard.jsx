@@ -39,9 +39,10 @@ import { motion } from 'framer-motion';
 import { 
   ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis 
 } from 'recharts';
+import { useCallback } from 'react';
 
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 
 // --- SUB-COMPONENTS ---
@@ -143,6 +144,7 @@ const Dashboard = () => {
   const workspaceContext = useWorkspace();
   const workspace = workspaceContext?.workspace || 'main';
   const filterData = workspaceContext?.filterData || ((d) => d);
+  const userRole = workspaceContext?.userRole || 'guest';
   
   const [data, setData] = useState({
     members: [],
@@ -151,6 +153,52 @@ const Dashboard = () => {
     attendance: []
   });
   const [loading, setLoading] = useState(true);
+
+  const checkUpcomingBirthdays = useCallback(async (members, allEvents) => {
+    // Only admins or branch admins trigger automatic creation to avoid duplicates/unauthorized writes
+    if (userRole !== 'admin' && userRole !== 'branch_admin') return;
+
+    const today = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(today.getDate() + 7);
+    const targetMonth = targetDate.getMonth() + 1;
+    const targetDay = targetDate.getDate();
+    
+    const targetDateISO = targetDate.toISOString().split('T')[0];
+    const targetDateStr = targetDateISO + "T00:00:00.000Z";
+
+    const upcomingBirthdays = members.filter(member => {
+      if (!member.dob) return false;
+      const dob = safeParseDate(member.dob);
+      return (dob.getMonth() + 1) === targetMonth && dob.getDate() === targetDay;
+    });
+
+    for (const member of upcomingBirthdays) {
+      const eventName = `🎂 Birthday: ${member.name}`;
+      const exists = allEvents.some(e => 
+        e.name === eventName && 
+        getISOStringDate(e.date) === targetDateISO
+      );
+
+      if (!exists) {
+        try {
+          await addDoc(collection(db, "events"), {
+            name: eventName,
+            date: targetDateStr,
+            time: "00:00",
+            location: "Main Auditorium",
+            isOnline: false,
+            description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
+            branch: member.branch || 'Main',
+            createdAt: new Date().toISOString()
+          });
+          console.log(`Automatic event created: ${eventName}`);
+        } catch (err) {
+          console.error("Error creating birthday event:", err);
+        }
+      }
+    }
+  }, [userRole]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -165,9 +213,13 @@ const Dashboard = () => {
         ]);
 
         const now = new Date();
-        const eventsData = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const rawMembers = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const rawEvents = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        const upcomingEvents = (eventsData || []).filter(event => {
+        // Background check for birthdays
+        checkUpcomingBirthdays(rawMembers, rawEvents);
+
+        const upcomingEvents = (rawEvents || []).filter(event => {
           if (!event.date) return false;
           const eventDateStr = getISOStringDate(event.date);
           const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
@@ -181,7 +233,7 @@ const Dashboard = () => {
         });
 
         setData({
-          members: membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [],
+          members: rawMembers,
           transactions: txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [],
           events: upcomingEvents,
           attendance: attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []
@@ -194,7 +246,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [checkUpcomingBirthdays]);
 
   const filteredData = useMemo(() => {
     return {

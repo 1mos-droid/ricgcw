@@ -71,9 +71,7 @@ function App() {
         </Box>
       )}
       <AppLayout>
-        <AnimatePresence mode="wait">
-          <AppRouter key={location.pathname} />
-        </AnimatePresence>
+        <AppRouter />
       </AppLayout>
     </ThemeConfig>
   );

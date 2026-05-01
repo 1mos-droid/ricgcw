@@ -165,7 +165,9 @@ const Attendance = () => {
     const attendeesList = members.filter(m => m && m.id && selectedAttendees.has(m.id));
 
     try {
-      const recordDate = new Date(`${selectedDate}T12:00:00`);
+      // Use the selected date string to create a Date object at noon UTC to avoid timezone issues
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const recordDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
       const recordData = {
         date: recordDate.toISOString(),

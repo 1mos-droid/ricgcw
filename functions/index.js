@@ -153,7 +153,7 @@ app.use("/targets", createHandler("targets"));
 exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
   const today = new Date();
   const targetDate = new Date();
-  targetDate.setDate(today.getDate() + 14);
+  targetDate.setDate(today.getDate() + 7);
   const targetMonth = targetDate.getMonth() + 1;
   const targetDay = targetDate.getDate();
 

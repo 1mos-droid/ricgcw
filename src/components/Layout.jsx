@@ -169,11 +169,76 @@ const BOTTOM_NAV_ITEMS = [
   { text: 'More', icon: <MenuIcon />, path: '/settings' }, 
 ];
 
+const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, location }) => (
+    <Drawer
+      anchor="bottom"
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          bgcolor: alpha(theme.palette.background.paper, 0.9),
+          backdropFilter: 'blur(20px)',
+          backgroundImage: 'none',
+          maxHeight: '80vh',
+          p: 3,
+          pb: 12
+        }
+      }}
+    >
+      <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.divider, borderRadius: 2, mx: 'auto', mb: 4 }} />
+      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, px: 1 }}>Explore</Typography>
+      
+      <Grid container spacing={2}>
+        {filteredNavItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Grid size={{ xs: 4 }} key={item.text}>
+              <Box
+                component={motion.div}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  navigate(item.path);
+                  onClose();
+                }}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1,
+                  p: 2,
+                  borderRadius: 4,
+                  bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Avatar 
+                  sx={{ 
+                    bgcolor: isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.05),
+                    color: isActive ? '#fff' : theme.palette.text.primary,
+                    width: 50, height: 50, borderRadius: 3
+                  }}
+                >
+                  {item.icon}
+                </Avatar>
+                <Typography variant="caption" fontWeight={700} align="center" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {item.text}
+                </Typography>
+              </Box>
+            </Grid>
+          );
+        })}
+      </Grid>
+    </Drawer>
+  );
+
 const AppLayout = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { mode, toggleColorMode } = useColorMode();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const { userRole, workspace } = useWorkspace(); 
@@ -218,71 +283,6 @@ const AppLayout = ({ children }) => {
         setBottomNavValue('/settings'); // Use settings path as 'More' indicator
     }
   }, [location.pathname]);
-
-  const MobileMoreMenu = () => (
-    <Drawer
-      anchor="bottom"
-      open={moreOpen}
-      onClose={() => setMoreOpen(false)}
-      PaperProps={{
-        sx: {
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          bgcolor: alpha(theme.palette.background.paper, 0.9),
-          backdropFilter: 'blur(20px)',
-          backgroundImage: 'none',
-          maxHeight: '80vh',
-          p: 3,
-          pb: 12
-        }
-      }}
-    >
-      <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.divider, borderRadius: 2, mx: 'auto', mb: 4 }} />
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, px: 1 }}>Explore</Typography>
-      
-      <Grid container spacing={2}>
-        {filteredNavItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Grid size={{ xs: 4 }} key={item.text}>
-              <Box
-                component={motion.div}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => {
-                  navigate(item.path);
-                  setMoreOpen(false);
-                }}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 2,
-                  borderRadius: 4,
-                  bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Avatar 
-                  sx={{ 
-                    bgcolor: isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.05),
-                    color: isActive ? '#fff' : theme.palette.text.primary,
-                    width: 50, height: 50, borderRadius: 3
-                  }}
-                >
-                  {item.icon}
-                </Avatar>
-                <Typography variant="caption" fontWeight={700} align="center" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {item.text}
-                </Typography>
-              </Box>
-            </Grid>
-          );
-        })}
-      </Grid>
-    </Drawer>
-  );
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
@@ -385,9 +385,11 @@ const AppLayout = ({ children }) => {
           }}
           onClick={handleMenu}
         >
-          <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>ND</Avatar>
+          <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>
+            {user?.email?.charAt(0).toUpperCase() || 'U'}
+          </Avatar>
           <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <Typography variant="subtitle2" fontWeight={700} noWrap>Rev. Nicholas Dobeng</Typography>
+            <Typography variant="subtitle2" fontWeight={700} noWrap>{user?.email || 'System User'}</Typography>
             <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{userRole || 'Administrator'}</Typography>
           </Box>
         </Box>
@@ -479,7 +481,9 @@ const AppLayout = ({ children }) => {
                 }}
                 onClick={handleMenu}
             >
-                <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.secondary.main, fontSize: '0.8rem', fontWeight: 700 }}>KM</Avatar>
+                <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.secondary.main, fontSize: '0.8rem', fontWeight: 700 }}>
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
             </Box>
           </Stack>
 
@@ -491,7 +495,7 @@ const AppLayout = ({ children }) => {
           >
             <Box sx={{ px: 2, py: 1.5 }}>
               <Typography variant="subtitle2" fontWeight={700}>My Account</Typography>
-              <Typography variant="caption" color="text.secondary">Manage your preferences</Typography>
+              <Typography variant="caption" color="text.secondary">{user?.email || 'Manage preferences'}</Typography>
             </Box>
             <Divider />
             <MenuItem onClick={handleClose} sx={{ py: 1.5, px: 2 }}>Profile & Security</MenuItem>
@@ -567,23 +571,20 @@ const AppLayout = ({ children }) => {
                 ))}
              </BottomNavigation>
           </Paper>
-          <MobileMoreMenu />
+          <MobileMoreMenu 
+            open={moreOpen} 
+            onClose={() => setMoreOpen(false)} 
+            theme={theme}
+            navigate={navigate}
+            filteredNavItems={filteredNavItems}
+            location={location}
+          />
           </>
       )}
 
       <Main open={open}>
         <Toolbar sx={{ height: { xs: 70, md: 90 } }} /> {/* Spacer */}
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={location.pathname} 
-            initial={{ opacity: 0, y: 15 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: "easeOut" }} 
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {children}
       </Main>
     </Box>
   );

@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { Snackbar, Alert } from '@mui/material';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import { useAuth } from './AuthContext';
 
 const WorkspaceContext = createContext();
 
@@ -13,19 +14,14 @@ export const useWorkspace = () => {
 };
 
 export const WorkspaceProvider = ({ children }) => {
+  const { user } = useAuth();
+  
   const [workspace, setWorkspace] = useState(() => {
     return localStorage.getItem('activeWorkspace') || 'main';
   });
 
-  const [userBranch, setUserBranch] = useState(() => {
-    const saved = localStorage.getItem('userBranch');
-    return (saved && saved !== 'undefined') ? saved : 'all';
-  });
-
-  const [userRole, setUserRole] = useState(() => {
-    const saved = localStorage.getItem('userRole');
-    return (saved && saved !== 'undefined') ? saved : 'guest';
-  });
+  const userBranch = useMemo(() => user?.branch || 'all', [user]);
+  const userRole = useMemo(() => user?.role || 'guest', [user]);
 
   // --- Global Notification State ---
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
@@ -40,21 +36,10 @@ export const WorkspaceProvider = ({ children }) => {
   };
 
   const refreshUserContext = () => {
-    const branch = localStorage.getItem('userBranch') || 'all';
-    const role = localStorage.getItem('userRole') || 'guest';
+    // This is now mostly handled by AuthContext updates
     const activeWs = localStorage.getItem('activeWorkspace') || 'main';
-    setUserBranch(branch);
-    setUserRole(role);
     setWorkspace(activeWs);
   };
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      refreshUserContext();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   const switchWorkspace = (id) => {
     setWorkspace(id);
@@ -64,7 +49,8 @@ export const WorkspaceProvider = ({ children }) => {
   const filterData = (data) => {
     if (!data || !Array.isArray(data)) return [];
     
-    const currentBranch = localStorage.getItem('userBranch') || userBranch;
+    // Use the latest branch info from the user object
+    const currentBranch = userBranch;
 
     let filteredByBranch = data;
     if (currentBranch && currentBranch !== 'all') {

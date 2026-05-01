@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 /**
  * Custom hook to handle asynchronous operations with loading and error states.
@@ -29,11 +29,11 @@ export const useAsync = (asyncFunction, immediate = false) => {
   }, [asyncFunction]);
 
   // Execute immediately if requested
-  useState(() => {
+  useEffect(() => {
     if (immediate) {
       execute();
     }
-  });
+  }, [execute, immediate]);
 
   return { execute, status, value, error, 
     isLoading: status === 'pending',

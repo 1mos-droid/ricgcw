@@ -71,59 +71,55 @@ const RequireRole = ({ roles, children }) => {
 };
 
 const AppRouter = () => {
-  const location = useLocation();
-  
   return (
     <Suspense fallback={<PageLoader />}>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
-          
-          {/* Protected Routes (Authenticated) */}
-          <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />
-          <Route path="/members" element={<RequireAuth><MotionWrap><Members /></MotionWrap></RequireAuth>} />
-          <Route path="/attendance" element={<RequireAuth><MotionWrap><Attendance /></MotionWrap></RequireAuth>} />
-          <Route path="/financials" element={<RequireAuth><MotionWrap><Financials /></MotionWrap></RequireAuth>} />
-          <Route path="/events" element={<RequireAuth><MotionWrap><Events /></MotionWrap></RequireAuth>} />
-          <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
-          <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
-          <Route path="/live-bible" element={<RequireAuth><MotionWrap><LiveBible /></MotionWrap></RequireAuth>} />
-          <Route path="/settings" element={<RequireAuth><MotionWrap><Settings /></MotionWrap></RequireAuth>} />
-          <Route path="/help" element={<RequireAuth><MotionWrap><Help /></MotionWrap></RequireAuth>} />
+      <Routes>
+        <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
+        
+        {/* Protected Routes (Authenticated) */}
+        <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />
+        <Route path="/members" element={<RequireAuth><MotionWrap><Members /></MotionWrap></RequireAuth>} />
+        <Route path="/attendance" element={<RequireAuth><MotionWrap><Attendance /></MotionWrap></RequireAuth>} />
+        <Route path="/financials" element={<RequireAuth><MotionWrap><Financials /></MotionWrap></RequireAuth>} />
+        <Route path="/events" element={<RequireAuth><MotionWrap><Events /></MotionWrap></RequireAuth>} />
+        <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
+        <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
+        <Route path="/live-bible" element={<RequireAuth><MotionWrap><LiveBible /></MotionWrap></RequireAuth>} />
+        <Route path="/settings" element={<RequireAuth><MotionWrap><Settings /></MotionWrap></RequireAuth>} />
+        <Route path="/help" element={<RequireAuth><MotionWrap><Help /></MotionWrap></RequireAuth>} />
 
-          {/* Admin Restricted Routes */}
-          <Route 
-            path="/user-management" 
-            element={
-              <RequireAuth>
-                <RequireRole roles={['admin']}>
-                  <MotionWrap><UserManagement /></MotionWrap>
-                </RequireRole>
-              </RequireAuth>
-            } 
-          />
-          <Route 
-            path="/quick-switch" 
-            element={
-              <RequireAuth>
-                <RequireRole roles={['admin']}>
-                  <MotionWrap><QuickSwitch /></MotionWrap>
-                </RequireRole>
-              </RequireAuth>
-            } 
-          />
-          <Route 
-            path="/graph" 
-            element={
-              <RequireAuth>
-                <RequireRole roles={['admin']}>
-                  <MotionWrap><Graph /></MotionWrap>
-                </RequireRole>
-              </RequireAuth>
-            } 
-          />
-        </Routes>
-      </AnimatePresence>
+        {/* Admin Restricted Routes */}
+        <Route 
+          path="/user-management" 
+          element={
+            <RequireAuth>
+              <RequireRole roles={['admin']}>
+                <MotionWrap><UserManagement /></MotionWrap>
+              </RequireRole>
+            </RequireAuth>
+          } 
+        />
+        <Route 
+          path="/quick-switch" 
+          element={
+            <RequireAuth>
+              <RequireRole roles={['admin']}>
+                <MotionWrap><QuickSwitch /></MotionWrap>
+              </RequireRole>
+            </RequireAuth>
+          } 
+        />
+        <Route 
+          path="/graph" 
+          element={
+            <RequireAuth>
+              <RequireRole roles={['admin']}>
+                <MotionWrap><Graph /></MotionWrap>
+              </RequireRole>
+            </RequireAuth>
+          } 
+        />
+      </Routes>
     </Suspense>
   );
 };
