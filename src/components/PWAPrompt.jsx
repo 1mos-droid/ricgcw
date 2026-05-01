@@ -24,39 +24,31 @@ export default function PWAPrompt() {
 
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+  });
 
-  let offlineReady = false;
-  let needRefresh = false;
-  let updateServiceWorker = null;
-
-  try {
-    const sw = useRegisterSW({
-      onRegistered(r) {
-        console.log('Service Worker Registered');
-      },
-      onRegisterError(error) {
-        console.error('SW registration error', error);
-      },
-    });
-    if (sw) {
-      offlineReady = sw.offlineReady?.[0] ?? false;
-      needRefresh = sw.needRefresh?.[0] ?? false;
-      updateServiceWorker = sw.updateServiceWorker;
-    }
-  } catch (e) {
-    console.warn('PWA registerSW error:', e);
-  }
+  const {
+    offlineReady: [offlineReady, setOfflineReady],
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered() {
+      console.log('Service Worker Registered');
+    },
+    onRegisterError(error) {
+      console.error('SW registration error', error);
+    },
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true;
-    setIsInstalled(isStandalone);
-
     const handleBeforeInstall = (e) => {
-      e.preventDefault();
+      // Don't call e.preventDefault() if you want the browser's native prompt to show
+      // e.preventDefault(); 
       setInstallPromptEvent(e);
       setShowInstall(true);
     };
@@ -89,9 +81,10 @@ export default function PWAPrompt() {
   }, [installPromptEvent]);
 
   const close = useCallback(() => {
-    setShowInstall(false);
-  }, []);
-
+   setShowInstall(false);
+   setOfflineReady(false);
+   setNeedRefresh(false);
+  }, [setOfflineReady, setNeedRefresh]);
   const handleReload = useCallback(() => {
     if (updateServiceWorker) {
       updateServiceWorker(true);

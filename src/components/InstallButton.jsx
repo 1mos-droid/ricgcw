@@ -9,7 +9,8 @@ export default function InstallButton() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
+      // Don't call e.preventDefault() if you want the browser's native prompt to show
+      // e.preventDefault();
       setInstallPrompt(e);
       setIsInstallable(true);
     };
