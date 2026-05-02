@@ -113,7 +113,7 @@ const Members = () => {
   const getBranchPrefix = (branch) => {
     switch (branch?.toLowerCase()) {
       case 'mallam': return 'M';
-      case 'kokrobetey': return 'K';
+      case 'kokrobitey': return 'K';
       case 'langma': return 'L';
       default: return 'M'; // Default to Mallam if unspecified
     }
@@ -467,7 +467,7 @@ const Members = () => {
                   <MenuItem value="">All Branches</MenuItem>
                   <MenuItem value="Langma">Langma</MenuItem>
                   <MenuItem value="Mallam">Mallam</MenuItem>
-                  <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+                  <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                 </Select>
              </FormControl>
           </Grid>

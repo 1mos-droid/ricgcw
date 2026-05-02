@@ -173,7 +173,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
             <MenuItem value="all">Global Access</MenuItem>
             <MenuItem value="Langma">Langma</MenuItem>
             <MenuItem value="Mallam">Mallam</MenuItem>
-            <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+            <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
           </TextField>
 
           {error && (

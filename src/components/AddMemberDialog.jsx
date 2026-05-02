@@ -275,7 +275,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 >
                   <MenuItem value="Langma">Langma</MenuItem>
                   <MenuItem value="Mallam">Mallam</MenuItem>
-                  <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+                  <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                 </Select>
                 {errors.branch && <FormHelperText>{errors.branch}</FormHelperText>}
               </FormControl>

@@ -313,7 +313,7 @@ const Financials = () => {
         <Stack direction="row" spacing={2}>
             {!isBranchRestricted && (
                 <Paper elevation={0} sx={{ p: 0.5, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, display: { xs: 'none', md: 'flex' } }}>
-                    {['All', 'Mallam', 'Langma', 'Kokrobetey'].map((loc) => (
+                    {['All', 'Mallam', 'Langma', 'Kokrobitey'].map((loc) => (
                         <Button 
                             key={loc}
                             size="small"
@@ -395,8 +395,8 @@ const Financials = () => {
                     <Typography variant="h6" fontWeight={800}>Cash Flow Analysis</Typography>
                     <Chip label="Real-time" size="small" color="success" variant="outlined" sx={{ fontWeight: 700 }} />
                 </Box>
-                <Box sx={{ height: '80%', width: '100%', minHeight: 0, minWidth: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                <Box sx={{ height: 300, width: '100%', minHeight: 300, minWidth: 0 }}>
+                    <ResponsiveContainer width="99%" height="100%">
                         <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id="colorFlow" x1="0" y1="0" x2="0" y2="1">
@@ -572,7 +572,7 @@ const Financials = () => {
                 >
                     <MenuItem value="Mallam">Mallam</MenuItem>
                     <MenuItem value="Langma">Langma</MenuItem>
-                    <MenuItem value="Kokrobetey">Kokrobetey</MenuItem>
+                    <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                 </TextField>
             </Stack>
         </DialogContent>

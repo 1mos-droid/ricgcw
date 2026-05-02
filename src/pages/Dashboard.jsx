@@ -120,8 +120,8 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
 
         {/* Mini Sparkline Background */}
         {chartData && (
-          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none', minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, minHeight: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none', minWidth: 0 }}>
+            <ResponsiveContainer width="99%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id={`color${title}`} x1="0" y1="0" x2="0" y2="1">
