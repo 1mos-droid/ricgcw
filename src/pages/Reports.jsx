@@ -32,7 +32,11 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { 
   Users, 
@@ -74,16 +78,24 @@ const MONTHS = [
 
 const Reports = () => {
   const theme = useTheme();
-  const { workspace, filterData, showNotification } = useWorkspace();
+  const { filterData, showNotification, isBranchRestricted, userBranch } = useWorkspace();
   
   // --- STATE ---
   const [stats, setStats] = useState({ members: 0, funds: 0, events: 0 });
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(null); // Tracks which report/format is downloading
+  const [generating, setGenerating] = useState(false);
   
   const [reportPeriod, setReportPeriod] = useState('overall'); // 'overall' or 'monthly'
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : 'all');
+
+  // Dialog State
+  const [openDialog, setOpenDialog] = useState(false);
+  const [reportConfig, setReportConfig] = useState({
+    type: 'general',
+    format: 'pdf'
+  });
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -105,14 +117,23 @@ const Reports = () => {
         const financeData = financeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const eventsData = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const filteredMembers = filterData(membersData || []);
+        // Apply local report filters
+        const branchFilter = (data) => {
+          if (selectedBranch === 'all') return data;
+          return data.filter(item => 
+            String(item.branch || item.category || '').toLowerCase() === selectedBranch.toLowerCase()
+          );
+        };
+
+        const filteredMembers = branchFilter(membersData);
         const memberIds = new Set(filteredMembers.map(m => String(m.id)));
 
         const totalFunds = (financeData || [])
           .filter(t => {
             if (t.type !== 'contribution') return false;
-            if (t.memberId) return memberIds.has(String(t.memberId));
-            return workspace === 'main';
+            const itemBranch = String(t.category || '').toLowerCase();
+            if (selectedBranch !== 'all' && itemBranch !== selectedBranch.toLowerCase()) return false;
+            return true;
           })
           .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
@@ -129,119 +150,230 @@ const Reports = () => {
       }
     };
     fetchStats();
-  }, [workspace, filterData, showNotification]);
+  }, [selectedBranch, showNotification]);
 
-  const downloadReport = async (type, format) => {
-    const genKey = `${type}-${format}`;
-    setGenerating(genKey);
+  const handleOpenDialog = (type) => {
+    setReportConfig({ ...reportConfig, type });
+    setOpenDialog(true);
+  };
+
+  const downloadReport = async () => {
+    const { type, format } = reportConfig;
+    setGenerating(true);
     
     try {
-      let collectionName = '';
-      if (type === 'members') collectionName = 'members';
-      if (type === 'financial') collectionName = 'transactions';
-      if (type === 'attendance') collectionName = 'attendance';
-
-      const querySnapshot = await getDocs(collection(db, collectionName));
-      const rawData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      let data = filterData(rawData);
-
-      // --- FILTER BY PERIOD ---
-      if (reportPeriod === 'monthly') {
-        data = data.filter(item => {
-          const itemDate = safeParseDate(item.date || item.createdAt || 0);
-          return itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear;
-        });
-      }
-
-      // Sort data by date (descending - newest first)
-      if (data && data.length > 0) {
-        data = data.sort((a, b) => {
-          const dateA = safeParseDate(a.date || a.createdAt || 0);
-          const dateB = safeParseDate(b.date || b.createdAt || 0);
-          return dateB - dateA;
-        });
-      }
-
-      if (!data || data.length === 0) {
-        showNotification(`No data available for ${reportPeriod === 'monthly' ? MONTHS[selectedMonth].label + ' ' + selectedYear : 'the selected period'}.`, "warning");
-        setGenerating(null);
-        return;
-      }
-
+      let data = {};
       const dateStr = reportPeriod === 'monthly' 
         ? `${MONTHS[selectedMonth].label}_${selectedYear}`
         : new Date().toISOString().slice(0,10);
-      
-      const fileName = `${type}_report_${dateStr}`;
+      const fileName = `${type}_report_${selectedBranch}_${dateStr}`;
+
+      const branchFilter = (items) => {
+        if (selectedBranch === 'all') return items;
+        return items.filter(item => 
+          String(item.branch || item.category || '').toLowerCase() === selectedBranch.toLowerCase()
+        );
+      };
+
+      const periodFilter = (items) => {
+        if (reportPeriod === 'overall') return items;
+        return items.filter(item => {
+          const itemDate = safeParseDate(item.date || item.createdAt || 0);
+          return itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear;
+        });
+      };
+
+      if (type === 'general' || type === 'members') {
+        const snap = await getDocs(collection(db, "members"));
+        data.members = periodFilter(branchFilter(snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+      }
+      if (type === 'general' || type === 'financial') {
+        const snap = await getDocs(collection(db, "transactions"));
+        data.financial = periodFilter(branchFilter(snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+      }
+      if (type === 'general' || type === 'attendance') {
+        const snap = await getDocs(collection(db, "attendance"));
+        data.attendance = periodFilter(branchFilter(snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+      }
+
+      // Check if any data exists
+      const hasData = Object.values(data).some(arr => arr && arr.length > 0);
+      if (!hasData) {
+        showNotification("No data found for the selected criteria.", "warning");
+        setGenerating(false);
+        return;
+      }
 
       if (format === 'pdf') {
-        generatePDF(data, type, fileName);
-      } else if (format === 'excel') {
-        generateExcel(data, type, fileName);
+        generateCategorizedPDF(data, type, fileName);
+      } else {
+        // Simple excel for now, combining if general
+        const workbook = XLSX.utils.book_new();
+        Object.keys(data).forEach(key => {
+          if (data[key] && data[key].length > 0) {
+            const ws = XLSX.utils.json_to_sheet(data[key]);
+            XLSX.utils.book_append_sheet(workbook, ws, key.charAt(0).toUpperCase() + key.slice(1));
+          }
+        });
+        XLSX.writeFile(workbook, `${fileName}.xlsx`);
       }
       
-      showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} ${format.toUpperCase()} report downloaded successfully.`);
+      showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} report generated.`);
+      setOpenDialog(false);
     } catch (error) {
       console.error(error);
-      showNotification("Failed to generate document.", "error");
+      showNotification("Failed to generate report.", "error");
     } finally {
-      setGenerating(null);
+      setGenerating(false);
     }
   };
 
-  const generatePDF = (data, type, fileName) => {
+  const generateCategorizedPDF = (data, type, fileName) => {
     const doc = new jsPDF();
     const periodTitle = reportPeriod === 'monthly' 
       ? `${MONTHS[selectedMonth].label.toUpperCase()} ${selectedYear}` 
       : 'OVERALL';
-    const title = `${type.toUpperCase()} REPORT - ${periodTitle}`;
+    const branchTitle = selectedBranch === 'all' ? 'OVERALL SYSTEM' : selectedBranch.toUpperCase();
     
-    // Select relevant fields based on report type to keep the table readable
-    let columns = [];
-    if (type === 'members') {
-      columns = ['name', 'email', 'phone', 'branch', 'status'];
-    } else if (type === 'financial') {
-      columns = ['date', 'description', 'type', 'category', 'amount'];
-    } else if (type === 'attendance') {
-      columns = ['date', 'branch', 'attendeesCount'];
-    } else {
-      columns = Object.keys(data[0]).slice(0, 6); // Fallback
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(59, 130, 246);
+    doc.text("EXECUTIVE REPORT", 14, 22);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Scope: ${branchTitle}`, 14, 30);
+    doc.text(`Period: ${periodTitle}`, 14, 36);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 42);
+    
+    let currentY = 55;
+
+    // --- FINANCIAL SECTION (Split Layout) ---
+    if (data.financial && data.financial.length > 0) {
+      doc.setFontSize(18);
+      doc.setTextColor(0);
+      doc.text("Financial Statement", 14, currentY);
+      currentY += 10;
+
+      const income = data.financial.filter(t => t.type === 'contribution');
+      const expenses = data.financial.filter(t => t.type === 'expense');
+
+      const incomeTotal = income.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const expenseTotal = expenses.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+      // Summary Table
+      autoTable(doc, {
+        head: [['Category', 'Total Amount']],
+        body: [
+          ['Total Income (Contributions)', `GHC ${incomeTotal.toLocaleString()}`],
+          ['Total Expenses', `GHC ${expenseTotal.toLocaleString()}`],
+          ['Net Balance', `GHC ${(incomeTotal - expenseTotal).toLocaleString()}`]
+        ],
+        startY: currentY,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontStyle: 'bold' }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 15;
+
+      // side-by-side effectively means separate tables for Income and Expenses
+      doc.setFontSize(14);
+      doc.setTextColor(34, 197, 94); // Success Green
+      doc.text("Income Details", 14, currentY);
+      currentY += 5;
+
+      if (income.length > 0) {
+        autoTable(doc, {
+          head: [['Date', 'Description', 'Branch', 'Amount']],
+          body: income.sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(t => [
+            safeParseDate(t.date).toLocaleDateString(),
+            t.description,
+            t.category,
+            `GHC ${Number(t.amount).toLocaleString()}`
+          ]),
+          startY: currentY,
+          theme: 'striped',
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [34, 197, 94] }
+        });
+        currentY = doc.lastAutoTable.finalY + 15;
+      } else {
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("No income records found for this period.", 14, currentY + 5);
+        currentY += 15;
+      }
+
+      if (currentY > 240) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14);
+      doc.setTextColor(239, 68, 68); // Error Red
+      doc.text("Expense Details", 14, currentY);
+      currentY += 5;
+
+      if (expenses.length > 0) {
+        autoTable(doc, {
+          head: [['Date', 'Description', 'Branch', 'Amount']],
+          body: expenses.sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(t => [
+            safeParseDate(t.date).toLocaleDateString(),
+            t.description,
+            t.category,
+            `GHC ${Number(t.amount).toLocaleString()}`
+          ]),
+          startY: currentY,
+          theme: 'striped',
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [239, 68, 68] }
+        });
+        currentY = doc.lastAutoTable.finalY + 20;
+      } else {
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("No expense records found for this period.", 14, currentY + 5);
+        currentY += 15;
+      }
     }
 
-    const headers = columns.map(c => c.charAt(0).toUpperCase() + c.slice(1));
-    const rows = data.map(item => {
-      // Process specific fields
-      const processedItem = { ...item };
-      if (type === 'attendance') {
-        processedItem.attendeesCount = item.attendees?.length || 0;
-      }
-      if (item.date) {
-        processedItem.date = safeParseDate(item.date).toLocaleDateString();
-      }
-      
-      return columns.map(col => {
-        const val = processedItem[col];
-        if (val === null || val === undefined) return '';
-        if (Array.isArray(val)) return `${val.length} items`;
-        if (typeof val === 'object') return '...';
-        return String(val);
+    // --- MEMBERSHIP SECTION ---
+    if (data.members && data.members.length > 0) {
+      if (currentY > 220) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("Membership Registry", 14, currentY);
+      currentY += 10;
+
+      autoTable(doc, {
+        head: [['Name', 'Branch', 'Phone', 'Status']],
+        body: data.members.map(m => [m.name, m.branch, m.phone, m.status]),
+        startY: currentY,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] }
       });
-    });
+      currentY = doc.lastAutoTable.finalY + 20;
+    }
 
-    doc.setFontSize(18);
-    doc.text(title, 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 30);
+    // --- ATTENDANCE SECTION ---
+    if (data.attendance && data.attendance.length > 0) {
+      if (currentY > 220) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("Attendance Logs", 14, currentY);
+      currentY += 10;
 
-    autoTable(doc, {
-      head: [headers],
-      body: rows,
-      startY: 40,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [59, 130, 246], textColor: 255 }
-    });
+      autoTable(doc, {
+        head: [['Date', 'Branch', 'Attendees']],
+        body: data.attendance.map(a => [
+            safeParseDate(a.date).toLocaleDateString(),
+            a.branch,
+            a.attendees?.length || 0
+        ]),
+        startY: currentY,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [245, 158, 11] }
+      });
+    }
 
     doc.save(`${fileName}.pdf`);
   };
@@ -259,6 +391,7 @@ const Reports = () => {
   };
 
   const reportTypes = [
+    { id: 'general', title: 'General Report', icon: BarChart2, color: theme.palette.info.main, desc: 'Aggregated summary of finances, members, and attendance.' },
     { id: 'members', title: 'Membership', icon: Users, color: theme.palette.primary.main, desc: `Full registry export of ${stats.members} members.` },
     { id: 'financial', title: 'Financial', icon: DollarSign, color: theme.palette.success.main, desc: `Balance sheets and transactions (GHC ${stats.funds.toLocaleString()}).` },
     { id: 'attendance', title: 'Attendance', icon: Calendar, color: theme.palette.warning.main, desc: 'Participation trends and logs.' }
@@ -292,9 +425,28 @@ const Reports = () => {
       {/* --- FILTER BAR --- */}
       <Paper sx={{ p: 3, mb: 6, borderRadius: 6, border: `1px solid ${theme.palette.divider}` }} elevation={0}>
         <Grid container spacing={3} alignItems="center">
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Typography variant="subtitle2" fontWeight={800} color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Filter size={16} /> REPORT SCOPE
+              <Filter size={16} /> BRANCH SCOPE
+            </Typography>
+            <FormControl fullWidth size="medium">
+                <Select
+                    value={selectedBranch}
+                    onChange={(e) => setSelectedBranch(e.target.value)}
+                    disabled={isBranchRestricted}
+                    sx={{ borderRadius: 3, fontWeight: 700 }}
+                >
+                    <MenuItem value="all">All Branches</MenuItem>
+                    <MenuItem value="Mallam">Mallam</MenuItem>
+                    <MenuItem value="Langma">Langma</MenuItem>
+                    <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
+                </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="subtitle2" fontWeight={800} color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Clock size={16} /> REPORT PERIOD
             </Typography>
             <ButtonGroup fullWidth sx={{ borderRadius: 3, overflow: 'hidden' }}>
               <Button 
@@ -316,12 +468,11 @@ const Reports = () => {
           
           {reportPeriod === 'monthly' && (
             <>
-              <Grid size={{ xs: 6, md: 4 }}>
+              <Grid size={{ xs: 6, md: 3 }}>
+                <Typography variant="subtitle2" fontWeight={800} color="text.secondary" gutterBottom>MONTH</Typography>
                 <FormControl fullWidth size="medium">
-                  <InputLabel>Month</InputLabel>
                   <Select
                     value={selectedMonth}
-                    label="Month"
                     onChange={(e) => setSelectedMonth(e.target.value)}
                     sx={{ borderRadius: 3 }}
                   >
@@ -331,12 +482,11 @@ const Reports = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid size={{ xs: 6, md: 4 }}>
+              <Grid size={{ xs: 6, md: 3 }}>
+                <Typography variant="subtitle2" fontWeight={800} color="text.secondary" gutterBottom>YEAR</Typography>
                 <FormControl fullWidth size="medium">
-                  <InputLabel>Year</InputLabel>
                   <Select
                     value={selectedYear}
-                    label="Year"
                     onChange={(e) => setSelectedYear(e.target.value)}
                     sx={{ borderRadius: 3 }}
                   >
@@ -354,7 +504,7 @@ const Reports = () => {
       <Grid container spacing={4}>
         {/* Report Category Cards */}
         {reportTypes.map((report) => (
-            <Grid size={{ xs: 12, md: 4 }} key={report.id}>
+            <Grid size={{ xs: 12, md: report.id === 'general' ? 6 : 4 }} key={report.id}>
                 <Card sx={{ 
                     p: 4, height: '100%', borderRadius: 6, border: `1px solid ${theme.palette.divider}`,
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -368,79 +518,60 @@ const Reports = () => {
                         {loading ? <Skeleton /> : report.desc}
                     </Typography>
                     
-                    <Stack spacing={2}>
-                        <Button 
-                            fullWidth variant="contained" 
-                            startIcon={generating === `${report.id}-pdf` ? <CircularProgress size={18} color="inherit" /> : <FileText size={18} />}
-                            onClick={() => downloadReport(report.id, 'pdf')}
-                            disabled={generating !== null || loading}
-                            sx={{ borderRadius: 3, fontWeight: 700, py: 1.2 }}
-                        >
-                            {generating === `${report.id}-pdf` ? 'Preparing PDF...' : 'Download PDF'}
-                        </Button>
-                        <Button 
-                            fullWidth variant="outlined" 
-                            startIcon={generating === `${report.id}-excel` ? <CircularProgress size={18} /> : <FileSpreadsheet size={18} />}
-                            onClick={() => downloadReport(report.id, 'excel')}
-                            disabled={generating !== null || loading}
-                            sx={{ borderRadius: 3, fontWeight: 700, py: 1.2 }}
-                        >
-                            {generating === `${report.id}-excel` ? 'Preparing Excel...' : 'Download Excel'}
-                        </Button>
-                    </Stack>
+                    <Button 
+                        fullWidth variant="contained" 
+                        startIcon={<FileText size={18} />}
+                        onClick={() => handleOpenDialog(report.id)}
+                        disabled={loading}
+                        sx={{ borderRadius: 3, fontWeight: 700, py: 1.5, bgcolor: report.color, '&:hover': { bgcolor: alpha(report.color, 0.8) } }}
+                    >
+                        Configure & Generate
+                    </Button>
                 </Card>
             </Grid>
         ))}
-
-        {/* Archive Table */}
-        <Grid size={{ xs: 12 }}>
-            <Box sx={{ mt: 4 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-                    <Typography variant="h6" fontWeight={800} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Clock size={20} color={theme.palette.text.secondary} /> Recent Archive
-                    </Typography>
-                    <Button size="small" endIcon={<ChevronRight size={16} />} sx={{ fontWeight: 700 }}>Full Archive</Button>
-                </Stack>
-                <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 5, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: alpha(theme.palette.action.hover, 0.5) }}>
-                                {['Report Name', 'Type', 'Generated On', 'Status', 'Actions'].map(h => (
-                                    <TableCell key={h} sx={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
-                                ))}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {[
-                                { name: 'Monthly_Audit_Jan.pdf', type: 'Financial', date: 'Feb 01, 2026', status: 'Final' },
-                                { name: 'Member_Demographics_Q4.xlsx', type: 'Membership', date: 'Jan 15, 2026', status: 'Final' },
-                                { name: 'Annual_Giving_Statement.pdf', type: 'Financial', date: 'Dec 31, 2025', status: 'Archived' }
-                            ].map((row, idx) => (
-                                <TableRow key={idx} hover sx={{ cursor: 'pointer' }}>
-                                    <TableCell>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Avatar sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
-                                                <FileText size={16} />
-                                            </Avatar>
-                                            <Typography variant="body2" fontWeight={700}>{row.name}</Typography>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell><Chip label={row.type} size="small" sx={{ fontWeight: 700, borderRadius: 1 }} /></TableCell>
-                                    <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>{row.date}</TableCell>
-                                    <TableCell><Chip label={row.status} size="small" color="success" variant="outlined" sx={{ fontWeight: 800, height: 20, fontSize: '0.6rem' }} /></TableCell>
-                                    <TableCell>
-                                        <IconButton size="small" color="primary">
-                                            <Download size={18} />
-                                        </IconButton>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Box>
-        </Grid>
       </Grid>
+
+      {/* --- GENERATION DIALOG --- */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} PaperProps={{ sx: { borderRadius: 6, width: '100%', maxWidth: 400 } }}>
+        <DialogTitle sx={{ fontWeight: 800, textAlign: 'center' }}>
+            Generate {reportConfig.type.charAt(0).toUpperCase() + reportConfig.type.slice(1)} Report
+        </DialogTitle>
+        <DialogContent>
+            <Box sx={{ py: 2 }}>
+                <Typography variant="subtitle2" fontWeight={800} color="text.secondary" gutterBottom>EXPORT FORMAT</Typography>
+                <ButtonGroup fullWidth sx={{ mb: 4 }}>
+                    <Button 
+                        variant={reportConfig.format === 'pdf' ? 'contained' : 'outlined'}
+                        onClick={() => setReportConfig({ ...reportConfig, format: 'pdf' })}
+                        startIcon={<FileText size={18} />}
+                    >PDF</Button>
+                    <Button 
+                        variant={reportConfig.format === 'excel' ? 'contained' : 'outlined'}
+                        onClick={() => setReportConfig({ ...reportConfig, format: 'excel' })}
+                        startIcon={<FileSpreadsheet size={18} />}
+                    >Excel</Button>
+                </ButtonGroup>
+
+                <Box sx={{ p: 2, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px dashed ${theme.palette.primary.main}` }}>
+                    <Typography variant="caption" fontWeight={700} color="primary" display="block" gutterBottom>SUMMARY OF SELECTION:</Typography>
+                    <Typography variant="body2" fontWeight={600}>• Branch: {selectedBranch === 'all' ? 'All Branches' : selectedBranch}</Typography>
+                    <Typography variant="body2" fontWeight={600}>• Period: {reportPeriod === 'overall' ? 'Overall' : `${MONTHS[selectedMonth].label} ${selectedYear}`}</Typography>
+                </Box>
+            </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setOpenDialog(false)} sx={{ fontWeight: 700, borderRadius: 3 }}>Cancel</Button>
+            <Button 
+                variant="contained" 
+                onClick={downloadReport} 
+                disabled={generating}
+                sx={{ fontWeight: 800, borderRadius: 3, px: 4 }}
+            >
+                {generating ? <CircularProgress size={24} color="inherit" /> : 'Download Report'}
+            </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );

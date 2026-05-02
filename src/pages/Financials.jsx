@@ -271,25 +271,54 @@ const Financials = () => {
 
     if (formatType === 'pdf') {
       const doc = new jsPDF();
+      doc.setFontSize(20);
+      doc.setTextColor(59, 130, 246);
       doc.text("FINANCIAL REPORT", 14, 20);
-      doc.setFontSize(10);
-      doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 28);
       
-      const headers = [["Date", "Description", "Type", "Location", "Amount"]];
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 28);
+      doc.text(`Scope: ${selectedLocation || 'All Branches'}`, 14, 34);
+
+      const income = data.filter(t => t.type === 'contribution');
+      const expenses = data.filter(t => t.type === 'expense');
+      const incomeTotal = income.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const expenseTotal = expenses.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+      // Summary Table
+      autoTable(doc, {
+        head: [['Summary Category', 'Total Amount']],
+        body: [
+          ['Total Income', `GHC ${incomeTotal.toLocaleString()}`],
+          ['Total Expenses', `GHC ${expenseTotal.toLocaleString()}`],
+          ['Net Balance', `GHC ${(incomeTotal - expenseTotal).toLocaleString()}`]
+        ],
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [34, 197, 94] }
+      });
+
+      // Detailed Table
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      doc.text("Transaction Ledger", 14, doc.lastAutoTable.finalY + 15);
+      
+      const headers = [["Date", "Description", "Branch", "Type", "Amount"]];
       const rows = data.map(t => [
         format(safeParseDate(t.date), 'yyyy-MM-dd'),
         t.description,
-        t.type,
         t.category,
-        `GHC ${t.amount}`
+        t.type.toUpperCase(),
+        `GHC ${Number(t.amount).toLocaleString()}`
       ]);
 
       autoTable(doc, {
         head: headers,
         body: rows,
-        startY: 35,
+        startY: doc.lastAutoTable.finalY + 20,
         theme: 'striped',
-        headStyles: { fillColor: [59, 130, 246] }
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 8 }
       });
       doc.save(`${fileName}.pdf`);
     } else {
