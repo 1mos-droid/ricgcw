@@ -403,7 +403,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       <MenuItem value="Mallam">Mallam</MenuItem>
                       <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                       <MenuItem value="Diaspora">Diaspora</MenuItem>
-                      </TextField>
+                    </Select>
 
                   </FormControl>
                 </Grid>

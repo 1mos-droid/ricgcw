@@ -303,7 +303,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   <MenuItem value="Mallam">Mallam</MenuItem>
                   <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                   <MenuItem value="Diaspora">Diaspora</MenuItem>
-                  </TextField>
+                </Select>
 
                 {errors.branch && <FormHelperText>{errors.branch}</FormHelperText>}
               </FormControl>
