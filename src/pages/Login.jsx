@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -14,7 +14,9 @@ import {
   IconButton,
   CircularProgress,
   alpha,
-  Container
+  Container,
+  MenuItem,
+  Stack
 } from '@mui/material';
 import { 
   User, 
@@ -23,14 +25,16 @@ import {
   EyeOff, 
   ArrowRight,
   ShieldCheck,
-  Church
+  Church,
+  MapPin,
+  UserPlus
 } from 'lucide-react';
 
 const Login = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { refreshUserContext } = useWorkspace();
-  const { login, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated } = useAuth();
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -38,12 +42,20 @@ const Login = () => {
     }
   }, [navigate, isAuthenticated]);
 
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ 
+    email: '', 
+    password: '', 
+    name: '', 
+    branch: 'Mallam' 
+  });
   const [error, setError] = useState('');
 
-  const handleLogin = async (e) => {
+  const branches = ['Mallam', 'Langma', 'Kokrobitey', 'Diaspora', 'Overseer'];
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
@@ -52,15 +64,24 @@ const Login = () => {
       return;
     }
 
+    if (isSignUp && !formData.name) {
+      setError('Please enter your full name.');
+      return;
+    }
+
     setLoading(true);
     
     try {
-      await login(formData.email, formData.password);
+      if (isSignUp) {
+        await signup(formData.email, formData.password, formData.name, formData.branch);
+      } else {
+        await login(formData.email, formData.password);
+      }
       refreshUserContext();
       navigate('/');
     } catch (err) {
-      console.error("Login Error:", err);
-      setError(err.message || 'Login failed. Please try again.');
+      console.error("Auth Error:", err);
+      setError(err.message || 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -173,12 +194,12 @@ const Login = () => {
                 RICGCW
               </Typography>
               <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                Welcome back, Minister.
+                {isSignUp ? 'Join the ministry.' : 'Welcome back, Minister.'}
               </Typography>
             </Box>
 
-            <form onSubmit={handleLogin}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={2.5}>
                 
                 {error && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
@@ -194,6 +215,74 @@ const Login = () => {
                     </Typography>
                   </motion.div>
                 )}
+
+                <AnimatePresence mode="wait">
+                  {isSignUp && (
+                    <motion.div
+                      key="signup-fields"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                    >
+                      <Stack spacing={2.5}>
+                        <TextField
+                          fullWidth
+                          placeholder="Full Name"
+                          required
+                          variant="outlined"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <UserPlus size={20} color={theme.palette.text.secondary} />
+                              </InputAdornment>
+                            ),
+                            sx: { 
+                              borderRadius: 4, 
+                              bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
+                              height: 56,
+                              fontSize: '1rem',
+                              '& fieldset': { border: 'none' },
+                              boxShadow: theme.shadows[1],
+                            }
+                          }}
+                        />
+
+                        <TextField
+                          fullWidth
+                          select
+                          label="Branch Represented"
+                          required
+                          variant="outlined"
+                          value={formData.branch}
+                          onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <MapPin size={20} color={theme.palette.text.secondary} />
+                              </InputAdornment>
+                            ),
+                            sx: { 
+                              borderRadius: 4, 
+                              bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
+                              height: 56,
+                              textAlign: 'left',
+                              '& fieldset': { border: 'none' },
+                              boxShadow: theme.shadows[1],
+                            }
+                          }}
+                        >
+                          {branches.map((b) => (
+                            <MenuItem key={b} value={b}>
+                              {b}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Stack>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <TextField
                   fullWidth
@@ -214,7 +303,7 @@ const Login = () => {
                       bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
                       height: 56,
                       fontSize: '1rem',
-                      '& fieldset': { border: 'none' }, // Clean look
+                      '& fieldset': { border: 'none' },
                       boxShadow: theme.shadows[1],
                       transition: 'all 0.2s',
                       '&:hover': { boxShadow: theme.shadows[3] },
@@ -280,11 +369,18 @@ const Login = () => {
                 >
                   {loading ? <CircularProgress size={24} color="inherit" /> : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      Sign In <ArrowRight size={20} />
+                      {isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight size={20} />
                     </Box>
                   )}
                 </Button>
-              </Box>
+
+                <Button 
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  sx={{ fontWeight: 700, textTransform: 'none' }}
+                >
+                  {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                </Button>
+              </Stack>
             </form>
 
             <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, color: theme.palette.text.secondary, opacity: 0.8 }}>
@@ -301,3 +397,4 @@ const Login = () => {
 };
 
 export default Login;
+

@@ -119,9 +119,9 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
         </Box>
 
         {/* Mini Sparkline Background */}
-        {chartData && (
-          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, minHeight: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none', minWidth: 0 }}>
-            <ResponsiveContainer width="99%" height="100%">
+        {chartData && chartData.length > 0 && (
+          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none', minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height={100} minWidth={0}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id={`color${title}`} x1="0" y1="0" x2="0" y2="1">
@@ -492,9 +492,10 @@ const Dashboard = () => {
                   <IconButton size="small"><MoreHorizontal size={20} /></IconButton>
                 </Box>
 
-                <Box sx={{ height: 300, width: '100%', minHeight: 300, minWidth: 0 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={aggregatedData.financial}>
+                <Box sx={{ height: 300, width: '100%', minWidth: 0, position: 'relative' }}>
+                  {aggregatedData.financial && aggregatedData.financial.length > 0 && (
+                    <ResponsiveContainer width="100%" height={300} minWidth={0}>
+                      <AreaChart data={aggregatedData.financial}>
                       <defs>
                         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.2}/>
@@ -518,6 +519,7 @@ const Dashboard = () => {
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                  )}
                 </Box>
               </Card>
             </motion.div>

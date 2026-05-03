@@ -115,9 +115,9 @@ const Graph = () => {
                         <Typography variant="caption" color="text.secondary">Engagement percentage per service</Typography>
                     </Box>
                 </Box>
-                <Box sx={{ height: 350, width: '100%', minHeight: 0, minWidth: 0 }}>
-                    {loading ? <Skeleton variant="rectangular" height="100%" /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                <Box sx={{ height: 350, width: '100%', minWidth: 0, position: 'relative' }}>
+                    {!loading && chartData && chartData.length > 0 && (
+                        <ResponsiveContainer width="100%" height={350} minWidth={0}>
                             <AreaChart data={chartData}>
                                 <defs>
                                     <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
@@ -142,9 +142,9 @@ const Graph = () => {
             <Card sx={{ p: 4, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
                 <Typography variant="h6" fontWeight={800} gutterBottom>Revenue Streams</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 4 }}>Daily contribution totals (GHC)</Typography>
-                <Box sx={{ height: 300, width: '100%', minHeight: 0, minWidth: 0 }}>
-                    {loading ? <Skeleton variant="rectangular" height="100%" /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                <Box sx={{ height: 300, width: '100%', minWidth: 0, position: 'relative' }}>
+                    {!loading && chartData && chartData.length > 0 && (
+                        <ResponsiveContainer width="100%" height={300} minWidth={0}>
                             <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />

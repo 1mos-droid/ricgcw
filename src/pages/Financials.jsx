@@ -342,7 +342,7 @@ const Financials = () => {
         <Stack direction="row" spacing={2}>
             {!isBranchRestricted && (
                 <Paper elevation={0} sx={{ p: 0.5, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, display: { xs: 'none', md: 'flex' } }}>
-                    {['All', 'Mallam', 'Langma', 'Kokrobitey'].map((loc) => (
+                    {['All', 'Mallam', 'Langma', 'Kokrobitey', 'Diaspora'].map((loc) => (
                         <Button 
                             key={loc}
                             size="small"
@@ -424,9 +424,10 @@ const Financials = () => {
                     <Typography variant="h6" fontWeight={800}>Cash Flow Analysis</Typography>
                     <Chip label="Real-time" size="small" color="success" variant="outlined" sx={{ fontWeight: 700 }} />
                 </Box>
-                <Box sx={{ height: 300, width: '100%', minHeight: 300, minWidth: 0 }}>
-                    <ResponsiveContainer width="99%" height="100%">
-                        <AreaChart data={chartData}>
+                <Box sx={{ height: 300, width: '100%', minWidth: 0, position: 'relative' }}>
+                    {chartData && chartData.length > 0 && (
+                        <ResponsiveContainer width="100%" height={300} minWidth={0}>
+                            <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id="colorFlow" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.3}/>
@@ -443,6 +444,7 @@ const Financials = () => {
                         <Area type="monotone" dataKey="amt" stroke={theme.palette.primary.main} strokeWidth={3} fillOpacity={1} fill="url(#colorFlow)" />
                     </AreaChart>
                 </ResponsiveContainer>
+                )}
             </Box>
         </Card>
     </Grid>
@@ -602,7 +604,9 @@ const Financials = () => {
                     <MenuItem value="Mallam">Mallam</MenuItem>
                     <MenuItem value="Langma">Langma</MenuItem>
                     <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                </TextField>
+                    <MenuItem value="Diaspora">Diaspora</MenuItem>
+                    </TextField>
+
             </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>

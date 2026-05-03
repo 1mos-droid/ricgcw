@@ -1,18 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { account } from '../appwrite';
-import { doc, getDoc } from 'firebase/firestore';
+import { ID } from 'appwrite';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import bcrypt from 'bcryptjs';
 
 const AuthContext = createContext();
-
-// --- BUILT-IN ACCOUNTS (Emergency Mock Auth) ---
-const BUILT_IN_USERS = [
-  { email: 'admin@ricgcw.com', passwordHash: '$2b$10$506aHGJtQf6sAxDHZIG89.RkQMSGfm.qP0fms17jZ4x.fkcsbmnL.', role: 'admin', branch: 'all' },
-  { email: 'langma@ricgcw.com', passwordHash: '$2b$10$foOYurLFRryLSOOk63W7Hu//ZjCYmvpDaw3JjNQbqpiKvdy0wFgM6', role: 'branch_admin', branch: 'Langma' },
-  { email: 'mallam@ricgcw.com', passwordHash: '$2b$10$9Rto.mRvVrPBn189gKWDtenjwwhzfdsf9i/76eLWFfGLMM.qoHwmW', role: 'branch_admin', branch: 'Mallam' },
-  { email: 'kokrobitey@ricgcw.com', passwordHash: '$2b$10$fkyfOZTS0LNTGqlcDLbH9e6atNoVsC8oxot57NlOncw/D3KJSCT7a', role: 'branch_admin', branch: 'Kokrobitey' },
-];
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -34,113 +26,102 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userBranch', userData.branch);
   };
 
-  const refreshUser = useCallback(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    if (isAuthenticated) {
-      const storedEmail = localStorage.getItem('userEmail');
-      const storedRole = localStorage.getItem('userRole');
-      const storedBranch = localStorage.getItem('userBranch');
-      
-      setUser({
-        email: storedEmail,
-        role: storedRole,
-        branch: storedBranch,
-      });
-    } else {
-      setUser(null);
+  const clearLocal = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userBranch');
+  };
+
+  const syncUserProfile = useCallback(async (appwriteUser) => {
+    if (!appwriteUser) return null;
+
+    try {
+      const email = appwriteUser.email;
+      // Priority 1: Check Firestore for detailed profile
+      const userDoc = await getDoc(doc(db, 'users', email));
+      let userData;
+
+      if (userDoc.exists()) {
+        const fireData = userDoc.data();
+        userData = {
+          email: email,
+          role: fireData.role || 'guest',
+          branch: fireData.branch || 'all',
+          name: fireData.name || appwriteUser.name || '',
+        };
+      } else {
+        // Priority 2: Use Appwrite Metadata (prefs) if Firestore entry missing
+        const prefs = appwriteUser.prefs || {};
+        userData = {
+          email: email,
+          role: prefs.role || 'guest',
+          branch: prefs.branch || 'all',
+          name: appwriteUser.name || '',
+        };
+        
+        // Seed Firestore if it has role info in prefs
+        if (prefs.role) {
+          await setDoc(doc(db, 'users', email), {
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            branch: userData.branch,
+            status: 'Active',
+            lastActive: new Date().toISOString()
+          }, { merge: true });
+        }
+      }
+
+      setUser(userData);
+      saveToLocal(userData);
+      return userData;
+    } catch (err) {
+      console.error("Profile Sync Error:", err);
+      const fallbackUser = {
+        email: appwriteUser.email,
+        role: appwriteUser.prefs?.role || 'guest',
+        branch: appwriteUser.prefs?.branch || 'all',
+        name: appwriteUser.name || '',
+      };
+      setUser(fallbackUser);
+      saveToLocal(fallbackUser);
+      return fallbackUser;
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
-    const checkSession = async () => {
+    const initAuth = async () => {
       try {
         const sessionUser = await account.get();
         if (sessionUser) {
-          try {
-            // Fetch user metadata (role/branch) from Firestore
-            const userDoc = await getDoc(doc(db, 'users', sessionUser.email));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              const combinedUser = {
-                email: sessionUser.email,
-                role: userData.role || 'guest',
-                branch: userData.branch || 'all',
-              };
-              setUser(combinedUser);
-              saveToLocal(combinedUser);
-            } else {
-              setUser({ email: sessionUser.email, role: 'guest', branch: 'all' });
-            }
-          } catch (_) {
-            setUser({ email: sessionUser.email, role: 'guest', branch: 'all' });
-          }
-        } else {
-          refreshUser();
+          await syncUserProfile(sessionUser);
         }
-      } catch (_) {
-        refreshUser();
+      } catch (err) {
+        // No active session
+        if (localStorage.getItem('isAuthenticated') === 'true') {
+          clearLocal();
+        }
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    checkSession();
-  }, [refreshUser]);
+    initAuth();
+  }, [syncUserProfile]);
 
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
     
-    // --- Step 1: Check Built-in Mock Auth ---
-    const builtInUser = BUILT_IN_USERS.find(u => u.email === email);
-    if (builtInUser) {
-      try {
-        const isMatch = await bcrypt.compare(password, builtInUser.passwordHash);
-        if (isMatch) {
-          const userData = {
-            email: builtInUser.email,
-            role: builtInUser.role,
-            branch: builtInUser.branch
-          };
-          setUser(userData);
-          saveToLocal(userData);
-          setLoading(false);
-          return userData;
-        }
-      } catch (err) {
-        console.error("Bcrypt Error:", err);
-      }
-    }
-
-    // --- Step 2: Appwrite Authentication ---
     try {
       await account.createEmailPasswordSession(email, password);
       const sessionUser = await account.get();
-      
-      let userData;
-      try {
-        // Fetch metadata from Firestore
-        const userDoc = await getDoc(doc(db, 'users', sessionUser.email));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          userData = {
-            email: sessionUser.email,
-            role: data.role || 'guest',
-            branch: data.branch || 'all',
-          };
-        } else {
-          userData = { email: sessionUser.email, role: 'guest', branch: 'all' };
-        }
-      } catch (_) {
-        userData = { email: sessionUser.email, role: 'guest', branch: 'all' };
-      }
-      
-      setUser(userData);
-      saveToLocal(userData);
-      return userData;
+      const profile = await syncUserProfile(sessionUser);
+      return profile;
     } catch (err) {
-      console.error("Appwrite Auth Error:", err);
+      console.error("Login Error:", err);
       let message = err.message || 'Invalid email or password.';
       setError(message);
       throw new Error(message);
@@ -149,16 +130,53 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signup = async (email, password, name, branch) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const role = branch === 'Overseer' ? 'admin' : 'branch_admin';
+      const actualBranch = branch === 'Overseer' ? 'all' : branch;
+
+      // 1. Create Appwrite Account
+      const userId = ID.unique();
+      await account.create(userId, email, password, name);
+      
+      // 2. Login to set session
+      await account.createEmailPasswordSession(email, password);
+      
+      // 3. Set Appwrite Prefs for role/branch
+      await account.updatePrefs({
+        role: role,
+        branch: actualBranch
+      });
+
+      // 4. Seed into Firestore
+      await setDoc(doc(db, 'users', email), {
+        name,
+        email,
+        role,
+        branch: actualBranch,
+        status: 'Active',
+        lastActive: new Date().toISOString()
+      });
+
+      const sessionUser = await account.get();
+      const profile = await syncUserProfile(sessionUser);
+      return profile;
+    } catch (err) {
+      console.error("Signup Error:", err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = useCallback(async () => {
     try {
       await account.deleteSession('current');
-    } catch (_) {
-      // Ignore session delete errors on logout
-    }
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userBranch');
+    } catch (_) {}
+    clearLocal();
     setUser(null);
   }, []);
 
@@ -175,8 +193,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     login,
+    signup,
     logout,
-    refreshUser,
     hasRole,
     isAdmin: user?.role === 'admin',
     isAuthenticated: !!user,
@@ -184,3 +202,4 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+

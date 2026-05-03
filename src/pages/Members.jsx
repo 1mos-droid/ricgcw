@@ -115,6 +115,7 @@ const Members = () => {
       case 'mallam': return 'M';
       case 'kokrobitey': return 'K';
       case 'langma': return 'L';
+      case 'diaspora': return 'D';
       default: return 'M'; // Default to Mallam if unspecified
     }
   };
@@ -468,7 +469,9 @@ const Members = () => {
                   <MenuItem value="Langma">Langma</MenuItem>
                   <MenuItem value="Mallam">Mallam</MenuItem>
                   <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                </Select>
+                  <MenuItem value="Diaspora">Diaspora</MenuItem>
+                  </TextField>
+
              </FormControl>
           </Grid>
           <Grid size={{ xs: 6, md: 2 }}>

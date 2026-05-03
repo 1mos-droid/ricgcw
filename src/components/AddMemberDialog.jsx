@@ -28,7 +28,7 @@ import {
   Card,
   CircularProgress
 } from '@mui/material';
-import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase } from 'lucide-react';
+import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase, Globe } from 'lucide-react';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -44,6 +44,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     email: '',
     phone: '',
     address: '',
+    country: '',
     dob: '', 
     branch: isBranchRestricted ? userBranch : '', 
     department: '', 
@@ -60,6 +61,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         email: '', 
         phone: '', 
         address: '', 
+        country: '',
         dob: '', 
         branch: isBranchRestricted ? userBranch : '', 
         department: '', 
@@ -97,6 +99,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           email: String(formData.email || "").trim() || null,
           phone: String(formData.phone || "").trim() || null,
           address: String(formData.address || "").trim() || null,
+          country: String(formData.country || "").trim() || null,
           dob: formData.dob || null,
           department: formData.department || null,
           position: formData.position || null
@@ -236,25 +239,48 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
               />
             </Grid>
+<Grid size={{ xs: 12 }}>
+  <TextField
+    label="Full Address"
+    name="address"
+    fullWidth
+    value={formData.address}
+    onChange={handleChange}
+    placeholder="House Number, Street, City"
+    variant="outlined"
+    InputProps={{
+      startAdornment: (
+        <InputAdornment position="start">
+          <MapPin size={18} color={theme.palette.text.secondary} />
+        </InputAdornment>
+      ),
+    }}
+    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+  />
+</Grid>
 
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                label="Residential Address"
-                name="address"
-                fullWidth
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="City / Area"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MapPin size={18} color={theme.palette.text.secondary} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
-              />
-            </Grid>
+{formData.branch === 'Diaspora' && (
+  <Grid size={{ xs: 12 }}>
+    <TextField
+      label="Country of Residence"
+      name="country"
+      fullWidth
+      value={formData.country}
+      onChange={handleChange}
+      placeholder="e.g. United Kingdom, USA, etc."
+      variant="outlined"
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Globe size={18} color={theme.palette.text.secondary} />
+          </InputAdornment>
+        ),
+      }}
+      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+    />
+  </Grid>
+)}
+
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth required error={!!errors.branch} disabled={isBranchRestricted}>
@@ -276,7 +302,9 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   <MenuItem value="Langma">Langma</MenuItem>
                   <MenuItem value="Mallam">Mallam</MenuItem>
                   <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                </Select>
+                  <MenuItem value="Diaspora">Diaspora</MenuItem>
+                  </TextField>
+
                 {errors.branch && <FormHelperText>{errors.branch}</FormHelperText>}
               </FormControl>
             </Grid>

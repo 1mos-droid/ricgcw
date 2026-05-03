@@ -117,22 +117,23 @@ const Reports = () => {
         const financeData = financeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const eventsData = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Apply local report filters
+        // Normalize branch name for comparison
+        const normalize = (b) => String(b || '').trim().toLowerCase().replace('kokrobetey', 'kokrobitey');
+
         const branchFilter = (data) => {
           if (selectedBranch === 'all') return data;
-          return data.filter(item => 
-            String(item.branch || item.category || '').toLowerCase() === selectedBranch.toLowerCase()
-          );
+          const target = normalize(selectedBranch);
+          return data.filter(item => normalize(item.branch || item.category) === target);
         };
 
         const filteredMembers = branchFilter(membersData);
-        const memberIds = new Set(filteredMembers.map(m => String(m.id)));
+        const filteredEvents = branchFilter(eventsData);
 
         const totalFunds = (financeData || [])
           .filter(t => {
             if (t.type !== 'contribution') return false;
-            const itemBranch = String(t.category || '').toLowerCase();
-            if (selectedBranch !== 'all' && itemBranch !== selectedBranch.toLowerCase()) return false;
+            const itemBranch = normalize(t.category || t.branch);
+            if (selectedBranch !== 'all' && itemBranch !== normalize(selectedBranch)) return false;
             return true;
           })
           .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
@@ -140,7 +141,7 @@ const Reports = () => {
         setStats({
           members: filteredMembers.length,
           funds: totalFunds,
-          events: (eventsData || []).length
+          events: filteredEvents.length
         });
       } catch (err) {
         console.error("Stats Sync Error:", err);
@@ -166,13 +167,14 @@ const Reports = () => {
       const dateStr = reportPeriod === 'monthly' 
         ? `${MONTHS[selectedMonth].label}_${selectedYear}`
         : new Date().toISOString().slice(0,10);
-      const fileName = `${type}_report_${selectedBranch}_${dateStr}`;
+      const fileName = `${type}_report_${selectedBranch.replace(/\s+/g, '_')}_${dateStr}`;
+
+      const normalize = (b) => String(b || '').trim().toLowerCase().replace('kokrobetey', 'kokrobitey');
 
       const branchFilter = (items) => {
         if (selectedBranch === 'all') return items;
-        return items.filter(item => 
-          String(item.branch || item.category || '').toLowerCase() === selectedBranch.toLowerCase()
-        );
+        const target = normalize(selectedBranch);
+        return items.filter(item => normalize(item.branch || item.category) === target);
       };
 
       const periodFilter = (items) => {
@@ -195,6 +197,10 @@ const Reports = () => {
         const snap = await getDocs(collection(db, "attendance"));
         data.attendance = periodFilter(branchFilter(snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
       }
+      if (type === 'general') {
+        const snap = await getDocs(collection(db, "events"));
+        data.events = periodFilter(branchFilter(snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+      }
 
       // Check if any data exists
       const hasData = Object.values(data).some(arr => arr && arr.length > 0);
@@ -207,7 +213,6 @@ const Reports = () => {
       if (format === 'pdf') {
         generateCategorizedPDF(data, type, fileName);
       } else {
-        // Simple excel for now, combining if general
         const workbook = XLSX.utils.book_new();
         Object.keys(data).forEach(key => {
           if (data[key] && data[key].length > 0) {
@@ -248,7 +253,7 @@ const Reports = () => {
     
     let currentY = 55;
 
-    // --- FINANCIAL SECTION (Split Layout) ---
+    // --- FINANCIAL SECTION ---
     if (data.financial && data.financial.length > 0) {
       doc.setFontSize(18);
       doc.setTextColor(0);
@@ -261,7 +266,6 @@ const Reports = () => {
       const incomeTotal = income.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
       const expenseTotal = expenses.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-      // Summary Table
       autoTable(doc, {
         head: [['Category', 'Total Amount']],
         body: [
@@ -277,20 +281,19 @@ const Reports = () => {
 
       currentY = doc.lastAutoTable.finalY + 15;
 
-      // side-by-side effectively means separate tables for Income and Expenses
       doc.setFontSize(14);
-      doc.setTextColor(34, 197, 94); // Success Green
+      doc.setTextColor(34, 197, 94);
       doc.text("Income Details", 14, currentY);
       currentY += 5;
 
       if (income.length > 0) {
         autoTable(doc, {
           head: [['Date', 'Description', 'Branch', 'Amount']],
-          body: income.sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(t => [
+          body: [...income].sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(t => [
             safeParseDate(t.date).toLocaleDateString(),
-            t.description,
-            t.category,
-            `GHC ${Number(t.amount).toLocaleString()}`
+            t.description || 'N/A',
+            t.category || t.branch || 'N/A',
+            `GHC ${Number(t.amount || 0).toLocaleString()}`
           ]),
           startY: currentY,
           theme: 'striped',
@@ -301,24 +304,24 @@ const Reports = () => {
       } else {
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("No income records found for this period.", 14, currentY + 5);
+        doc.text("No income records found.", 14, currentY + 5);
         currentY += 15;
       }
 
       if (currentY > 240) { doc.addPage(); currentY = 20; }
       doc.setFontSize(14);
-      doc.setTextColor(239, 68, 68); // Error Red
+      doc.setTextColor(239, 68, 68);
       doc.text("Expense Details", 14, currentY);
       currentY += 5;
 
       if (expenses.length > 0) {
         autoTable(doc, {
           head: [['Date', 'Description', 'Branch', 'Amount']],
-          body: expenses.sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(t => [
+          body: [...expenses].sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(t => [
             safeParseDate(t.date).toLocaleDateString(),
-            t.description,
-            t.category,
-            `GHC ${Number(t.amount).toLocaleString()}`
+            t.description || 'N/A',
+            t.category || t.branch || 'N/A',
+            `GHC ${Number(t.amount || 0).toLocaleString()}`
           ]),
           startY: currentY,
           theme: 'striped',
@@ -329,7 +332,7 @@ const Reports = () => {
       } else {
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("No expense records found for this period.", 14, currentY + 5);
+        doc.text("No expense records found.", 14, currentY + 5);
         currentY += 15;
       }
     }
@@ -363,7 +366,7 @@ const Reports = () => {
 
       autoTable(doc, {
         head: [['Date', 'Branch', 'Attendees']],
-        body: data.attendance.map(a => [
+        body: data.attendance.sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(a => [
             safeParseDate(a.date).toLocaleDateString(),
             a.branch,
             a.attendees?.length || 0
@@ -373,7 +376,31 @@ const Reports = () => {
         styles: { fontSize: 8 },
         headStyles: { fillColor: [245, 158, 11] }
       });
+      currentY = doc.lastAutoTable.finalY + 20;
     }
+
+    // --- EVENTS SECTION ---
+    if (data.events && data.events.length > 0) {
+        if (currentY > 220) { doc.addPage(); currentY = 20; }
+        doc.setFontSize(16);
+        doc.setTextColor(0);
+        doc.text("Scheduled Events", 14, currentY);
+        currentY += 10;
+  
+        autoTable(doc, {
+          head: [['Event', 'Date', 'Branch', 'Type']],
+          body: data.events.sort((a,b) => safeParseDate(b.date) - safeParseDate(a.date)).map(e => [
+              e.title || 'N/A',
+              safeParseDate(e.date).toLocaleDateString(),
+              e.branch || e.category || 'N/A',
+              e.type || 'N/A'
+          ]),
+          startY: currentY,
+          theme: 'grid',
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [139, 92, 246] }
+        });
+      }
 
     doc.save(`${fileName}.pdf`);
   };
@@ -440,7 +467,9 @@ const Reports = () => {
                     <MenuItem value="Mallam">Mallam</MenuItem>
                     <MenuItem value="Langma">Langma</MenuItem>
                     <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                </Select>
+                    <MenuItem value="Diaspora">Diaspora</MenuItem>
+                    </Select>
+
             </FormControl>
           </Grid>
 

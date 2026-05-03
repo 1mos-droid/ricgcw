@@ -170,10 +170,11 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
             InputProps={{ startAdornment: <Building size={18} style={{ marginRight: 8, opacity: 0.5 }} /> }}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
           >
-            <MenuItem value="all">Global Access</MenuItem>
+            <MenuItem value="all">Global Access (Overseer)</MenuItem>
             <MenuItem value="Langma">Langma</MenuItem>
             <MenuItem value="Mallam">Mallam</MenuItem>
             <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
+            <MenuItem value="Diaspora">Diaspora</MenuItem>
           </TextField>
 
           {error && (
@@ -183,7 +184,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
           )}
           
           <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center' }}>
-            User will need to use their Appwrite credentials to sign in after access is granted here.
+            User will need to sign up using this email address after access is granted here.
           </Typography>
         </Stack>
       </DialogContent>

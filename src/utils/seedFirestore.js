@@ -6,6 +6,7 @@ const initialUsers = [
   { email: 'langma@ricgcw.com', role: 'branch_admin', branch: 'Langma' },
   { email: 'mallam@ricgcw.com', role: 'branch_admin', branch: 'Mallam' },
   { email: 'kokrobitey@ricgcw.com', role: 'branch_admin', branch: 'Kokrobitey' },
+  { email: 'kokrobetey@ricgcw.com', role: 'branch_admin', branch: 'Kokrobitey' },
 ];
 
 export const seedInitialUsers = async () => {

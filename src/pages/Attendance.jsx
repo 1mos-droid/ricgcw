@@ -364,7 +364,9 @@ const Attendance = () => {
                                 <MenuItem value="Langma">Langma</MenuItem>
                                 <MenuItem value="Mallam">Mallam</MenuItem>
                                 <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                            </Select>
+                                <MenuItem value="Diaspora">Diaspora</MenuItem>
+                                </TextField>
+
                         </FormControl>
                     </Grid>
                 </Grid>

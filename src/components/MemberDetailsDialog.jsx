@@ -49,7 +49,8 @@ import {
   Cake,
   Users,
   Briefcase,
-  History
+  History,
+  Globe
 } from 'lucide-react';
 
 import { db } from '../firebase';
@@ -79,6 +80,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     email: '',
     phone: '',
     address: '',
+    country: '',
     dob: '', 
     status: '',
     branch: '', 
@@ -119,7 +121,9 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         email: member.email || '',
         phone: member.phone || '',
         address: member.address || '',
-        dob: member.dob || '', 
+        country: member.country || '',
+        dob: member.dob || '',
+ 
         status: member.status || 'active',
         branch: member.branch || '', 
         department: member.department || '', 
@@ -203,7 +207,9 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         email: member.email || '',
         phone: member.phone || '',
         address: member.address || '',
-        dob: member.dob || '', 
+        country: member.country || '',
+        dob: member.dob || '',
+ 
         status: member.status || 'active',
         branch: member.branch || '', 
         department: member.department || '', 
@@ -348,15 +354,29 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
-                  <TextField 
-                      label="Address" 
-                      name="address" 
-                      fullWidth 
-                      value={formData.address} 
-                      onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                  <TextField
+                    fullWidth
+                    label="Address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
                   />
-                </Grid>
+                  </Grid>
+
+                  {formData.branch === 'Diaspora' && (
+                  <Grid size={{ xs: 12 }}>
+                      <TextField
+                      fullWidth
+                      label="Country of Residence"
+                      name="country"
+                      value={formData.country}
+                      onChange={handleChange}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                      />
+                  </Grid>
+                  )}
+
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
                       label="Birth Date" 
@@ -382,7 +402,9 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       <MenuItem value="Langma">Langma</MenuItem>
                       <MenuItem value="Mallam">Mallam</MenuItem>
                       <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                    </Select>
+                      <MenuItem value="Diaspora">Diaspora</MenuItem>
+                      </TextField>
+
                   </FormControl>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -430,6 +452,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                 { icon: <Mail size={18}/>, label: 'EMAIL', value: member.email },
                 { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
                 { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
+                { icon: <Globe size={18}/>, label: 'COUNTRY', value: member.country },
                 { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) },
                 { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
                 { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
