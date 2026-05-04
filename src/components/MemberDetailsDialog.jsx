@@ -50,23 +50,27 @@ import {
   Users,
   Briefcase,
   History,
-  Globe
+  Globe,
+  Send
 } from 'lucide-react';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
+const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialTab = 0 }) => {
   const theme = useTheme();
   const { showNotification } = useWorkspace();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(initialTab);
   const [contributions, setContributions] = useState([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
+  const [messageBody, setMessageBody] = useState('');
   
   const [newContribution, setNewContribution] = useState({ 
     type: 'tithe', 
@@ -131,9 +135,10 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
       });
       setErrors({});
       setIsEditing(false);
-      setTabValue(0);
+      setTabValue(initialTab);
+      setMessageBody('');
     }
-  }, [member, open]);
+  }, [member, open, initialTab]);
 
   const fetchContributions = useCallback(async () => {
     if (!member) return;
@@ -219,11 +224,29 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
     setErrors({});
   };
 
+  const handleSendMessage = () => {
+    if (!member.email) {
+      showNotification("This member doesn't have an email address.", "warning");
+      return;
+    }
+
+    const senderName = user?.name || user?.email || 'Unknown Sender';
+    const senderBranch = user?.branch === 'all' ? 'Main Sanctuary' : (user?.branch || 'Unknown Branch');
+    // Enhanced traceable subject line as requested
+    const subject = `[FROM: ${senderName.toUpperCase()} | BRANCH: ${senderBranch.toUpperCase()}] Official Communication`;
+    const body = `Message to: ${member.name}\nSource: ${senderName} (${senderBranch})\n\n---\n\n${messageBody}`;
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    window.open(gmailUrl, '_blank');
+    showNotification("Gmail composer opened in a new tab.", "success");
+  };
+
   const formatDOB = (dobString) => {
     if (!dobString) return 'N/A';
     try {
       return format(safeParseDate(dobString), 'MMM do, yyyy');
-    } catch (e) {
+    } catch {
       return dobString;
     }
   };
@@ -307,12 +330,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
         >
           <Tab label="Profile Details" />
           <Tab label="Contributions" />
+          <Tab label="Message" />
         </Tabs>
 
         {tabValue === 0 ? (
         <Box sx={{ p: 4 }}>
           {isEditing ? (
-            <Grid container spacing={2.5}>
+            <Grid container spacing={3}>
                 <Grid size={{ xs: 12 }}>
                   <TextField 
                       autoFocus 
@@ -324,12 +348,14 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       onChange={handleChange} 
                       error={!!errors.name}
                       helperText={errors.name}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 {/* ID is not editable as per requirements */}
                 <Grid size={{ xs: 12 }}>
-                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 700 }}>MEMBER ID: {member.memberId || 'N/A'}</Typography>
+                   <Box sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha(theme.palette.action.disabledBackground, 0.05), border: `1px dashed ${theme.palette.divider}` }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, letterSpacing: 1 }}>MEMBER ID: {member.memberId || 'N/A'}</Typography>
+                   </Box>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
@@ -339,7 +365,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       fullWidth 
                       value={formData.email} 
                       onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -350,7 +376,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       fullWidth 
                       value={formData.phone} 
                       onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
@@ -360,7 +386,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                   </Grid>
 
@@ -372,7 +398,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       name="country"
                       value={formData.country}
                       onChange={handleChange}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                       />
                   </Grid>
                   )}
@@ -386,7 +412,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       value={formData.dob} 
                       onChange={handleChange} 
                       InputLabelProps={{ shrink: true }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -397,7 +423,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       onChange={handleChange}
                       label="Branch"
                       name="branch"
-                      sx={{ borderRadius: 3 }}
+                      sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value="Langma">Langma</MenuItem>
                       <MenuItem value="Mallam">Mallam</MenuItem>
@@ -415,7 +441,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       onChange={handleChange}
                       label="Department"
                       name="department"
-                      sx={{ borderRadius: 3 }}
+                      sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Children's Department">Children's Dept</MenuItem>
@@ -433,7 +459,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                       onChange={handleChange}
                       label="Position"
                       name="position"
-                      sx={{ borderRadius: 3 }}
+                      sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
@@ -447,33 +473,75 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                 </Grid>
             </Grid>
           ) : (
-            <Grid container spacing={4}>
-              {[
-                { icon: <Mail size={18}/>, label: 'EMAIL', value: member.email },
-                { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
-                { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
-                { icon: <Globe size={18}/>, label: 'COUNTRY', value: member.country },
-                { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) },
-                { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
-                { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
-                { icon: <Briefcase size={18}/>, label: 'POSITION', value: member.position }
-              ].map((item, idx) => (
-                <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main }}>
-                        {item.icon}
+            <Stack spacing={4}>
+                <Grid container spacing={3}>
+                {[
+                    { icon: <Mail size={18}/>, label: 'EMAIL', value: member.email },
+                    { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
+                    { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
+                    { icon: <Globe size={18}/>, label: 'COUNTRY', value: member.country },
+                    { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) },
+                    { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
+                    { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
+                    { icon: <Briefcase size={18}/>, label: 'POSITION', value: member.position }
+                ].map((item, idx) => (
+                    <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
+                    <Box sx={{ 
+                        p: 2, 
+                        borderRadius: 3, 
+                        bgcolor: alpha(theme.palette.background.default, 0.4),
+                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        transition: 'all 0.2s',
+                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02), borderColor: alpha(theme.palette.primary.main, 0.1) }
+                    }}>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                            <Box sx={{ 
+                                p: 1, 
+                                borderRadius: 2, 
+                                bgcolor: alpha(theme.palette.primary.main, 0.08), 
+                                color: theme.palette.primary.main,
+                                display: 'flex'
+                            }}>
+                                {item.icon}
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>{item.label}</Typography>
+                                <Typography variant="body2" fontWeight={700} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
+                            </Box>
+                        </Stack>
                     </Box>
-                    <Box>
-                        <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5 }}>{item.label}</Typography>
-                        <Typography variant="body1" fontWeight={600} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
-                    </Box>
-                  </Stack>
+                    </Grid>
+                ))}
                 </Grid>
-              ))}
-            </Grid>
+                
+                <Box sx={{ 
+                    p: 3, 
+                    borderRadius: 4, 
+                    bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+                }}>
+                    <Typography variant="caption" fontWeight={800} color="primary" sx={{ display: 'block', mb: 2, letterSpacing: 1 }}>QUICK ACTIONS</Typography>
+                    <Button 
+                        variant="contained" 
+                        fullWidth 
+                        startIcon={<Send size={18} />}
+                        onClick={() => setTabValue(2)}
+                        sx={{ 
+                            borderRadius: 3, 
+                            py: 1.5, 
+                            fontWeight: 800,
+                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+                            '&:hover': { boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}` }
+                        }}
+                    >
+                        Send a Message
+                    </Button>
+                </Box>
+            </Stack>
           )}
         </Box>
-        ) : (
+
+        ) : tabValue === 1 ? (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid size={{ xs: 6 }}>
@@ -582,6 +650,49 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete }) => {
                 )}
                 </List>
             </Card>
+          </Box>
+        ) : (
+          <Box sx={{ p: 4 }}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Mail size={16} /> COMPOSE MESSAGE
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Send a direct message to <strong>{member.name}</strong> via Gmail. The subject will automatically include your name and branch for identification.
+            </Typography>
+            
+            <TextField
+                fullWidth
+                multiline
+                rows={6}
+                placeholder="Type your message here..."
+                value={messageBody}
+                onChange={(e) => setMessageBody(e.target.value)}
+                sx={{ 
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': { borderRadius: 3 }
+                }}
+            />
+
+            <Button 
+                variant="contained" 
+                fullWidth 
+                startIcon={<Send size={18} />}
+                onClick={handleSendMessage}
+                disabled={!member.email}
+                sx={{ 
+                    height: 56, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
+                }}
+            >
+                Send via Gmail
+            </Button>
+            {!member.email && (
+                <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block', textAlign: 'center', fontWeight: 600 }}>
+                    Member has no email address on file.
+                </Typography>
+            )}
           </Box>
         )}
       </DialogContent>

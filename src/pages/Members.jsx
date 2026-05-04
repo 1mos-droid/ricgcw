@@ -69,18 +69,25 @@ import * as XLSX from 'xlsx';
 const Members = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { filterData, showNotification, showConfirmation, userRole, userBranch, isBranchRestricted } = useWorkspace();
+  const { filterData, showNotification, showConfirmation, userBranch, isBranchRestricted } = useWorkspace();
   
   // --- STATE ---
   const [viewMode, setViewMode] = useState(isMobile ? 'grid' : 'table');
   const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [dialogTab, setDialogTab] = useState(0);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : '');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
+
+  // --- HANDLERS ---
+  const handleOpenDetails = (member, tab = 0) => {
+    setDialogTab(tab);
+    setSelectedMember(member);
+  };
 
   // --- FETCH DATA ---
   const fetchMembers = useCallback(async (isSilent = false) => {
@@ -97,8 +104,8 @@ const Members = () => {
       });
       
       setMembers(sortedMembers);
-    } catch (err) {
-      console.error("Members Fetch Error:", err);
+    } catch (_err) {
+      console.error("Members Fetch Error:", _err);
       showNotification("Failed to sync member database.", "error");
     } finally {
       setLoading(false);
@@ -157,8 +164,8 @@ const Members = () => {
       
       await fetchMembers(true);
       showNotification(`System Sync: ${updatedCount} IDs updated.`, "success");
-    } catch (err) {
-      console.error("ID Sync Error:", err);
+    } catch (_err) {
+      console.error("ID Sync Error:", _err);
       showNotification("Failed to sync member IDs.", "error");
     } finally {
       setLoading(false);
@@ -253,7 +260,7 @@ const Members = () => {
       await fetchMembers(true);
       setSelectedMember(null);
       showNotification("Profile updated.", "success");
-    } catch (err) {
+    } catch {
       showNotification("Update failed.", "error");
     }
   };
@@ -268,7 +275,7 @@ const Members = () => {
           await fetchMembers(true);
           setSelectedMember(null);
           showNotification("Member removed.", "info");
-        } catch (err) {
+        } catch {
           showNotification("Delete failed.", "error");
         }
       }
@@ -289,17 +296,18 @@ const Members = () => {
 
   const getStatusChip = (status = 'active') => {
     const colors = {
-      active: { main: '#10B981', bg: alpha('#10B981', 0.1) },
-      inactive: { main: '#F59E0B', bg: alpha('#F59E0B', 0.1) },
-      discontinued: { main: '#EF4444', bg: alpha('#EF4444', 0.1) },
+      active: { main: '#10B981', bg: alpha('#10B981', 0.08) },
+      inactive: { main: '#F59E0B', bg: alpha('#F59E0B', 0.08) },
+      discontinued: { main: '#EF4444', bg: alpha('#EF4444', 0.08) },
     };
     const color = colors[status.toLowerCase()] || colors.active;
     return (
       <Chip 
         label={status} size="small"
         sx={{ 
-          bgcolor: color.bg, color: color.main, fontWeight: 800, 
-          textTransform: 'uppercase', fontSize: '0.65rem', borderRadius: 2 
+          bgcolor: color.bg, color: color.main, fontWeight: 900, 
+          textTransform: 'uppercase', fontSize: '0.6rem', borderRadius: 1.5,
+          letterSpacing: 0.5, border: `1px solid ${alpha(color.main, 0.2)}`
         }} 
       />
     );
@@ -313,7 +321,7 @@ const Members = () => {
         transition={{ duration: 0.4, delay: index * 0.05 }}
       >
         <Card 
-          onClick={() => setSelectedMember(member)}
+          onClick={() => handleOpenDetails(member)}
           sx={{ 
             p: 3, 
             borderRadius: 6, 
@@ -321,60 +329,77 @@ const Members = () => {
             height: '100%',
             position: 'relative',
             overflow: 'hidden',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            border: `1px solid ${theme.palette.divider}`,
+            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            background: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.paper, 0.8),
             '&:hover': { 
-              transform: 'translateY(-8px)',
-              boxShadow: theme.shadows[10],
+              transform: 'translateY(-10px)',
+              boxShadow: `0 20px 40px -12px ${alpha(theme.palette.primary.main, 0.15)}`,
               borderColor: theme.palette.primary.main,
-              '& .member-avatar': { transform: 'scale(1.1)' }
+              '& .member-avatar-container': { transform: 'scale(1.05) rotate(2deg)' }
             }
           }}
         >
           {/* Decorative Top Gradient */}
           <Box sx={{ 
-            position: 'absolute', top: 0, left: 0, right: 0, height: 6, 
-            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` 
+            position: 'absolute', top: 0, left: 0, right: 0, height: 4, 
+            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+            opacity: 0.8
           }} />
 
-          <Stack alignItems="center" spacing={2} sx={{ mb: 2 }}>
-            <Box className="member-avatar" sx={{ transition: 'transform 0.3s' }}>
+          <Stack alignItems="center" spacing={2} sx={{ mb: 2.5 }}>
+            <Box className="member-avatar-container" sx={{ transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
                 <Avatar 
                 sx={{ 
-                    width: 80, height: 80, 
-                    borderRadius: 6, 
-                    bgcolor: alpha(theme.palette.primary.main, 0.08), 
+                    width: 72, height: 72, 
+                    borderRadius: 4, 
+                    bgcolor: alpha(theme.palette.primary.main, 0.1), 
                     color: theme.palette.primary.main,
-                    fontWeight: 800,
-                    fontSize: '2rem',
-                    boxShadow: `0 8px 24px -6px ${alpha(theme.palette.primary.main, 0.2)}`
+                    fontWeight: 900,
+                    fontSize: '1.75rem',
+                    boxShadow: `0 8px 20px -6px ${alpha(theme.palette.primary.main, 0.3)}`
                 }}
                 >
                 {member.name?.charAt(0).toUpperCase()}
                 </Avatar>
             </Box>
             <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight={800}>{member.name}</Typography>
-                <Typography variant="caption" color="primary" fontWeight={800} sx={{ display: 'block', mb: 0.5 }}>
-                   {member.memberId || 'NO ID'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1, display: 'block' }}>
-                   {member.branch || 'Main Sanctuary'}
-                </Typography>
+                <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: '-0.01em', mb: 0.5 }}>{member.name}</Typography>
+                <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                    <Typography variant="caption" color="primary" fontWeight={900} sx={{ letterSpacing: 1 }}>
+                    {member.memberId || 'NO ID'}
+                    </Typography>
+                    <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {member.branch || 'Main'}
+                    </Typography>
+                </Stack>
             </Box>
             {getStatusChip(member.status)}
           </Stack>
 
-          <Divider sx={{ my: 2, opacity: 0.5 }} />
+          <Divider sx={{ my: 2, opacity: 0.3, borderStyle: 'dashed' }} />
           
-          <Stack spacing={1.5}>
-             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary }}>
+          <Stack spacing={2}>
+             <Box 
+                onClick={(e) => { e.stopPropagation(); handleOpenDetails(member, 2); }}
+                sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1.5, 
+                    color: theme.palette.text.secondary,
+                    p: 1,
+                    borderRadius: 2,
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main } 
+                }}
+             >
                 <Mail size={16} />
-                <Typography variant="body2" fontWeight={500} noWrap>{member.email || 'No email'}</Typography>
+                <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: '0.8rem' }}>{member.email || 'No email'}</Typography>
              </Box>
-             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary }}>
+             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary, px: 1 }}>
                 <Phone size={16} />
-                <Typography variant="body2" fontWeight={500}>{member.phone || 'N/A'}</Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8rem' }}>{member.phone || 'N/A'}</Typography>
              </Box>
           </Stack>
         </Card>
@@ -429,30 +454,36 @@ const Members = () => {
         elevation={0} 
         sx={{ 
           p: 2, 
-          borderRadius: 4, 
+          borderRadius: 6, 
           mb: 5, 
-          border: `1px solid ${theme.palette.divider}`, 
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
           bgcolor: alpha(theme.palette.background.paper, 0.8), 
           backdropFilter: 'blur(20px)',
           position: 'sticky',
           top: 20,
-          zIndex: 10
+          zIndex: 10,
+          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
         }}
       >
         <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
-              placeholder="Search by ID, name, or email..."
+              placeholder="Search directory..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search size={18} color={theme.palette.text.secondary} />
+                    <Search size={18} strokeWidth={2.5} color={theme.palette.primary.main} />
                   </InputAdornment>
                 ),
-                sx: { borderRadius: 3, bgcolor: theme.palette.background.default }
+                sx: { 
+                    borderRadius: 4, 
+                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
+                    transition: 'all 0.3s',
+                    '&.Mui-focused': { boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}` }
+                }
               }}
               variant="outlined"
             />
@@ -463,7 +494,7 @@ const Members = () => {
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   displayEmpty
-                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.default }}
+                  sx={{ borderRadius: 4, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
                 >
                   <MenuItem value="">All Branches</MenuItem>
                   <MenuItem value="Langma">Langma</MenuItem>
@@ -479,7 +510,7 @@ const Members = () => {
                 <Select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  sx={{ borderRadius: 3, bgcolor: theme.palette.background.default }}
+                  sx={{ borderRadius: 4, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -487,29 +518,29 @@ const Members = () => {
                 </Select>
              </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1 }}>
+          <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5 }}>
               <ToggleButtonGroup
                 value={viewMode}
                 exclusive
                 onChange={(e, v) => v && setViewMode(v)}
                 size="medium"
-                sx={{ bgcolor: theme.palette.background.default, borderRadius: 3 }}
+                sx={{ bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5), borderRadius: 4, p: 0.5 }}
               >
-                <ToggleButton value="grid" sx={{ px: 2, border: 'none' }}><LayoutGrid size={18} /></ToggleButton>
-                <ToggleButton value="table" sx={{ px: 2, border: 'none' }}><TableIcon size={18} /></ToggleButton>
+                <ToggleButton value="grid" sx={{ px: 2, border: 'none', borderRadius: '12px !important' }}><LayoutGrid size={18} /></ToggleButton>
+                <ToggleButton value="table" sx={{ px: 2, border: 'none', borderRadius: '12px !important' }}><TableIcon size={18} /></ToggleButton>
               </ToggleButtonGroup>
 
               <Button 
                 variant="outlined" 
                 startIcon={<Download size={18} />}
                 onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                sx={{ borderRadius: 3, px: 2, fontWeight: 700 }}
+                sx={{ borderRadius: 4, px: 2, fontWeight: 800, borderWidth: 2, '&:hover': { borderWidth: 2 } }}
               >
                 Export
               </Button>
               <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                  <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1 }}><FileText size={18} /> Export as PDF</MenuItem>
-                  <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
+                  <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1.5, fontWeight: 600 }}><FileText size={18} /> Export as PDF</MenuItem>
+                  <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1.5, fontWeight: 600 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
               </Menu>
 
               <Tooltip title="Add New Member">
@@ -517,11 +548,12 @@ const Members = () => {
                     variant="contained" 
                     onClick={() => setOpenAddMemberDialog(true)}
                     sx={{ 
-                        borderRadius: 3, px: 3, fontWeight: 700,
-                        boxShadow: `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` 
+                        borderRadius: 4, minWidth: 56, height: 56, fontWeight: 800,
+                        boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
+                        '&:hover': { boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}` }
                     }}
                 >
-                    <UserPlus size={20} />
+                    <UserPlus size={22} />
                 </Button>
               </Tooltip>
           </Grid>
@@ -562,7 +594,7 @@ const Members = () => {
                 </TableHead>
                 <TableBody>
                   {filteredMembers.map((member) => (
-                    <TableRow key={member.id} hover onClick={() => setSelectedMember(member)} sx={{ cursor: 'pointer', transition: 'background 0.1s' }}>
+                    <TableRow key={member.id} hover onClick={() => handleOpenDetails(member)} sx={{ cursor: 'pointer', transition: 'background 0.1s' }}>
                       <TableCell>
                         <Typography variant="caption" fontWeight={800} color="primary">
                           {member.memberId || '—'}
@@ -578,8 +610,22 @@ const Members = () => {
                         </Stack>
                       </TableCell>
                       <TableCell>
-                         <Typography variant="body2" fontWeight={600}>{member.email || '—'}</Typography>
-                         <Typography variant="caption" color="text.secondary">{member.phone}</Typography>
+                         <Stack direction="row" spacing={1} alignItems="center">
+                            <Box>
+                                <Typography variant="body2" fontWeight={600}>{member.email || '—'}</Typography>
+                                <Typography variant="caption" color="text.secondary">{member.phone}</Typography>
+                            </Box>
+                            {member.email && (
+                                <IconButton 
+                                    size="small" 
+                                    color="primary" 
+                                    onClick={(e) => { e.stopPropagation(); handleOpenDetails(member, 2); }}
+                                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}
+                                >
+                                    <Mail size={14} />
+                                </IconButton>
+                            )}
+                         </Stack>
                       </TableCell>
                       <TableCell>
                         <Chip label={member.branch || 'Main'} size="small" sx={{ borderRadius: 1, fontWeight: 700, height: 20, fontSize: '0.65rem' }} />
@@ -603,7 +649,14 @@ const Members = () => {
       </AnimatePresence>
 
       <AddMemberDialog open={openAddMemberDialog} onClose={() => setOpenAddMemberDialog(false)} onAddMember={handleAddMember} />
-      <MemberDetailsDialog open={selectedMember !== null} onClose={() => setSelectedMember(null)} member={selectedMember} onEdit={handleEdit} onDelete={handleDelete} />
+      <MemberDetailsDialog 
+        open={selectedMember !== null} 
+        onClose={() => setSelectedMember(null)} 
+        member={selectedMember} 
+        onEdit={handleEdit} 
+        onDelete={handleDelete}
+        initialTab={dialogTab}
+      />
 
     </Box>
   );
