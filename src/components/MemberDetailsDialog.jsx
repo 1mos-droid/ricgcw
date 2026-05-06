@@ -51,12 +51,14 @@ import {
   Briefcase,
   History,
   Globe,
-  Send
+  Send,
+  Loader2
 } from 'lucide-react';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import emailjs from '@emailjs/browser';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -71,6 +73,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   const [contributions, setContributions] = useState([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [messageBody, setMessageBody] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   const [newContribution, setNewContribution] = useState({ 
     type: 'tithe', 
@@ -224,22 +227,53 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
     setErrors({});
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!member.email) {
       showNotification("This member doesn't have an email address.", "warning");
       return;
     }
 
+    if (!messageBody.trim()) {
+      showNotification("Please enter a message.", "warning");
+      return;
+    }
+
+    setSendingEmail(true);
+
     const senderName = user?.name || user?.email || 'Unknown Sender';
     const senderBranch = user?.branch === 'all' ? 'Main Sanctuary' : (user?.branch || 'Unknown Branch');
-    // Enhanced traceable subject line as requested
-    const subject = `[FROM: ${senderName.toUpperCase()} | BRANCH: ${senderBranch.toUpperCase()}] Official Communication`;
-    const body = `Message to: ${member.name}\nSource: ${senderName} (${senderBranch})\n\n---\n\n${messageBody}`;
-
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(member.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
-    window.open(gmailUrl, '_blank');
-    showNotification("Gmail composer opened in a new tab.", "success");
+    // Check for EmailJS configuration
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+    if (!serviceId || serviceId === 'your_service_id') {
+      showNotification("EmailJS is not configured. Please check your environment variables.", "error");
+      setSendingEmail(false);
+      return;
+    }
+
+    const templateParams = {
+      to_email: member.email,
+      to_name: member.name,
+      from_name: senderName,
+      branch: senderBranch,
+      message: messageBody,
+      subject: `Official Communication from ${senderBranch}`
+    };
+
+    try {
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+      showNotification(`Message sent to ${member.name}!`, "success");
+      setMessageBody('');
+      setTabValue(0); // Return to profile tab after sending
+    } catch (error) {
+      console.error("EmailJS Error:", error);
+      showNotification("Failed to send message. Please try again later.", "error");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const formatDOB = (dobString) => {
@@ -676,9 +710,9 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
             <Button 
                 variant="contained" 
                 fullWidth 
-                startIcon={<Send size={18} />}
+                startIcon={sendingEmail ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 onClick={handleSendMessage}
-                disabled={!member.email}
+                disabled={!member.email || sendingEmail || !messageBody.trim()}
                 sx={{ 
                     height: 56, 
                     borderRadius: 3, 
@@ -686,7 +720,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
                 }}
             >
-                Send via Gmail
+                {sendingEmail ? 'Sending...' : 'Send Message'}
             </Button>
             {!member.email && (
                 <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block', textAlign: 'center', fontWeight: 600 }}>

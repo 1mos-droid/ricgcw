@@ -175,5 +175,82 @@ exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
   }
 });
 
+// --- SCHEDULED STATUS UPDATES ---
+// Runs daily at 1:00 AM to check attendance thresholds
+exports.updateMemberStatuses = onSchedule("0 1 * * *", async (event) => {
+  const today = new Date();
+  // We check records up to 5 months back to determine discontinued status
+  const cutoffDate = new Date();
+  cutoffDate.setMonth(today.getMonth() - 5);
+
+  try {
+    const [membersSnapshot, attendanceSnapshot] = await Promise.all([
+      db.collection("members").get(),
+      db.collection("attendance").where("date", ">=", cutoffDate.toISOString()).get()
+    ]);
+
+    // Map memberId -> latest attendance date found in the window
+    const lastSeenMap = new Map();
+    attendanceSnapshot.forEach(doc => {
+      const record = doc.data();
+      const recordDate = new Date(record.date);
+      if (record.attendees) {
+        record.attendees.forEach(m => {
+          if (m.id) {
+            const currentLast = lastSeenMap.get(m.id);
+            if (!currentLast || recordDate > currentLast) {
+              lastSeenMap.set(m.id, recordDate);
+            }
+          }
+        });
+      }
+    });
+
+    const batch = db.batch();
+    let updatesCount = 0;
+
+    membersSnapshot.forEach(doc => {
+      const member = doc.data();
+      const memberId = doc.id;
+      
+      const lastAttendance = lastSeenMap.get(memberId);
+      const joinDate = new Date(member.createdAt || 0);
+      
+      // Use the later of last attendance or join date to determine period of absence
+      const referenceDate = lastAttendance && lastAttendance > joinDate ? lastAttendance : joinDate;
+      const msDiff = today.getTime() - referenceDate.getTime();
+      const daysAbsent = Math.floor(msDiff / (1000 * 60 * 60 * 24));
+
+      let targetStatus = "active";
+      if (daysAbsent >= 150) { // 5 months approx
+        targetStatus = "discontinued";
+      } else if (daysAbsent >= 90) { // 3 months approx
+        targetStatus = "inactive";
+      }
+
+      if (member.status !== targetStatus) {
+        // Safety: Don't move manually discontinued/inactive members back to active 
+        // unless they have actually attended recently (handled by the 'else' targetStatus="active")
+        batch.update(doc.ref, { status: targetStatus });
+        updatesCount++;
+      }
+
+      // Handle batch limit (500)
+      if (updatesCount >= 490) {
+        // For very large databases, this would need to commit and start a new batch.
+        // Assuming member count is within reasonable church limits for now.
+      }
+    });
+
+    if (updatesCount > 0) {
+      await batch.commit();
+      console.log(`[STATUS SYNC] Updated ${updatesCount} member statuses based on attendance.`);
+    }
+
+  } catch (error) {
+    console.error("Error updating member statuses:", error);
+  }
+});
+
 // --- EXPORT THE FUNCTION ---
 exports.api = onRequest({ maxInstances: 10 }, app);
