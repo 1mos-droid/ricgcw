@@ -228,8 +228,17 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   };
 
   const handleSendMessage = async () => {
-    if (!member.email) {
-      showNotification("This member doesn't have an email address.", "warning");
+    const emailTo = formData.email?.trim();
+    
+    if (!emailTo) {
+      showNotification("This member does not have a valid email address.", "warning");
+      return;
+    }
+
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTo)) {
+      showNotification("The member's email address is invalid.", "warning");
       return;
     }
 
@@ -248,15 +257,15 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-    if (!serviceId || serviceId === 'your_service_id') {
-      showNotification("EmailJS is not configured. Please check your environment variables.", "error");
+    if (!serviceId || serviceId === 'your_service_id' || !templateId || !publicKey) {
+      showNotification("EmailJS is not properly configured.", "error");
       setSendingEmail(false);
       return;
     }
 
     const templateParams = {
-      to_email: member.email,
-      to_name: member.name,
+      to_email: emailTo,
+      to_name: formData.name,
       from_name: senderName,
       branch: senderBranch,
       message: messageBody,
@@ -265,12 +274,12 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
 
     try {
       await emailjs.send(serviceId, templateId, templateParams, publicKey);
-      showNotification(`Message sent to ${member.name}!`, "success");
+      showNotification(`Message sent to ${formData.name}!`, "success");
       setMessageBody('');
       setTabValue(0); // Return to profile tab after sending
     } catch (error) {
       console.error("EmailJS Error:", error);
-      showNotification("Failed to send message. Please try again later.", "error");
+      showNotification("Failed to send message. Please check the recipient's email address and try again.", "error");
     } finally {
       setSendingEmail(false);
     }
@@ -712,17 +721,16 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 fullWidth 
                 startIcon={sendingEmail ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 onClick={handleSendMessage}
-                disabled={!member.email || sendingEmail || !messageBody.trim()}
-                sx={{ 
-                    height: 56, 
-                    borderRadius: 3, 
+                disabled={!formData.email?.trim() || sendingEmail || !messageBody.trim()}
+                sx={{
+                   height: 56,                    borderRadius: 3, 
                     fontWeight: 800,
                     boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
                 }}
             >
                 {sendingEmail ? 'Sending...' : 'Send Message'}
             </Button>
-            {!member.email && (
+            {!formData.email?.trim() && (
                 <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block', textAlign: 'center', fontWeight: 600 }}>
                     Member has no email address on file.
                 </Typography>
