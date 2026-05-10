@@ -59,7 +59,7 @@ import {
 } from 'recharts';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { safeParseDate } from '../utils/dateUtils';
+import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -140,6 +140,7 @@ const Financials = () => {
   const [description, setDescription] = useState('');
   const [type, setType] = useState('contribution');
   const [category, setCategory] = useState(isBranchRestricted ? userBranch : 'Mallam');
+  const [date, setDate] = useState(getISOStringDate(new Date()));
 
   // --- FETCH DATA ---
   const fetchData = useCallback(async () => {
@@ -174,7 +175,7 @@ const Financials = () => {
   }, [fetchData]);
 
   const handleTransaction = async () => {
-    if (!amount || !description || !category) {
+    if (!amount || !description || !category || !date) {
       showNotification("Please fill in all fields.", "warning");
       return;
     }
@@ -185,7 +186,7 @@ const Financials = () => {
         description,
         type,
         category,
-        date: editingTransaction ? editingTransaction.date : new Date().toISOString()
+        date: new Date(date).toISOString()
       };
       
       if (editingTransaction) {
@@ -212,6 +213,7 @@ const Financials = () => {
     setDescription('');
     setType('contribution');
     setCategory(isBranchRestricted ? userBranch : 'Mallam');
+    setDate(getISOStringDate(new Date()));
     setEditingTransaction(null);
   };
 
@@ -221,6 +223,7 @@ const Financials = () => {
     setDescription(tx.description);
     setType(tx.type);
     setCategory(tx.category);
+    setDate(getISOStringDate(tx.date));
     setOpenLogDialog(true);
   };
 
@@ -593,6 +596,12 @@ const Financials = () => {
                 <TextField 
                     fullWidth label="Description" 
                     value={description} onChange={(e) => setDescription(e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6 } }}
+                />
+                <TextField 
+                    fullWidth label="Date" type="date"
+                    value={date} onChange={(e) => setDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6 } }}
                 />
                 <TextField 

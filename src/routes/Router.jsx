@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
+import { useWorkspace } from '../context/WorkspaceContext';
 
 // --- PAGE IMPORTS (Lazy Loaded) ---
 const Dashboard = lazy(() => import('../pages/Dashboard'));
@@ -19,6 +20,8 @@ const BibleStudies = lazy(() => import('../pages/BibleStudies'));
 const LiveBible = lazy(() => import('../pages/LiveBible'));
 const Graph = lazy(() => import('../pages/Graph'));
 const Login = lazy(() => import('../pages/Login'));
+const Developer = lazy(() => import('../pages/Developer'));
+const Maintenance = lazy(() => import('../pages/Maintenance'));
 
 // --- ANIMATION CONFIGURATION ---
 const pageVariants = {
@@ -54,10 +57,25 @@ const PageLoader = () => (
 
 // 🟢 Unified Authentication & Authorization Guards
 const RequireAuth = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user: originalUser } = useAuth();
+  const { maintenance } = useWorkspace();
+  const location = useLocation();
   
   if (loading) return <PageLoader />;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // Maintenance Guard: Only admins can bypass maintenance mode
+  const isAdmin = originalUser?.role === 'admin';
+  if (maintenance?.active && !isAdmin && location.pathname !== '/maintenance') {
+    return <Navigate to="/maintenance" replace />;
+  }
+
+  // Prevent accessing maintenance page if not in maintenance mode (except for testing)
+  if (!maintenance?.active && location.pathname === '/maintenance') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 };
 
 const RequireRole = ({ roles, children }) => {
@@ -75,6 +93,7 @@ const AppRouter = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
+        <Route path="/maintenance" element={<MotionWrap><Maintenance /></MotionWrap>} />
         
         {/* Protected Routes (Authenticated) */}
         <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />
@@ -95,6 +114,16 @@ const AppRouter = () => {
             <RequireAuth>
               <RequireRole roles={['admin']}>
                 <MotionWrap><UserManagement /></MotionWrap>
+              </RequireRole>
+            </RequireAuth>
+          } 
+        />
+        <Route 
+          path="/developer" 
+          element={
+            <RequireAuth>
+              <RequireRole roles={['admin']}>
+                <MotionWrap><Developer /></MotionWrap>
               </RequireRole>
             </RequireAuth>
           } 

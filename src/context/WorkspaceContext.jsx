@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { Snackbar, Alert } from '@mui/material';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useAuth } from './AuthContext';
+import { db } from '../firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 const WorkspaceContext = createContext();
 
@@ -20,8 +22,60 @@ export const WorkspaceProvider = ({ children }) => {
     return localStorage.getItem('activeWorkspace') || 'main';
   });
 
-  const userBranch = useMemo(() => user?.branch || 'all', [user]);
-  const userRole = useMemo(() => user?.role || 'guest', [user]);
+  // --- Developer / Mimic State ---
+  const [mimicData, setMimicData] = useState(() => {
+    const saved = localStorage.getItem('mimicData');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // --- Maintenance Mode State ---
+  const [maintenance, setMaintenance] = useState({ active: false, message: '' });
+
+  useEffect(() => {
+    // Listen for maintenance mode changes globally
+    const unsub = onSnapshot(doc(db, 'settings', 'maintenance'), (doc) => {
+      if (doc.exists()) {
+        setMaintenance(doc.data());
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const toggleMaintenance = async (active, message = '') => {
+    try {
+      await setDoc(doc(db, 'settings', 'maintenance'), { 
+        active, 
+        message, 
+        updatedAt: new Date().toISOString(),
+        updatedBy: user?.email
+      });
+    } catch (err) {
+      console.error("Maintenance Toggle Error:", err);
+      showNotification("Failed to update maintenance mode.", "error");
+    }
+  };
+
+  const startMimicking = (targetUser) => {
+    const data = {
+      role: targetUser.role,
+      branch: targetUser.branch,
+      name: targetUser.name,
+      email: targetUser.email,
+      originalName: user.name
+    };
+    setMimicData(data);
+    localStorage.setItem('mimicData', JSON.stringify(data));
+    showNotification(`Now mimicking ${targetUser.name}`, "info");
+  };
+
+  const stopMimicking = () => {
+    setMimicData(null);
+    localStorage.removeItem('mimicData');
+    showNotification("Identity restored to normal.", "success");
+  };
+
+  const userBranch = useMemo(() => mimicData?.branch || user?.branch || 'all', [user, mimicData]);
+  const userRole = useMemo(() => mimicData?.role || user?.role || 'guest', [user, mimicData]);
 
   // --- Global Notification State ---
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
@@ -36,7 +90,6 @@ export const WorkspaceProvider = ({ children }) => {
   };
 
   const refreshUserContext = () => {
-    // This is now mostly handled by AuthContext updates
     const activeWs = localStorage.getItem('activeWorkspace') || 'main';
     setWorkspace(activeWs);
   };
@@ -49,7 +102,7 @@ export const WorkspaceProvider = ({ children }) => {
   const filterData = (data) => {
     if (!data || !Array.isArray(data)) return [];
     
-    // Use the latest branch info from the user object
+    // Use the latest branch info from the user object or mimic
     const currentBranch = userBranch;
 
     let filteredByBranch = data;
@@ -64,7 +117,7 @@ export const WorkspaceProvider = ({ children }) => {
 
     return filteredByBranch.filter(item => {
       if (!item) return false;
-      if (workspace === 'main') return true; // Show all in Main Sanctuary
+      if (workspace === 'main') return true; 
       
       const department = (item.department || '').toLowerCase();
       if (workspace === 'youth') return department === 'youth';
@@ -74,8 +127,11 @@ export const WorkspaceProvider = ({ children }) => {
   };
 
   const canEdit = (itemBranch) => {
-    if (userRole === 'admin') return true;
-    if (userRole === 'branch_admin' && String(itemBranch).toLowerCase() === String(userBranch).toLowerCase()) return true;
+    const role = userRole;
+    const branch = userBranch;
+    
+    if (role === 'admin') return true;
+    if (role === 'branch_admin' && String(itemBranch).toLowerCase() === String(branch).toLowerCase()) return true;
     return false;
   };
 
@@ -89,14 +145,21 @@ export const WorkspaceProvider = ({ children }) => {
     isBranchRestricted: userBranch !== 'all',
     refreshUserContext,
     showNotification,
-    showConfirmation
+    showConfirmation,
+    // Dev Features
+    maintenance,
+    toggleMaintenance,
+    mimicData,
+    startMimicking,
+    stopMimicking,
+    isMimicking: !!mimicData
   };
 
   return (
     <WorkspaceContext.Provider value={value}>
       {children}
       
-      {/* Global Notification Component (The "Sandwich") */}
+      {/* Global Notification Component */}
       <Snackbar 
         open={notification.open} 
         autoHideDuration={5000} 

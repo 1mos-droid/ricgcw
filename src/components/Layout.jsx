@@ -54,6 +54,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import TerminalIcon from '@mui/icons-material/Terminal';
 import InstallButton from './InstallButton';
 
 const drawerWidth = 280; 
@@ -156,6 +157,7 @@ const NAV_ITEMS = [
   { text: 'Graph', icon: <BarChartIcon />, path: '/graph' },
   { text: 'Users', icon: <SupervisedUserCircleIcon />, path: '/user-management' },
   { text: 'Quick Switch', icon: <SwapHorizIcon />, path: '/quick-switch' },
+  { text: 'Developer', icon: <TerminalIcon />, path: '/developer' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   { text: 'Help', icon: <HelpCenterIcon />, path: '/help' },
 ];
@@ -247,7 +249,7 @@ const AppLayout = ({ children }) => {
 
   const filteredNavItems = NAV_ITEMS.filter(item => {
     if (userRole === 'admin') return true;
-    const restrictedPaths = ['/user-management', '/quick-switch', '/graph'];
+    const restrictedPaths = ['/user-management', '/quick-switch', '/graph', '/developer'];
     return !restrictedPaths.includes(item.path);
   });
 
@@ -372,6 +374,23 @@ const AppLayout = ({ children }) => {
 
       {/* User Profile in Sidebar Footer */}
       <Box sx={{ p: 2.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+        {userRole === 'admin' && (
+           <Box 
+            component={motion.div}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            sx={{ 
+              mb: 2, p: 1.5, borderRadius: 4, 
+              bgcolor: alpha(theme.palette.warning.main, 0.1),
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+            }}
+          >
+            <Typography variant="caption" fontWeight={800} color="warning.main" sx={{ display: 'block', mb: 0.5 }}>SYSTEM STATUS:</Typography>
+            <Typography variant="body2" fontWeight={700}>
+              {localStorage.getItem('mimicData') ? '🕵️ Mimicking Active' : '⚡ Admin Console'}
+            </Typography>
+          </Box>
+        )}
         <Box 
           sx={{ 
             display: 'flex', 
@@ -385,9 +404,16 @@ const AppLayout = ({ children }) => {
           }}
           onClick={handleMenu}
         >
-          <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>
-            {user?.email?.charAt(0).toUpperCase() || 'U'}
-          </Avatar>
+          <Badge 
+            overlap="circular" 
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            variant="dot"
+            color={localStorage.getItem('mimicData') ? "warning" : "success"}
+          >
+            <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </Avatar>
+          </Badge>
           <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
             <Typography variant="subtitle2" fontWeight={700} noWrap>{user?.email || 'System User'}</Typography>
             <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{userRole || 'Administrator'}</Typography>
