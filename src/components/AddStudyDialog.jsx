@@ -23,9 +23,11 @@ import { collection, addDoc } from 'firebase/firestore';
 
 const AddStudyDialog = ({ open, onClose, onStudyAdded }) => {
   const theme = useTheme();
+  const { currentDepartment, isDepartmentRestricted } = useWorkspace();
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
+    department: isDepartmentRestricted ? currentDepartment : '',
     sessions: 1,
     progress: 0,
     active: true
@@ -54,6 +56,7 @@ const AddStudyDialog = ({ open, onClose, onStudyAdded }) => {
     try {
       const studyData = {
         ...formData,
+        department: formData.department || null,
         sessions: Number(formData.sessions),
         progress: Number(formData.progress),
         createdAt: new Date().toISOString()
@@ -75,6 +78,7 @@ const AddStudyDialog = ({ open, onClose, onStudyAdded }) => {
     setFormData({
       title: '',
       subtitle: '',
+      department: isDepartmentRestricted ? currentDepartment : '',
       sessions: 1,
       progress: 0,
       active: true
@@ -138,6 +142,24 @@ const AddStudyDialog = ({ open, onClose, onStudyAdded }) => {
             variant="outlined"
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
           />
+
+          <TextField
+            select
+            fullWidth
+            label="Assigned Department"
+            name="department"
+            value={formData.department}
+            onChange={handleChange}
+            disabled={isDepartmentRestricted}
+            SelectProps={{ native: false }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+          >
+            <MenuItem value="">Global / All</MenuItem>
+            <MenuItem value="Youth">Youth</MenuItem>
+            <MenuItem value="Children's Court">Children's Court</MenuItem>
+            <MenuItem value="Mens">Mens</MenuItem>
+            <MenuItem value="Women">Women</MenuItem>
+          </TextField>
 
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>

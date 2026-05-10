@@ -9,6 +9,7 @@ import {
   Avatar,
   Button,
   useTheme,
+  useMediaQuery,
   Skeleton,
   Chip,
   IconButton,
@@ -54,7 +55,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       style={{ height: '100%' }}
     >
       <Card 
@@ -62,39 +63,40 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
           position: 'relative', 
           overflow: 'hidden', 
           height: '100%',
-          p: 3,
+          p: 3.5,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          borderRadius: 5,
+          borderRadius: 8,
           background: theme.palette.mode === 'light' 
-            ? 'rgba(255, 255, 255, 0.8)' 
-            : 'rgba(30, 41, 59, 0.6)',
-          backdropFilter: 'blur(20px)',
-          border: `1px solid ${alpha(color, 0.15)}`,
-          boxShadow: `0 10px 30px -10px ${alpha(color, 0.15)}`,
+            ? 'rgba(255, 255, 255, 0.9)' 
+            : 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(40px)',
+          border: `1px solid ${alpha(color, 0.2)}`,
+          boxShadow: `0 20px 40px -15px ${alpha(color, 0.15)}`,
           transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           '&:hover': {
-            transform: 'translateY(-8px)',
-            boxShadow: `0 20px 40px -15px ${alpha(color, 0.25)}`,
-            '& .icon-box': { transform: 'scale(1.1) rotate(5deg)' }
+            transform: 'translateY(-10px)',
+            boxShadow: `0 30px 60px -20px ${alpha(color, 0.3)}`,
+            borderColor: alpha(color, 0.4),
+            '& .icon-box': { transform: 'scale(1.1) rotate(10deg)', bgcolor: color, color: '#fff' }
           }
         }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 2 }}>
           <Box>
-            <Typography variant="subtitle2" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 1.5, fontSize: '0.65rem', mb: 0.5 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ opacity: 0.6, mb: 1 }}>
               {title}
             </Typography>
-            <Typography variant="h3" fontWeight={800} sx={{ color: theme.palette.text.primary, letterSpacing: '-0.03em', fontSize: { xs: '2rem', md: '2.5rem' } }}>
+            <Typography variant="h3" sx={{ color: theme.palette.text.primary, letterSpacing: '-0.04em', fontSize: { xs: '2rem', md: '2.5rem' } }}>
               {value}
             </Typography>
             {trend && (
-              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
-                <Box sx={{ bgcolor: alpha(color, 0.1), borderRadius: 2, px: 0.8, py: 0.2, display: 'flex', alignItems: 'center' }}>
-                    <TrendingUp size={12} color={color} style={{ marginRight: 4 }} />
-                    <Typography variant="caption" fontWeight={800} sx={{ color: color }}>
-                    {trend}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2 }}>
+                <Box sx={{ bgcolor: alpha(color, 0.1), borderRadius: '8px', px: 1, py: 0.5, display: 'flex', alignItems: 'center' }}>
+                    <TrendingUp size={14} color={color} style={{ marginRight: 6 }} />
+                    <Typography variant="caption" fontWeight={900} sx={{ color: color, fontSize: '0.7rem' }}>
+                        {trend}
                     </Typography>
                 </Box>
               </Stack>
@@ -103,25 +105,25 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
           <Box 
             className="icon-box"
             sx={{ 
-              p: 1.5, 
-              borderRadius: '18px', 
-              background: `linear-gradient(135deg, ${alpha(color, 0.1)} 0%, ${alpha(color, 0.2)} 100%)`, 
+              p: 2, 
+              borderRadius: '20px', 
+              bgcolor: alpha(color, 0.1), 
               color: color,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'transform 0.4s ease',
-              boxShadow: `0 8px 16px -4px ${alpha(color, 0.2)}`
+              transition: 'all 0.4s ease',
+              boxShadow: `0 12px 24px -6px ${alpha(color, 0.2)}`
             }}
           >
-            <Icon size={24} strokeWidth={2.5} />
+            <Icon size={26} strokeWidth={2.5} />
           </Box>
         </Box>
 
         {/* Mini Sparkline Background */}
         {chartData && chartData.length > 0 && (
-          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 100, opacity: 0.25, zIndex: 1, pointerEvents: 'none', minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height={100} minWidth={0}>
+          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 110, opacity: 0.2, zIndex: 1, pointerEvents: 'none' }}>
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id={`color${title}`} x1="0" y1="0" x2="0" y2="1">
@@ -141,6 +143,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
 
 const Dashboard = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const workspaceContext = useWorkspace();
   const workspace = workspaceContext?.workspace || 'main';
   const filterData = workspaceContext?.filterData || ((d) => d);
@@ -344,127 +347,119 @@ const Dashboard = () => {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      style={{ paddingBottom: '2rem' }}
+      style={{ paddingBottom: '3rem' }}
     >
       {/* 1. WELCOME BANNER */}
       <motion.div variants={itemVariants}>
         <Paper 
           elevation={0}
           sx={{ 
-            p: { xs: 3, md: 5 }, 
-            mb: 4, 
+            p: { xs: 4, md: 7 }, 
+            mb: 6, 
             background: theme.palette.mode === 'light' 
-              ? `linear-gradient(120deg, ${theme.palette.primary.main} 0%, #2563EB 50%, #1E40AF 100%)`
-              : `linear-gradient(120deg, #1E293B 0%, #0F172A 100%)`,
+              ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`
+              : `linear-gradient(135deg, #020617 0%, #0D1117 100%)`,
             color: '#fff',
-            borderRadius: 8,
+            borderRadius: 10,
             position: 'relative',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
             justifyContent: 'space-between',
             alignItems: { xs: 'flex-start', md: 'center' },
-            boxShadow: `0 24px 48px -12px ${alpha(theme.palette.primary.main, 0.4)}`
+            boxShadow: `0 32px 64px -12px ${alpha(theme.palette.primary.main, 0.5)}`,
+            border: `2px solid ${alpha('#fff', 0.1)}`
           }}
         >
-          <Box sx={{ position: 'relative', zIndex: 2, maxWidth: { md: '60%' } }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-              <Chip 
-                label={format(new Date(), 'MMMM yyyy')} 
-                size="small" 
-                sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.15)', 
-                    color: '#fff', 
-                    fontWeight: 700, 
-                    backdropFilter: 'blur(10px)', 
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    fontSize: '0.7rem'
-                }} 
-              />
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: 1 }}>
-                {format(new Date(), 'EEEE, do')}
+          <Box sx={{ position: 'relative', zIndex: 2, maxWidth: { md: '65%' } }}>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+              <Box sx={{ bgcolor: theme.palette.secondary.main, color: '#fff', px: 1.5, py: 0.5, borderRadius: 2, fontWeight: 900, fontSize: '0.65rem', letterSpacing: 1.5 }}>
+                OFFICIAL PORTAL
+              </Box>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                {format(new Date(), 'EEEE, MMMM do')}
               </Typography>
             </Stack>
             
             <Typography variant="h2" sx={{ 
-                fontWeight: 800, 
-                mb: 1.5, 
-                letterSpacing: '-0.04em',
-                fontSize: { xs: '2rem', md: '3rem' }
+                fontWeight: 900, 
+                mb: 2.5, 
+                letterSpacing: '-0.03em',
+                fontSize: { xs: '2.5rem', md: '3.8rem' },
+                lineHeight: 1,
+                fontFamily: '"Playfair Display", serif',
+                textShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}>
-              Hello, {workspaceContext?.userRole === 'admin' ? 'Admin' : 'Minister'}
+              Shalom, {workspaceContext?.userRole === 'admin' ? 'Administrator' : 'Minister'}
             </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)', fontSize: { xs: '0.95rem', md: '1.1rem' }, fontWeight: 500, lineHeight: 1.6 }}>
-              Overview of <Box component="span" sx={{ fontWeight: 800, color: '#fff', borderBottom: '2px solid rgba(255,255,255,0.3)' }}>{workspace === 'main' ? 'Sanctuary' : workspace}</Box> activities.
+            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)', fontSize: { xs: '1rem', md: '1.25rem' }, fontWeight: 600, maxWidth: 600, lineHeight: 1.6 }}>
+              Governing the <Box component="span" sx={{ fontWeight: 900, color: theme.palette.secondary.light, borderBottom: `3px solid ${theme.palette.secondary.main}` }}>{workspace === 'main' ? 'Rhema Global Sanctuary' : workspace}</Box> with excellence.
             </Typography>
           </Box>
 
-          <Box sx={{ mt: { xs: 4, md: 0 }, display: 'flex', gap: 2, position: 'relative', zIndex: 2, width: { xs: '100%', md: 'auto' } }}>
+          <Box sx={{ mt: { xs: 5, md: 0 }, display: 'flex', gap: 2.5, position: 'relative', zIndex: 2, width: { xs: '100%', md: 'auto' } }}>
             <Button 
               component={Link} 
               to="/members" 
               variant="contained" 
-              fullWidth={true}
-              startIcon={<Plus size={18} />}
+              fullWidth={isMobile}
+              startIcon={<Plus size={24} strokeWidth={3} />}
               sx={{ 
-                bgcolor: '#fff', 
-                color: theme.palette.primary.main, 
-                px: 3,
-                py: 1.5,
-                fontWeight: 800,
-                boxShadow: '0 10px 20px -5px rgba(0,0,0,0.2)',
-                '&:hover': { bgcolor: alpha('#fff', 0.9), transform: 'translateY(-2px)' }
-              }}
-            >
-              Add Member
-            </Button>
-            <IconButton 
-              sx={{ 
-                bgcolor: 'rgba(255,255,255,0.1)', 
+                bgcolor: theme.palette.secondary.main, 
                 color: '#fff', 
-                backdropFilter: 'blur(10px)',
-                width: 50, height: 50, borderRadius: '50%',
-                border: '1px solid rgba(255,255,255,0.1)',
-                display: { xs: 'none', sm: 'flex' }
+                px: { md: 6 },
+                py: 2.5,
+                borderRadius: 4,
+                fontWeight: 900,
+                fontSize: '1.1rem',
+                border: '3px solid rgba(255,255,255,0.4)',
+                boxShadow: `0 20px 40px ${alpha(theme.palette.secondary.main, 0.4)}`,
+                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                '&:hover': { 
+                    bgcolor: theme.palette.secondary.dark, 
+                    transform: 'translateY(-6px) scale(1.02)', 
+                    boxShadow: `0 25px 50px ${alpha(theme.palette.secondary.main, 0.6)}`,
+                    borderColor: '#fff'
+                }
               }}
             >
-              <Activity size={20} />
-            </IconButton>
+              Add New Member
+            </Button>
           </Box>
 
-          {/* Abstract Decorations */}
-          <Box sx={{ position: 'absolute', top: -50, right: -50, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)', zIndex: 1 }} />
-          <Box sx={{ position: 'absolute', bottom: -100, left: '10%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)', zIndex: 1 }} />
+          {/* Abstract Premium Decorations */}
+          <Box sx={{ position: 'absolute', top: -100, right: -100, width: 450, height: 450, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)', zIndex: 1 }} />
+          <Box sx={{ position: 'absolute', bottom: -150, left: '5%', width: 550, height: 550, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0, 162, 232, 0.1) 0%, transparent 70%)', zIndex: 1 }} />
         </Paper>
       </motion.div>
 
       {/* 2. STATS GRID */}
-      <Grid container spacing={3} sx={{ mb: 5 }}>
+      <Grid container spacing={4} sx={{ mb: 6 }}>
         <Grid size={{ xs: 12, md: 4 }}>
           <ModernStatCard 
-            title="Active Members" 
+            title="ACTIVE MEMBERSHIP" 
             value={filteredData.members.length.toLocaleString()} 
             icon={Users} 
             color={theme.palette.primary.main} 
-            trend="+12.5%"
+            trend="+12% growth"
             chartData={aggregatedData.members}
             delay={0.1}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           <ModernStatCard 
-            title="Total Revenue" 
+            title="TOTAL REVENUE" 
             value={`GHC ${totalContributions.toLocaleString()}`} 
             icon={DollarSign} 
-            color="#10B981" 
-            trend="Target met"
+            color={theme.palette.success.main} 
+            trend="On target"
             chartData={aggregatedData.revenue}
             delay={0.2}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           <ModernStatCard 
-            title="Active Events" 
+            title="SCHEDULED EVENTS" 
             value={filteredData.events.length} 
             icon={Calendar} 
             color="#F59E0B" 
@@ -475,38 +470,38 @@ const Dashboard = () => {
       </Grid>
 
       {/* 3. MAIN SECTION */}
-      <Grid container spacing={4}>
+      <Grid container spacing={5}>
         
         {/* LEFT: ACTIVITY & ANALYTICS */}
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Stack spacing={4}>
+          <Stack spacing={5}>
             
             {/* Charts Section */}
             <motion.div variants={itemVariants}>
-              <Card sx={{ p: 3, borderRadius: 6, minHeight: 400 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+              <Card sx={{ p: 4, borderRadius: 8, minHeight: 450 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
                   <Box>
-                    <Typography variant="h6" fontWeight={800}>Financial Overview</Typography>
-                    <Typography variant="caption" color="text.secondary">Daily income trend</Typography>
+                    <Typography variant="h5" fontWeight={900}>Financial Trajectory</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, opacity: 0.5, letterSpacing: 1 }}>ANALysis OF DAILY CONTRIBUTIONS</Typography>
                   </Box>
-                  <IconButton size="small"><MoreHorizontal size={20} /></IconButton>
+                  <IconButton size="medium" sx={{ bgcolor: alpha(theme.palette.text.primary, 0.03) }}><MoreHorizontal size={20} /></IconButton>
                 </Box>
 
-                <Box sx={{ height: 300, width: '100%', minWidth: 0, position: 'relative' }}>
+                <Box sx={{ height: 320, width: '100%', minWidth: 0, position: 'relative' }}>
                   {aggregatedData.financial && aggregatedData.financial.length > 0 && (
-                    <ResponsiveContainer width="100%" height={300} minWidth={0}>
+                    <ResponsiveContainer width="100%" height={320} minWidth={0}>
                       <AreaChart data={aggregatedData.financial}>
                       <defs>
                         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.2}/>
+                          <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.15}/>
                           <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                       <XAxis dataKey="date" axisLine={false} tickLine={false} tick={false} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme.palette.text.secondary, fontWeight: 700 }} />
                       <Tooltip 
-                        contentStyle={{ borderRadius: 16, border: 'none', boxShadow: theme.shadows[10], padding: '12px 16px', backgroundColor: theme.palette.background.paper }}
+                        contentStyle={{ borderRadius: 24, border: 'none', boxShadow: theme.shadows[15], padding: '16px 24px', backgroundColor: alpha(theme.palette.background.paper, 0.9), backdropFilter: 'blur(20px)' }}
                       />
                       <Area 
                         type="monotone" 
@@ -515,7 +510,8 @@ const Dashboard = () => {
                         strokeWidth={4} 
                         fillOpacity={1} 
                         fill="url(#chartGradient)" 
-                        animationDuration={2000}
+                        animationDuration={2500}
+                        activeDot={{ r: 8, strokeWidth: 0, fill: theme.palette.primary.main }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>

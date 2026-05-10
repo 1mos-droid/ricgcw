@@ -36,7 +36,7 @@ const QuickSwitch = () => {
   const workspaces = [
     { id: 'main', label: 'Main Sanctuary', desc: 'Central governance and master registry.', color: theme.palette.primary.main },
     { id: 'youth', label: 'Youth Ministry', desc: 'Departmental records and youth engagement.', color: theme.palette.secondary.main },
-    { id: 'kids', label: "Children's Dept", desc: 'Safeguarding and early education tracking.', color: theme.palette.warning.main },
+    { id: 'kids', label: "Children's Court", desc: 'Safeguarding and early education tracking.', color: theme.palette.warning.main },
   ];
 
   const handleSwitch = (id, label) => {

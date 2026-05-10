@@ -119,9 +119,9 @@ export const WorkspaceProvider = ({ children }) => {
       if (!item) return false;
       if (workspace === 'main') return true; 
       
-      const department = (item.department || '').toLowerCase();
+      const department = String(item.department || '').trim().toLowerCase();
       if (workspace === 'youth') return department === 'youth';
-      if (workspace === 'kids') return department === "children's department";
+      if (workspace === 'kids') return department === "children's court";
       return true;
     });
   };
@@ -135,6 +135,12 @@ export const WorkspaceProvider = ({ children }) => {
     return false;
   };
 
+  const currentDepartment = useMemo(() => {
+    if (workspace === 'youth') return 'Youth';
+    if (workspace === 'kids') return "Children's Court";
+    return 'Main';
+  }, [workspace]);
+
   const value = {
     workspace,
     switchWorkspace,
@@ -146,6 +152,8 @@ export const WorkspaceProvider = ({ children }) => {
     refreshUserContext,
     showNotification,
     showConfirmation,
+    currentDepartment,
+    isDepartmentRestricted: workspace !== 'main',
     // Dev Features
     maintenance,
     toggleMaintenance,

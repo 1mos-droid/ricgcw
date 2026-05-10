@@ -487,14 +487,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
-                      <MenuItem value="Children's Department">Children's Dept</MenuItem>
+                      <MenuItem value="Children's Court">Children's Court</MenuItem>
                       <MenuItem value="Youth">Youth</MenuItem>
                       <MenuItem value="Mens">Mens</MenuItem>
                       <MenuItem value="Women">Women</MenuItem>
                     </Select>
                   </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                </Grid>                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Position</InputLabel>
                     <Select

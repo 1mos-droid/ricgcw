@@ -161,9 +161,14 @@ const BibleStudies = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
-  const filteredResources = resources.filter(res => 
-    (res.title || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredResources = useMemo(() => {
+    const data = filterData(resources);
+    return data.filter(res => 
+      (res.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [resources, filterData, searchTerm]);
+
+  const filteredStudies = useMemo(() => filterData(studySeries), [studySeries, filterData]);
 
   return (
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible" sx={{ pb: 8 }}>
@@ -233,11 +238,11 @@ const BibleStudies = () => {
                     <motion.div key="modules" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                         {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
                             <Grid container spacing={3}>
-                                {studySeries.length === 0 ? (
+                                {filteredStudies.length === 0 ? (
                                     <Grid size={{ xs: 12 }}>
                                         <Typography color="text.secondary" align="center">No study modules found.</Typography>
                                     </Grid>
-                                ) : studySeries.map((study) => (
+                                ) : filteredStudies.map((study) => (
                                     <Grid size={{ xs: 12, sm: 6 }} key={study.id}>
                                         <Card sx={{ 
                                             p: 3, height: '100%', borderRadius: 5, border: `1px solid ${theme.palette.divider}`,
@@ -329,7 +334,7 @@ const BibleStudies = () => {
                 <Box>
                     <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, color: 'text.secondary', letterSpacing: 1 }}>RECENT MATERIAL</Typography>
                     <Stack spacing={2}>
-                        {resources.slice(0, 2).map(res => (
+                        {filteredResources.slice(0, 2).map(res => (
                             <Paper key={res.id} variant="outlined" sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
                                 <FileText size={20} color={theme.palette.primary.main} />
                                 <Box sx={{ flexGrow: 1 }}>

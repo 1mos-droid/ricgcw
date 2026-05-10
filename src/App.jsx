@@ -7,7 +7,6 @@ import { Box, CircularProgress } from '@mui/material';
 import AppRouter from './routes/Router';
 import AppLayout from './components/Layout';
 import ThemeConfig from './theme.jsx';
-import PWAPrompt from './components/PWAPrompt';
 
 // Helper: Resets view to top on page change (Polished feel)
 const ScrollToTop = () => {
@@ -74,7 +73,6 @@ function App() {
       <AppLayout>
         <AppRouter />
       </AppLayout>
-      <PWAPrompt />
     </ThemeConfig>
   );
 }

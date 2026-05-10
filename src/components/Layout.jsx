@@ -53,9 +53,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import TerminalIcon from '@mui/icons-material/Terminal';
-import InstallButton from './InstallButton';
 
 const drawerWidth = 280; 
 
@@ -82,8 +80,8 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
     zIndex: theme.zIndex.drawer + 1,
     boxShadow: 'none',
     borderBottom: 'none',
-    backgroundColor: alpha(theme.palette.background.default, 0.8),
-    backdropFilter: 'blur(16px)',
+    backgroundColor: alpha(theme.palette.background.default, 0.7),
+    backdropFilter: 'blur(24px)',
     transition: theme.transitions.create(['width', 'margin'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -97,10 +95,16 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
-  borderRadius: 16,
-  backgroundColor: alpha(theme.palette.text.primary, 0.04),
+  borderRadius: 20,
+  backgroundColor: theme.palette.mode === 'light' 
+    ? alpha(theme.palette.common.black, 0.03) 
+    : alpha(theme.palette.common.white, 0.03),
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
-    backgroundColor: alpha(theme.palette.text.primary, 0.06),
+    backgroundColor: theme.palette.mode === 'light' 
+      ? alpha(theme.palette.common.black, 0.05) 
+      : alpha(theme.palette.common.white, 0.05),
+    transform: 'translateY(-1px)',
   },
   marginRight: theme.spacing(2),
   marginLeft: 0,
@@ -112,7 +116,7 @@ const Search = styled('div')(({ theme }) => ({
 }));
 
 const SearchIconWrapper = styled('div')(({ theme }) => ({
-  padding: theme.spacing(0, 2),
+  padding: theme.spacing(0, 2.5),
   height: '100%',
   position: 'absolute',
   pointerEvents: 'none',
@@ -124,15 +128,19 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
   color: 'inherit',
+  width: '100%',
   '& .MuiInputBase-input': {
     padding: theme.spacing(1.5, 1.5, 1.5, 0),
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
+    paddingLeft: `calc(1em + ${theme.spacing(5)})`,
     transition: theme.transitions.create('width'),
     width: '100%',
     fontSize: '0.9rem',
-    fontWeight: 500,
+    fontWeight: 600,
     [theme.breakpoints.up('md')]: {
-      width: '24ch',
+      width: '32ch',
+      '&:focus': {
+        width: '40ch',
+      },
     },
   },
 }));
@@ -140,8 +148,8 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  padding: theme.spacing(0, 3),
-  height: 90, 
+  padding: theme.spacing(0, 4),
+  height: 100, 
   justifyContent: 'space-between',
 }));
 
@@ -243,7 +251,7 @@ const AppLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
-  const { userRole, workspace } = useWorkspace(); 
+  const { userRole, workspace, currentDepartment } = useWorkspace(); 
   
   const isLoginPage = location.pathname === '/login';
 
@@ -289,36 +297,34 @@ const AppLayout = ({ children }) => {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
       <DrawerHeader>
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Box 
-            sx={{ 
-              width: 44, 
-              height: 44, 
-              borderRadius: '14px', 
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '1.2rem',
-              boxShadow: `0 8px 24px -4px ${alpha(theme.palette.primary.main, 0.4)}`
+        <Stack direction="row" alignItems="center" spacing={2.5}>
+          <Box
+            component="img"
+            src="/ricgcw.png"
+            alt="RICGCW Logo"
+            sx={{
+              width: 56,
+              height: 56,
+              objectFit: 'contain',
+              filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.4)})`
             }}
-          >
-            R
-          </Box>
+          />
           <Box>
-            <Typography variant="h6" fontWeight={800} lineHeight={1} letterSpacing="-0.02em">RICGCW</Typography>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} letterSpacing="0.05em">CMS v2.0</Typography>
+            <Typography variant="h6" fontWeight={900} lineHeight={1} letterSpacing="-0.01em" sx={{ color: theme.palette.text.primary, mb: 0.5 }}>
+              RICGCW
+            </Typography>
+            <Typography variant="caption" color="primary" fontWeight={900} sx={{ letterSpacing: '0.05em', fontSize: '0.6rem', textTransform: 'uppercase', display: 'block' }}>
+              Rhema Inner Court
+            </Typography>
           </Box>
         </Stack>
       </DrawerHeader>
       
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2.5, py: 2 }}>
-        <Typography variant="caption" sx={{ px: 2, mb: 1.5, display: 'block', fontWeight: 700, color: theme.palette.text.secondary, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
-          Overview
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2, py: 3 }}>
+        <Typography variant="subtitle2" sx={{ px: 2, mb: 2, opacity: 0.8, fontWeight: 900 }}>
+          DASHBOARD
         </Typography>
-        <List sx={{ mb: 2 }}>
+        <List sx={{ mb: 4 }}>
           {filteredNavItems.slice(0, 1).map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -327,15 +333,28 @@ const AppLayout = ({ children }) => {
                 component={Link} 
                 to={item.path} 
                 selected={isActive}
+                sx={{
+                  py: 1.8,
+                  borderRadius: 4,
+                  '&.Mui-selected': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
+                  },
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.05)
+                  }
+                }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary, transition: 'color 0.2s' }}>
-                  {item.icon}
+                <ListItemIcon sx={{ minWidth: 44, color: isActive ? theme.palette.primary.main : theme.palette.text.secondary }}>
+                   {React.cloneElement(item.icon, { strokeWidth: 2.5, size: 22 })}
                 </ListItemIcon>
                 <ListItemText 
                   primary={item.text} 
                   primaryTypographyProps={{ 
-                    fontWeight: isActive ? 700 : 500, 
-                    fontSize: '0.95rem'
+                    fontWeight: isActive ? 900 : 700, 
+                    fontSize: '0.95rem',
+                    letterSpacing: '0.01em'
                   }} 
                 />
               </ListItemButton>
@@ -343,8 +362,8 @@ const AppLayout = ({ children }) => {
           })}
         </List>
 
-        <Typography variant="caption" sx={{ px: 2, mb: 1.5, display: 'block', fontWeight: 700, color: theme.palette.text.secondary, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
-          Management
+        <Typography variant="subtitle2" sx={{ px: 2, mb: 2, opacity: 0.8, fontWeight: 900 }}>
+          MINISTRY MANAGEMENT
         </Typography>
         <List>
            {filteredNavItems.slice(1).map((item) => {
@@ -355,15 +374,28 @@ const AppLayout = ({ children }) => {
                 component={Link} 
                 to={item.path} 
                 selected={isActive}
+                sx={{
+                  py: 1.6,
+                  borderRadius: 4,
+                  '&.Mui-selected': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
+                  },
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.05)
+                  }
+                }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: theme.palette.text.secondary }}>
-                  {item.icon}
+                <ListItemIcon sx={{ minWidth: 44, color: isActive ? theme.palette.primary.main : theme.palette.text.secondary }}>
+                  {React.cloneElement(item.icon, { strokeWidth: 2.5, size: 22 })}
                 </ListItemIcon>
                 <ListItemText 
                   primary={item.text} 
                   primaryTypographyProps={{ 
-                    fontWeight: isActive ? 700 : 500, 
-                    fontSize: '0.9rem'
+                    fontWeight: isActive ? 900 : 700, 
+                    fontSize: '0.9rem',
+                    letterSpacing: '0.01em'
                   }} 
                 />
               </ListItemButton>
@@ -373,22 +405,32 @@ const AppLayout = ({ children }) => {
       </Box>
 
       {/* User Profile in Sidebar Footer */}
-      <Box sx={{ p: 2.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}` }}>
         {userRole === 'admin' && (
            <Box 
             component={motion.div}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             sx={{ 
-              mb: 2, p: 1.5, borderRadius: 4, 
-              bgcolor: alpha(theme.palette.warning.main, 0.1),
-              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+              mb: 3, p: 2, borderRadius: 5, 
+              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5
             }}
           >
-            <Typography variant="caption" fontWeight={800} color="warning.main" sx={{ display: 'block', mb: 0.5 }}>SYSTEM STATUS:</Typography>
-            <Typography variant="body2" fontWeight={700}>
-              {localStorage.getItem('mimicData') ? '🕵️ Mimicking Active' : '⚡ Admin Console'}
-            </Typography>
+            <Box sx={{ p: 1, borderRadius: 3, bgcolor: theme.palette.primary.main, color: '#fff' }}>
+                <SupervisedUserCircleIcon sx={{ fontSize: 18 }} />
+            </Box>
+            <Box>
+                <Typography variant="caption" fontWeight={900} color="primary" sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {localStorage.getItem('mimicData') ? 'Mimicking Mode' : 'Admin Console'}
+                </Typography>
+                <Typography variant="body2" fontWeight={800} sx={{ color: theme.palette.text.primary }}>
+                    Authorized
+                </Typography>
+            </Box>
           </Box>
         )}
         <Box 
@@ -396,11 +438,16 @@ const AppLayout = ({ children }) => {
             display: 'flex', 
             alignItems: 'center', 
             gap: 2, 
-            p: 1.5, 
-            borderRadius: 4, 
+            p: 2, 
+            borderRadius: 6, 
             cursor: 'pointer',
-            transition: 'all 0.2s',
-            '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.04) }
+            border: `1px solid ${theme.palette.divider}`,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': { 
+                bgcolor: alpha(theme.palette.text.primary, 0.04),
+                borderColor: theme.palette.primary.main,
+                transform: 'translateY(-2px)'
+            }
           }}
           onClick={handleMenu}
         >
@@ -409,14 +456,20 @@ const AppLayout = ({ children }) => {
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             variant="dot"
             color={localStorage.getItem('mimicData') ? "warning" : "success"}
+            sx={{ '& .MuiBadge-badge': { width: 14, height: 14, borderRadius: '50%', border: `3px solid ${theme.palette.background.paper}` } }}
           >
-            <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem', fontWeight: 700 }}>
+            <Avatar sx={{ 
+                width: 48, height: 48, 
+                bgcolor: theme.palette.primary.main, 
+                fontSize: '1.1rem', fontWeight: 900,
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
+            }}>
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </Avatar>
           </Badge>
           <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <Typography variant="subtitle2" fontWeight={700} noWrap>{user?.email || 'System User'}</Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>{userRole || 'Administrator'}</Typography>
+            <Typography variant="subtitle2" fontWeight={900} noWrap sx={{ color: theme.palette.text.primary }}>{user?.name || 'User'}</Typography>
+            <Typography variant="caption" color="primary" noWrap sx={{ display: 'block', fontWeight: 900, textTransform: 'uppercase', fontSize: '0.6rem' }}>{userRole}</Typography>
           </Box>
         </Box>
       </Box>
@@ -444,28 +497,22 @@ const AppLayout = ({ children }) => {
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
              {/* Only show logo on mobile here since desktop has sidebar */}
              {isMobile && (
-                <Box 
-                    sx={{ 
-                    width: 36, 
-                    height: 36, 
-                    mr: 2,
-                    borderRadius: '10px', 
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    boxShadow: `0 4px 12px -2px ${alpha(theme.palette.primary.main, 0.4)}`
+                <Box
+                    component="img"
+                    src="/ricgcw.png"
+                    alt="RICGCW Logo"
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      mr: 2,
+                      objectFit: 'contain',
+                      filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.4)})`
                     }}
-                >
-                    R
-                </Box>
+                />
              )}
 
-             <Typography variant="h5" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 4, fontFamily: 'Playfair Display' }}>
-               {workspace === 'main' ? 'Sanctuary' : workspace}
+             <Typography variant="h5" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 4, fontFamily: '"Playfair Display", serif' }}>
+               {workspace === 'main' ? 'Sanctuary' : currentDepartment}
              </Typography>
              
              {/* Mobile Title */}
@@ -484,19 +531,7 @@ const AppLayout = ({ children }) => {
           </Box>
 
           <Stack direction="row" spacing={1} alignItems="center">
-            {/* Install Button (Hidden on XS if space needed) */}
-            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                <InstallButton />
-            </Box>
             
-            <Tooltip title="Notifications">
-              <IconButton size="large" color="inherit">
-                <Badge badgeContent={3} color="error" variant="dot">
-                  <NotificationsNoneIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
-
             {/* Profile Avatar on Mobile Header */}
              <Box 
                 sx={{ 

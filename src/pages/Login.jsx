@@ -94,50 +94,30 @@ const Login = () => {
       alignItems: 'center', 
       justifyContent: 'center',
       background: theme.palette.mode === 'light'
-        ? `radial-gradient(circle at 50% 0%, #EFF6FF 0%, #DBEAFE 40%, #BFDBFE 100%)`
-        : `radial-gradient(circle at 50% 0%, #1E293B 0%, #0F172A 100%)`,
+        ? `radial-gradient(circle at 50% 0%, #F1F5F9 0%, #E2E8F0 50%, #CBD5E1 100%)`
+        : `radial-gradient(circle at 50% 0%, #020617 0%, #0F172A 100%)`,
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* Dynamic Background Orbs */}
+      {/* Premium Dynamic Background */}
       <Box sx={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', zIndex: 0 }}>
         <motion.div
           animate={{ 
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-            scale: [1, 1.2, 1],
+            x: [0, 50, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.1, 1],
           }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
           style={{
             position: 'absolute',
-            top: '-10%',
-            right: '-5%',
-            width: '600px',
-            height: '600px',
+            top: '-5%',
+            right: '0%',
+            width: '800px',
+            height: '800px',
             borderRadius: '50%',
             background: theme.palette.mode === 'light' 
-              ? 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(255,255,255,0) 70%)'
-              : 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(15, 23, 42, 0) 70%)',
-            filter: 'blur(60px)',
-          }}
-        />
-        <motion.div
-          animate={{ 
-            x: [0, -80, 0],
-            y: [0, 80, 0],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          style={{
-            position: 'absolute',
-            bottom: '-10%',
-            left: '-10%',
-            width: '700px',
-            height: '700px',
-            borderRadius: '50%',
-            background: theme.palette.mode === 'light' 
-              ? 'radial-gradient(circle, rgba(147, 197, 253, 0.2) 0%, rgba(255,255,255,0) 70%)'
-              : 'radial-gradient(circle, rgba(30, 64, 175, 0.1) 0%, rgba(15, 23, 42, 0) 70%)',
+              ? 'radial-gradient(circle, rgba(16, 52, 166, 0.08) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)',
             filter: 'blur(80px)',
           }}
         />
@@ -145,71 +125,72 @@ const Login = () => {
 
       <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
         >
           <Card sx={{ 
-            p: { xs: 4, sm: 5 }, 
-            borderRadius: 8, 
+            p: { xs: 4, sm: 6 }, 
+            borderRadius: 10, 
             bgcolor: theme.palette.mode === 'light' 
-              ? 'rgba(255, 255, 255, 0.6)' 
-              : 'rgba(30, 41, 59, 0.4)',
-            backdropFilter: 'blur(40px)',
-            border: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.1)'}`,
+              ? 'rgba(255, 255, 255, 1)' 
+              : 'rgba(13, 17, 23, 1)',
+            border: `2px solid ${theme.palette.divider}`,
             boxShadow: theme.palette.mode === 'light'
-              ? '0 20px 80px -20px rgba(59, 130, 246, 0.2)'
-              : '0 20px 80px -20px rgba(0, 0, 0, 0.5)',
+              ? '0 40px 80px -20px rgba(0, 0, 0, 0.15)'
+              : '0 40px 80px -20px rgba(0, 0, 0, 0.8)',
             textAlign: 'center'
           }}>
             
-            <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box sx={{ mb: 5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8 }}
               >
-                <Box sx={{ 
-                  width: 64, height: 64,
-                  borderRadius: 6, 
-                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                  boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
-                  mb: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff'
-                }}>
-                  <Church size={32} strokeWidth={2} />
-                </Box>
+                <Box
+                  component="img"
+                  src="/ricgcw.png"
+                  alt="RICGCW Logo"
+                  sx={{
+                    width: 120,
+                    height: 'auto',
+                    mb: 3,
+                    filter: `drop-shadow(0 4px 8px ${alpha(theme.palette.primary.main, 0.3)})`
+                  }}
+                />
               </motion.div>
               
               <Typography variant="h3" sx={{ 
-                fontFamily: 'Playfair Display', 
-                fontWeight: 800, 
+                fontFamily: '"Playfair Display", serif', 
+                fontWeight: 900, 
                 color: theme.palette.text.primary,
                 letterSpacing: '-0.02em',
-                mb: 1
+                mb: 1,
+                lineHeight: 1
               }}>
                 RICGCW
               </Typography>
-              <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                {isSignUp ? 'Join the ministry.' : 'Welcome back, Minister.'}
+              <Typography variant="caption" color="primary" sx={{ fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1, display: 'block' }}>
+                Rhema Inner Court Gospel Church
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, opacity: 0.8 }}>
+                {isSignUp ? 'Ministry Registration' : 'Official Portal Access'}
               </Typography>
             </Box>
 
             <form onSubmit={handleSubmit}>
-              <Stack spacing={2.5}>
+              <Stack spacing={3}>
                 
                 {error && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
                     <Typography variant="caption" color="error" sx={{ 
-                      fontWeight: 600, 
-                      bgcolor: alpha(theme.palette.error.main, 0.1), 
-                      p: 1.5, 
-                      borderRadius: 6, 
+                      fontWeight: 800, 
+                      bgcolor: alpha(theme.palette.error.main, 0.08), 
+                      p: 2, 
+                      borderRadius: 4, 
                       display: 'block',
-                      textAlign: 'center' 
+                      border: `1px solid ${theme.palette.error.main}`
                     }}>
                       {error}
                     </Typography>
@@ -220,63 +201,31 @@ const Login = () => {
                   {isSignUp && (
                     <motion.div
                       key="signup-fields"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
                     >
-                      <Stack spacing={2.5}>
+                      <Stack spacing={3}>
                         <TextField
                           fullWidth
-                          placeholder="Full Name"
+                          label="Legal Full Name"
                           required
-                          variant="outlined"
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <UserPlus size={20} color={theme.palette.text.secondary} />
-                              </InputAdornment>
-                            ),
-                            sx: { 
-                              borderRadius: 4, 
-                              bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
-                              height: 56,
-                              fontSize: '1rem',
-                              '& fieldset': { border: 'none' },
-                              boxShadow: theme.shadows[1],
-                            }
-                          }}
+                          sx={{ '& .MuiInputBase-root': { borderRadius: 4, bgcolor: alpha(theme.palette.text.primary, 0.02), fontWeight: 700 } }}
                         />
 
                         <TextField
                           fullWidth
                           select
-                          label="Branch Represented"
+                          label="Assigned Branch"
                           required
-                          variant="outlined"
                           value={formData.branch}
                           onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <MapPin size={20} color={theme.palette.text.secondary} />
-                              </InputAdornment>
-                            ),
-                            sx: { 
-                              borderRadius: 4, 
-                              bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
-                              height: 56,
-                              textAlign: 'left',
-                              '& fieldset': { border: 'none' },
-                              boxShadow: theme.shadows[1],
-                            }
-                          }}
+                          sx={{ '& .MuiInputBase-root': { borderRadius: 4, bgcolor: alpha(theme.palette.text.primary, 0.02), fontWeight: 700, textAlign: 'left' } }}
                         >
                           {branches.map((b) => (
-                            <MenuItem key={b} value={b}>
-                              {b}
-                            </MenuItem>
+                            <MenuItem key={b} value={b} sx={{ fontWeight: 700 }}>{b}</MenuItem>
                           ))}
                         </TextField>
                       </Stack>
@@ -286,65 +235,31 @@ const Login = () => {
 
                 <TextField
                   fullWidth
-                  placeholder="Email Address"
+                  label="Ecclesiastical Email"
                   type="email"
                   required
-                  variant="outlined"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <User size={20} color={theme.palette.text.secondary} />
-                      </InputAdornment>
-                    ),
-                    sx: { 
-                      borderRadius: 4, 
-                      bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
-                      height: 56,
-                      fontSize: '1rem',
-                      '& fieldset': { border: 'none' },
-                      boxShadow: theme.shadows[1],
-                      transition: 'all 0.2s',
-                      '&:hover': { boxShadow: theme.shadows[3] },
-                      '&.Mui-focused': { boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}`, bgcolor: theme.palette.background.paper }
-                    }
-                  }}
+                  sx={{ '& .MuiInputBase-root': { borderRadius: 4, bgcolor: alpha(theme.palette.text.primary, 0.02), fontWeight: 700 } }}
                 />
 
                 <TextField
                   fullWidth
-                  placeholder="Password"
+                  label="Security Password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  variant="outlined"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock size={20} color={theme.palette.text.secondary} />
-                      </InputAdornment>
-                    ),
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </IconButton>
                       </InputAdornment>
                     ),
-                    sx: { 
-                      borderRadius: 4, 
-                      bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha('#fff', 0.05),
-                      height: 56,
-                      fontSize: '1rem',
-                      '& fieldset': { border: 'none' },
-                      boxShadow: theme.shadows[1],
-                      transition: 'all 0.2s',
-                      '&:hover': { boxShadow: theme.shadows[3] },
-                      '&.Mui-focused': { boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}`, bgcolor: theme.palette.background.paper }
-                    }
                   }}
+                  sx={{ '& .MuiInputBase-root': { borderRadius: 4, bgcolor: alpha(theme.palette.text.primary, 0.02), fontWeight: 700 } }}
                 />
 
                 <Button
@@ -353,40 +268,37 @@ const Login = () => {
                   size="large"
                   disabled={loading}
                   sx={{ 
-                    py: 2, 
-                    borderRadius: 4, 
-                    fontSize: '1.05rem', 
-                    fontWeight: 800,
-                    textTransform: 'none',
-                    letterSpacing: '0.02em',
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                    boxShadow: `0 10px 20px -5px ${alpha(theme.palette.primary.main, 0.4)}`,
+                    height: 64, 
+                    borderRadius: 5, 
+                    fontSize: '1.1rem', 
+                    fontWeight: 900,
+                    boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.4)}`,
                     '&:hover': {
-                      boxShadow: `0 15px 30px -5px ${alpha(theme.palette.primary.main, 0.5)}`,
-                      transform: 'translateY(-2px)'
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 12px 40px ${alpha(theme.palette.primary.main, 0.5)}`
                     }
                   }}
                 >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight size={20} />
+                  {loading ? <CircularProgress size={28} color="inherit" /> : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      {isSignUp ? 'Initialize Account' : 'Secure Sign In'} <ArrowRight size={22} strokeWidth={3} />
                     </Box>
                   )}
                 </Button>
 
                 <Button 
                   onClick={() => setIsSignUp(!isSignUp)}
-                  sx={{ fontWeight: 700, textTransform: 'none' }}
+                  sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.75rem' }}
                 >
-                  {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                  {isSignUp ? 'Back to Authentication' : 'Create New Access'}
                 </Button>
               </Stack>
             </form>
-
-            <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, color: theme.palette.text.secondary, opacity: 0.8 }}>
-              <ShieldCheck size={16} color={theme.palette.success.main} />
-              <Typography variant="caption" fontWeight={600} sx={{ letterSpacing: '0.02em' }}>
-                Secured with 256-bit encryption
+...
+            <Box sx={{ mt: 5, pt: 3, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, color: theme.palette.text.secondary }}>
+              <ShieldCheck size={18} color={theme.palette.success.main} />
+              <Typography variant="caption" fontWeight={900} sx={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Rhema Inner Court Network
               </Typography>
             </Box>
           </Card>

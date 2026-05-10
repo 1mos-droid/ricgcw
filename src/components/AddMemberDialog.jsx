@@ -36,7 +36,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 
 const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const theme = useTheme();
-  const { userBranch, isBranchRestricted } = useWorkspace();
+  const { userBranch, isBranchRestricted, currentDepartment, isDepartmentRestricted } = useWorkspace();
   const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -47,7 +47,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     country: '',
     dob: '', 
     branch: isBranchRestricted ? userBranch : '', 
-    department: '', 
+    department: isDepartmentRestricted ? currentDepartment : '', 
     position: '',   
     membershipType: 'Member',
   });
@@ -64,14 +64,14 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         country: '',
         dob: '', 
         branch: isBranchRestricted ? userBranch : '', 
-        department: '', 
+        department: isDepartmentRestricted ? currentDepartment : '', 
         position: '',   
         membershipType: 'Member' 
       });
       setErrors({});
       setSubmitting(false);
     }
-  }, [open, isBranchRestricted, userBranch]);
+  }, [open, isBranchRestricted, userBranch, isDepartmentRestricted, currentDepartment]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -310,7 +310,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
             </Grid>
 
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth disabled={isDepartmentRestricted}>
                 <InputLabel id="department-select-label">Department</InputLabel>
                 <Select
                   labelId="department-select-label"
@@ -327,7 +327,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   sx={{ borderRadius: 3 }}
                 >
                   <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="Children's Department">Children's Dept</MenuItem>
+                  <MenuItem value="Children's Court">Children's Court</MenuItem>
                   <MenuItem value="Youth">Youth</MenuItem>
                   <MenuItem value="Mens">Mens</MenuItem>
                   <MenuItem value="Women">Women</MenuItem>

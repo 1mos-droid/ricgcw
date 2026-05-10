@@ -12,49 +12,49 @@ export const useColorMode = () => useContext(ColorModeContext);
 const getDesignTokens = (mode) => {
   const isLight = mode === 'light';
   
-  // Premium Palette
-  const primary = isLight ? '#3B82F6' : '#60A5FA'; // Vibrant Blue
-  const secondary = isLight ? '#64748B' : '#94A3B8'; // Slate
-  const backgroundDefault = isLight ? '#F8FAFC' : '#0B1120'; // Clean White vs Deep Space
-  const backgroundPaper = isLight ? '#FFFFFF' : '#1E293B';
+  // Premium RICGCW Palette (Hybrid: Logo Accuracy + High Contrast)
+  const primaryMain = isLight ? '#1034A6' : '#D4AF37'; // Regal Blue vs Logo Gold
+  const goldAccent = '#D4AF37'; 
+  const globeBlue = '#00A2E8';
+  
+  const backgroundDefault = isLight ? '#F8FAFC' : '#020617';
+  const backgroundPaper = isLight ? '#FFFFFF' : '#0B1222';
   
   return {
     palette: {
       mode,
-      primary: { main: primary, light: '#93C5FD', dark: '#1D4ED8' },
-      secondary: { main: secondary, light: '#CBD5E1', dark: '#334155' },
+      primary: { main: primaryMain, light: '#6366F1', dark: '#1E3A8A', contrastText: '#FFFFFF' },
+      secondary: { main: globeBlue, light: '#48CAE4', dark: '#023E8A', contrastText: '#FFFFFF' },
+      accent: { main: goldAccent },
+      success: { main: '#10B981' },
       background: {
         default: backgroundDefault,
         paper: backgroundPaper,
-        glass: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(30, 41, 59, 0.75)',
-        glassBorder: isLight ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.08)',
+        glass: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(11, 18, 34, 0.92)',
+        glassBorder: isLight ? 'rgba(16, 52, 166, 0.1)' : 'rgba(212, 175, 55, 0.15)',
       },
       text: {
-        primary: isLight ? '#0F172A' : '#F8FAFC',
-        secondary: isLight ? '#64748B' : '#94A3B8',
+        primary: isLight ? '#0F172A' : '#FFFFFF',
+        secondary: isLight ? '#475569' : '#94A3B8',
       },
-      action: {
-        hover: isLight ? alpha('#3B82F6', 0.08) : alpha('#60A5FA', 0.12),
-        selected: isLight ? alpha('#3B82F6', 0.15) : alpha('#60A5FA', 0.2),
-      },
-      divider: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
+      divider: isLight ? 'rgba(16, 52, 166, 0.08)' : 'rgba(212, 175, 55, 0.1)',
     },
     typography: {
-      fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-      h1: { fontWeight: 800, letterSpacing: '-0.03em', fontFamily: '"Playfair Display", serif' },
-      h2: { fontWeight: 800, letterSpacing: '-0.03em', fontFamily: '"Playfair Display", serif' },
-      h3: { fontWeight: 700, letterSpacing: '-0.02em', fontFamily: '"Playfair Display", serif' },
-      h4: { fontWeight: 700, letterSpacing: '-0.02em' },
-      h5: { fontWeight: 600, letterSpacing: '-0.01em' },
-      h6: { fontWeight: 600 },
-      subtitle1: { fontWeight: 600, letterSpacing: '0.01em' },
-      subtitle2: { fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.7rem' },
-      body1: { lineHeight: 1.6, fontSize: '1rem' }, // Larger body text
-      body2: { lineHeight: 1.6, fontSize: '0.875rem' },
-      button: { textTransform: 'none', fontWeight: 700 },
+      fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif',
+      h1: { fontWeight: 900, letterSpacing: '-0.04em', fontFamily: '"Playfair Display", serif' },
+      h2: { fontWeight: 900, letterSpacing: '-0.04em', fontFamily: '"Playfair Display", serif' },
+      h3: { fontWeight: 800, letterSpacing: '-0.03em', fontFamily: '"Playfair Display", serif' },
+      h4: { fontWeight: 800, letterSpacing: '-0.02em', fontFamily: '"Playfair Display", serif' },
+      h5: { fontWeight: 800, letterSpacing: '-0.01em' },
+      h6: { fontWeight: 800 },
+      subtitle1: { fontWeight: 700, letterSpacing: '0.01em' },
+      subtitle2: { fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: '0.65rem' },
+      body1: { lineHeight: 1.75, fontSize: '1rem', fontWeight: 500 },
+      body2: { lineHeight: 1.75, fontSize: '0.875rem', fontWeight: 500 },
+      button: { textTransform: 'none', fontWeight: 900, letterSpacing: '0.05em' },
     },
     shape: {
-      borderRadius: 4,
+      borderRadius: 14,
     },
     components: {
       MuiCssBaseline: {
@@ -62,26 +62,9 @@ const getDesignTokens = (mode) => {
           body {
             background-color: ${backgroundDefault};
             background-image: ${isLight 
-              ? 'radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(255, 255, 255, 0.8) 0px, transparent 50%)' 
-              : 'radial-gradient(at 50% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 60%)'};
+              ? 'radial-gradient(at 0% 0%, rgba(16, 52, 166, 0.04) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(255, 255, 255, 0.8) 0px, transparent 50%)' 
+              : 'radial-gradient(at 50% 0%, rgba(212, 175, 55, 0.08) 0px, transparent 70%), url("data:image/svg+xml,%3Csvg width=\\"24\\" height=\\"24\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Ccircle cx=\\"2\\" cy=\\"2\\" r=\\"0.8\\" fill=\\"rgba(212,175,55,0.08)\\"/%3E%3C/svg%3E")'};
             background-attachment: fixed;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-          }
-          /* Custom Scrollbar */
-          ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-          }
-          ::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          ::-webkit-scrollbar-thumb {
-            background: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
-            border-radius: 10px;
-          }
-          ::-webkit-scrollbar-thumb:hover {
-            background: ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'};
           }
         `,
       },
@@ -89,33 +72,29 @@ const getDesignTokens = (mode) => {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            borderRadius: 16,
+            borderRadius: 24,
+            border: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.05)' : 'rgba(212, 175, 55, 0.1)'}`,
           },
           elevation1: {
             boxShadow: isLight 
-              ? '0px 10px 40px -10px rgba(0, 0, 0, 0.05)' 
-              : '0px 10px 40px -10px rgba(0, 0, 0, 0.3)',
+              ? '0px 20px 40px rgba(15, 23, 42, 0.06)' 
+              : '0px 20px 40px rgba(0, 0, 0, 0.4)',
           },
         },
       },
       MuiButton: {
         styleOverrides: {
           root: { 
-            borderRadius: 12,
-            padding: '10px 24px',
-            fontSize: '0.925rem',
+            borderRadius: 16,
+            padding: '14px 30px',
+            boxShadow: 'none',
+            '&:hover': { boxShadow: '0 8px 20px rgba(0,0,0,0.1)', transform: 'translateY(-1px)' },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:active': { transform: 'scale(0.98)' },
           },
-          contained: {
-            boxShadow: isLight 
-              ? '0 10px 30px -10px rgba(59, 130, 246, 0.5)' 
-              : '0 10px 30px -10px rgba(96, 165, 250, 0.4)',
+          containedPrimary: {
+            background: `linear-gradient(135deg, ${primaryMain} 0%, ${isLight ? '#1E3A8A' : '#8B6508'} 100%)`,
             '&:hover': {
-              boxShadow: isLight 
-                ? '0 15px 35px -10px rgba(59, 130, 246, 0.6)' 
-                : '0 15px 35px -10px rgba(96, 165, 250, 0.5)',
-              transform: 'translateY(-2px)',
+              background: `linear-gradient(135deg, ${isLight ? '#1E3A8A' : '#8B6508'} 0%, ${primaryMain} 100%)`,
             },
           },
         },
@@ -123,107 +102,22 @@ const getDesignTokens = (mode) => {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 20,
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.7)' : 'rgba(30, 41, 59, 0.6)',
+            borderRadius: 32,
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(11, 18, 34, 0.92)',
+            backdropFilter: 'blur(40px)',
+            border: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.08)' : 'rgba(212, 175, 55, 0.12)'}`,
+            boxShadow: isLight 
+              ? '0px 24px 48px -12px rgba(15, 23, 42, 0.06)' 
+              : '0px 24px 48px -12px rgba(0, 0, 0, 0.4)',
+          },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(2, 6, 23, 0.85)',
             backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: `1px solid ${isLight ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.08)'}`,
-            boxShadow: isLight 
-              ? '0px 4px 24px rgba(0, 0, 0, 0.04)' 
-              : '0px 4px 24px rgba(0, 0, 0, 0.25)',
-          },
-        },
-      },
-      MuiOutlinedInput: {
-        styleOverrides: {
-          root: {
-            borderRadius: 12,
-          },
-        },
-      },
-      MuiBottomNavigation: {
-        styleOverrides: {
-          root: {
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(11, 17, 32, 0.85)',
-            backdropFilter: 'blur(20px)',
-            borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
-            height: 80,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            boxShadow: isLight 
-              ? '0 -10px 40px rgba(0,0,0,0.05)' 
-              : '0 -10px 40px rgba(0,0,0,0.3)',
-          },
-        },
-      },
-      MuiBottomNavigationAction: {
-        styleOverrides: {
-          root: {
-            color: secondary,
-            padding: '6px 0',
-            minWidth: 'auto',
-            transition: 'all 0.3s ease',
-            '&.Mui-selected': {
-              color: primary,
-              transform: 'translateY(-4px)',
-            },
-            '& .MuiSvgIcon-root': {
-               transition: 'all 0.3s ease',
-            },
-            '&.Mui-selected .MuiSvgIcon-root': {
-               filter: `drop-shadow(0 4px 8px ${alpha(primary, 0.4)})`,
-            }
-          },
-          label: {
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            marginTop: 4,
-            transition: 'all 0.3s ease',
-            '&.Mui-selected': {
-              fontSize: '0.75rem',
-            }
-          },
-        },
-      },
-      MuiListItemButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: 12,
-            marginBottom: 6,
-            padding: '12px 16px',
-            '&.Mui-selected': {
-              backgroundColor: isLight ? alpha(primary, 0.1) : alpha(primary, 0.2),
-              color: primary,
-              '&:hover': {
-                backgroundColor: isLight ? alpha(primary, 0.15) : alpha(primary, 0.3),
-              },
-            },
-          },
-        },
-      },
-      MuiTableCell: {
-        styleOverrides: {
-          root: {
-            borderBottom: `1px solid ${isLight ? alpha('#000', 0.04) : alpha('#fff', 0.06)}`,
-            padding: '20px 24px',
-          },
-          head: {
-            fontWeight: 800,
-            backgroundColor: isLight ? alpha('#F8FAFC', 0.8) : alpha('#0B1120', 0.8),
-            color: secondary,
-            textTransform: 'uppercase',
-            fontSize: '0.7rem',
-            letterSpacing: '0.08em',
-          },
-        },
-      },
-      MuiDialog: {
-        styleOverrides: {
-          paper: {
-            borderRadius: 24,
-            boxShadow: isLight 
-              ? '0px 25px 80px -15px rgba(0, 0, 0, 0.15)' 
-              : '0px 25px 80px -15px rgba(0, 0, 0, 0.6)',
+            borderBottom: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.05)' : 'rgba(212, 175, 55, 0.08)'}`,
           },
         },
       },

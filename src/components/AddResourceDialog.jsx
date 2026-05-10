@@ -21,8 +21,10 @@ import { collection, addDoc } from 'firebase/firestore';
 
 const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
   const theme = useTheme();
+  const { currentDepartment, isDepartmentRestricted } = useWorkspace();
   const [title, setTitle] = useState('');
   const [type, setType] = useState('pdf');
+  const [department, setDepartment] = useState(isDepartmentRestricted ? currentDepartment : '');
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +62,7 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
       const resourceData = {
         title,
         type,
+        department: department || null,
         fileName: file.name,
         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
         createdAt: new Date().toISOString(),
@@ -81,6 +84,7 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
   const handleClose = () => {
     setTitle('');
     setType('pdf');
+    setDepartment(isDepartmentRestricted ? currentDepartment : '');
     setFile(null);
     setError('');
     onClose();
@@ -123,6 +127,23 @@ const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
             variant="outlined"
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
           />
+
+          <TextField
+            select
+            fullWidth
+            label="Target Department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            disabled={isDepartmentRestricted}
+            SelectProps={{ native: false }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+          >
+            <MenuItem value="">Global / All</MenuItem>
+            <MenuItem value="Youth">Youth</MenuItem>
+            <MenuItem value="Children's Court">Children's Court</MenuItem>
+            <MenuItem value="Mens">Mens</MenuItem>
+            <MenuItem value="Women">Women</MenuItem>
+          </TextField>
 
           <Box>
             <Typography variant="subtitle2" gutterBottom fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: 1 }}>
