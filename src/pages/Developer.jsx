@@ -36,6 +36,7 @@ import { useAuth } from '../context/AuthContext';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion } from 'framer-motion';
+import { syncMemberDepartments } from '../utils/syncDepartments';
 
 const Developer = () => {
   const theme = useTheme();
@@ -53,6 +54,7 @@ const Developer = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [maintMessage, setMaintMessage] = useState(maintenance?.message || '');
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -68,13 +70,28 @@ const Developer = () => {
     };
     fetchUsers();
   }, []);
+const handleMaintenanceToggle = (e) => {
+  toggleMaintenance(e.target.checked, maintMessage);
+  showNotification(`Maintenance mode ${e.target.checked ? 'activated' : 'deactivated'}`, e.target.checked ? 'warning' : 'success');
+};
 
-  const handleMaintenanceToggle = (e) => {
-    toggleMaintenance(e.target.checked, maintMessage);
-    showNotification(`Maintenance mode ${e.target.checked ? 'activated' : 'deactivated'}`, e.target.checked ? 'warning' : 'success');
-  };
+const handleSyncDepartments = async () => {
+  setSyncing(true);
+  try {
+    const { updatedCount, summary } = await syncMemberDepartments();
+    showNotification(`Sync complete: ${updatedCount} members updated.`, updatedCount > 0 ? "success" : "info");
+    if (updatedCount > 0) {
+      console.log("Sync Summary:", summary);
+    }
+  } catch (err) {
+    console.error("Sync Error:", err);
+    showNotification("Failed to sync member departments.", "error");
+  } finally {
+    setSyncing(false);
+  }
+};
 
-  const filteredUsers = users.filter(u => 
+const filteredUsers = users.filter(u => 
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -130,6 +147,36 @@ const Developer = () => {
             >
               Update Message
             </Button>
+          </Card>
+        </Grid>
+
+        {/* REGISTRY AUTOMATION */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ p: 4, borderRadius: 6, height: '100%', display: 'flex', flexDirection: 'column' }}>
+             <Typography variant="h6" fontWeight={800} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <RotateCcw size={20} /> Registry Automation
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                Recalculate and sync all member departments based on their current age. This will move members under 13 to <strong>Children's Court</strong> and 13+ to <strong>Youth</strong>.
+              </Typography>
+
+              <Box sx={{ p: 3, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.05), mb: 4, flexGrow: 1 }}>
+                  <Typography variant="caption" fontWeight={800} color="primary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase' }}>Current Rules:</Typography>
+                  <Typography variant="body2" fontWeight={700}>• Age &lt; 13 → Children's Court</Typography>
+                  <Typography variant="body2" fontWeight={700}>• Age 13-35 → Youth Ministry</Typography>
+              </Box>
+
+              <Button 
+                variant="outlined" 
+                fullWidth
+                disabled={syncing}
+                onClick={handleSyncDepartments}
+                startIcon={syncing ? <CircularProgress size={18} /> : <Users size={18} />}
+                sx={{ borderRadius: 3, fontWeight: 700, py: 1.5 }}
+              >
+                {syncing ? 'Syncing Registry...' : 'Sync All Member Departments'}
+              </Button>
           </Card>
         </Grid>
 

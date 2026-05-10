@@ -45,6 +45,7 @@ import { useCallback } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
+import { syncMemberDepartments } from '../utils/syncDepartments';
 
 // --- SUB-COMPONENTS ---
 
@@ -241,6 +242,11 @@ const Dashboard = () => {
           events: upcomingEvents,
           attendance: attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || []
         });
+
+        // Admin only: Run a silent background sync of member departments to keep age-based groups accurate
+        if (userRole === 'admin') {
+            syncMemberDepartments().catch(err => console.error("Auto-sync error:", err));
+        }
 
       } catch (err) {
         console.error("Dashboard Fetch Error:", err);

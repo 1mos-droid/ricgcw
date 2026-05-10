@@ -29,6 +29,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase, Globe } from 'lucide-react';
+import { getDepartmentByAge } from '../utils/dateUtils';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -74,9 +75,20 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   }, [open, isBranchRestricted, userBranch, isDepartmentRestricted, currentDepartment]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    let newFormData = { ...formData, [name]: value };
+    
+    // Auto-assign department based on age if DOB is changed
+    if (name === 'dob' && value) {
+      const suggestedDept = getDepartmentByAge(value);
+      if (suggestedDept) {
+        newFormData.department = suggestedDept;
+      }
+    }
+    
+    setFormData(newFormData);
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
   };
 

@@ -54,6 +54,7 @@ import {
   Send,
   Loader2
 } from 'lucide-react';
+import { getDepartmentByAge } from '../utils/dateUtils';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
@@ -189,9 +190,20 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    let newFormData = { ...formData, [name]: value };
+
+    // Auto-assign department based on age if DOB is changed
+    if (name === 'dob' && value) {
+      const suggestedDept = getDepartmentByAge(value);
+      if (suggestedDept) {
+        newFormData.department = suggestedDept;
+      }
+    }
+
+    setFormData(newFormData);
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
   };
 

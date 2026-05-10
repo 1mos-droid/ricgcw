@@ -45,3 +45,34 @@ export const getISOStringDate = (dateVal) => {
     return new Date().toISOString().split('T')[0];
   }
 };
+
+/**
+ * Calculates age from a date value.
+ */
+export const calculateAge = (dob) => {
+  if (!dob) return null;
+  const birthDate = safeParseDate(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+/**
+ * Determines the correct department based on age.
+ * Under 13: Children's Court
+ * 13 and above: Youth
+ * (Can be extended for other departments)
+ */
+export const getDepartmentByAge = (dob) => {
+  const age = calculateAge(dob);
+  if (age === null) return null;
+  
+  if (age < 13) return "Children's Court";
+  if (age >= 13 && age < 35) return "Youth"; // Example upper bound for Youth
+  
+  return null; // Return null if no age-based department applies (e.g. for adults)
+};
