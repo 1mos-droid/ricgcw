@@ -1,4 +1,4 @@
-# 🏛️ RICGCW Church Management System (v2.1)
+# 🏛️ RICGCW Church Management System (v2.2)
 
 A bespoke, high-performance digital headquarters for the **Redeemed Christian Church of God, Word Assembly (RICGCW)**. This platform combines elite administrative governance with real-time departmental automation.
 
@@ -71,7 +71,8 @@ Ensure your `.env` contains:
 
 ## 📜 Permissions Overview
 
-*   **Admin:** Complete system control, registry automation, mimicry, and global reports.
+*   **Developer:** Master system access. Only role capable of accessing **Master Control** tools and bypassing **Maintenance Mode**.
+*   **Admin:** Comprehensive governance, including registry automation, member management, and global reports. Restricted from technical developer tools.
 *   **Branch Admin:** Manage branch-specific members, finances, and attendance.
 *   **Minister:** Read-only access to relevant departmental insights.
 

@@ -40,7 +40,7 @@ import { syncMemberDepartments } from '../utils/syncDepartments';
 
 const Developer = () => {
   const theme = useTheme();
-  const { user: originalUser } = useAuth();
+  const { user: originalUser, isDeveloper } = useAuth();
   const { 
     maintenance, 
     toggleMaintenance, 
@@ -99,12 +99,12 @@ const filteredUsers = users.filter(u =>
   return (
     <Box sx={{ pb: 6 }}>
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 5 }}>
-        <Box sx={{ p: 1.5, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+        <Box sx={{ p: 1.5, borderRadius: 4, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main }}>
           <Terminal size={24} />
         </Box>
         <Box>
-          <Typography variant="overline" color="primary" fontWeight={800}>Admin Only</Typography>
-          <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>Developer Tools</Typography>
+          <Typography variant="overline" color="secondary" fontWeight={800}>Developer Only</Typography>
+          <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>Master Control</Typography>
         </Box>
       </Stack>
 

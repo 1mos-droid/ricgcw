@@ -64,9 +64,9 @@ const RequireAuth = ({ children }) => {
   if (loading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  // Maintenance Guard: Only admins can bypass maintenance mode
-  const isAdmin = originalUser?.role === 'admin';
-  if (maintenance?.active && !isAdmin && location.pathname !== '/maintenance') {
+  // Maintenance Guard: ONLY users with the 'developer' role can bypass maintenance mode
+  const isDeveloper = originalUser?.role === 'developer';
+  if (maintenance?.active && !isDeveloper && location.pathname !== '/maintenance') {
     return <Navigate to="/maintenance" replace />;
   }
 
@@ -122,7 +122,7 @@ const AppRouter = () => {
           path="/developer" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin']}>
+              <RequireRole roles={['developer']}>
                 <MotionWrap><Developer /></MotionWrap>
               </RequireRole>
             </RequireAuth>

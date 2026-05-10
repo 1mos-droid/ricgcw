@@ -256,7 +256,15 @@ const AppLayout = ({ children }) => {
   const isLoginPage = location.pathname === '/login';
 
   const filteredNavItems = NAV_ITEMS.filter(item => {
-    if (userRole === 'admin') return true;
+    // Developers see everything
+    if (userRole === 'developer') return true;
+    
+    // Admins see management but NOT developer tools
+    if (userRole === 'admin') {
+      return item.path !== '/developer';
+    }
+
+    // Everyone else is restricted
     const restrictedPaths = ['/user-management', '/quick-switch', '/graph', '/developer'];
     return !restrictedPaths.includes(item.path);
   });
@@ -406,29 +414,31 @@ const AppLayout = ({ children }) => {
 
       {/* User Profile in Sidebar Footer */}
       <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}` }}>
-        {userRole === 'admin' && (
+        {(userRole === 'admin' || userRole === 'developer') && (
            <Box 
             component={motion.div}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             sx={{ 
               mb: 3, p: 2, borderRadius: 5, 
-              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              background: userRole === 'developer' 
+                ? `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`
+                : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
+              border: `1px solid ${alpha(userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, 0.1)}`,
               display: 'flex',
               alignItems: 'center',
               gap: 1.5
             }}
           >
-            <Box sx={{ p: 1, borderRadius: 3, bgcolor: theme.palette.primary.main, color: '#fff' }}>
-                <SupervisedUserCircleIcon sx={{ fontSize: 18 }} />
+            <Box sx={{ p: 1, borderRadius: 3, bgcolor: userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, color: '#fff' }}>
+                <TerminalIcon sx={{ fontSize: 18 }} />
             </Box>
             <Box>
-                <Typography variant="caption" fontWeight={900} color="primary" sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {localStorage.getItem('mimicData') ? 'Mimicking Mode' : 'Admin Console'}
+                <Typography variant="caption" fontWeight={900} color={userRole === 'developer' ? "secondary" : "primary"} sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {localStorage.getItem('mimicData') ? 'Mimicking Mode' : (userRole === 'developer' ? 'Developer Console' : 'Admin Console')}
                 </Typography>
                 <Typography variant="body2" fontWeight={800} sx={{ color: theme.palette.text.primary }}>
-                    Authorized
+                    {userRole === 'developer' ? 'Master Access' : 'Authorized'}
                 </Typography>
             </Box>
           </Box>
