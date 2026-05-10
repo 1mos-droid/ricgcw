@@ -1,130 +1,116 @@
-# RICGCW Church Management System (CMS)
+# 🏛️ RICGCW Church Management System (v2.0)
 
-## Project Overview
+[![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-orange.svg)](https://firebase.google.com/)
+[![Appwrite](https://img.shields.io/badge/Auth-Appwrite-red.svg)](https://appwrite.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-The RICGCW Church Management System is a comprehensive platform designed to assist the Redeemed Christian Church of God, Word Assembly (RICGCW) in managing its members, attendance, financials, and events efficiently. This system provides a user-friendly interface for administrative tasks, allowing the church to streamline its operations and focus more on its core mission.
+A high-performance, professional Church Management System (CMS) designed for the **Redeemed Christian Church of God, Word Assembly (RICGCW)**. This platform streamlines administrative operations, financial tracking, and member engagement across multiple branches.
 
-## Features
+---
 
--   **Dashboard:** An overview of key church activities and statistics.
--   **Member Management:** Add, view, and manage church member profiles.
--   **Attendance Tracking:** Record and monitor attendance for various services and events.
--   **Financials:** Manage income and expenses, offering insights into the church's financial health.
--   **Events Management:** Plan, schedule, and track church events.
--   **Reports:** Generate various reports based on collected data.
--   **User Management:** Administer user accounts and roles within the system.
--   **Quick Switch:** Easily navigate between different sections of the application.
--   **Help & Settings:** Access support and configure application settings.
--   **Bible Studies:** Manage and track bible study groups and progress.
+## 🚀 Core Features
 
-## Technologies Used
+### 📊 Intelligent Dashboard
+* **Real-time Analytics:** Visual trends for membership growth and financial health.
+* **Automated Events:** Background detection for member birthdays and special anniversaries.
+* **Cash Flow Analysis:** Interactive Recharts-powered graphs for income vs. expenditure.
 
-### Frontend
+### 💰 Treasury & Financials
+* **Transaction Ledger:** Detailed tracking of contributions and expenses.
+* **Flexible Date Selection:** Assign historical or future dates to financial entries for accurate auditing.
+* **Exportable Reports:** One-click generation of professional PDFs and Excel spreadsheets.
 
--   **React 19:** A JavaScript library for building user interfaces.
--   **Vite:** A fast build tool that provides a lightning-fast development experience.
--   **Material UI (MUI):** A comprehensive suite of UI tools to help ship new features faster.
--   **React Router DOM:** Declarative routing for React.
--   **Axios:** Promise-based HTTP client for the browser and Node.js.
--   **Framer Motion:** A production-ready motion library for React.
--   **date-fns:** Modern JavaScript date utility library.
--   **MUI X DataGrid:** Advanced data grid component for React.
+### 👥 Member & Attendance Management
+* **Multi-Branch Registry:** Unified database supporting Mallam, Langma, Kokrobitey, and Diaspora branches.
+* **Detailed Profiles:** Track status, membership dates, and contact information.
+* **Attendance Logs:** Digitized service attendance with trend analysis.
 
-### Backend
+### 🧑‍💻 Advanced Developer Section (Admin Only)
+* **Maintenance Mode:** Global toggle to restrict app access during database updates.
+* **Identity Mimicry:** Admins can "mimic" any user identity to troubleshoot branch-specific views and permissions.
+* **System Health:** Real-time monitoring of active roles and environment status.
 
--   **Node.js:** JavaScript runtime environment.
--   **Express:** Fast, unopinionated, minimalist web framework for Node.js.
--   **CORS:** Middleware to enable Cross-Origin Resource Sharing.
--   **Body-parser:** Node.js body parsing middleware.
--   **Flat-file Database (db.json):** A simple JSON file used for data persistence in a development environment.
+---
 
-## Prerequisites
+## 🛠️ Tech Stack
 
-Before you begin, ensure you have the following installed:
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Material UI (MUI), Framer Motion, Lucide React |
+| **Authentication** | Appwrite Cloud (Email/Password Session Management) |
+| **Database** | Firebase Firestore (Real-time NoSQL) |
+| **Utilities** | Recharts, jsPDF, XLSX, date-fns, EmailJS |
+| **Build Tool** | Vite |
 
--   [Node.js](https://nodejs.org/en/) (LTS version recommended)
--   [npm](https://www.npmjs.com/) (comes with Node.js) or [Yarn](https://yarnpkg.com/)
+---
 
-## Installation
+## 📦 Installation & Setup
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository_url>
-    cd ricgcw
-    ```
+### Prerequisites
+* Node.js (v18 or higher)
+* npm or yarn
+* Firebase Project Credentials
+* Appwrite Project ID & Endpoint
 
-2.  **Install Frontend Dependencies:**
-    Navigate to the root directory of the project and install dependencies:
-    ```bash
-    npm install
-    # or yarn install
-    ```
-
-3.  **Install Backend Dependencies:**
-    Navigate to the `backend` directory and install its dependencies:
-    ```bash
-    cd backend
-    npm install
-    # or yarn install
-    cd ..
-    ```
-
-## Running the Application
-
-To run the full-stack application, you need to start both the backend server and the frontend development server.
-
-### 1. Start the Backend Server
-
-The backend server will listen for API requests, typically on port `3002`.
-
+### 1. Clone & Install
 ```bash
-cd backend
-npm start
+git clone <repository_url>
+cd ricgcw
+npm install
 ```
-You should see a message like: `Backend server listening at http://localhost:3002`
 
-### 2. Start the Frontend Development Server
+### 2. Environment Configuration
+Create a `.env` file in the root directory and populate it with your service keys:
 
-The frontend application will run in your browser, typically on port `5173`.
+```env
+# Appwrite Config
+VITE_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+VITE_APPWRITE_PROJECT_ID=your_project_id
 
+# Firebase Config (Copy from Firebase Console)
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+
+# EmailJS Config
+VITE_EMAILJS_SERVICE_ID=...
+VITE_EMAILJS_TEMPLATE_ID=...
+VITE_EMAILJS_PUBLIC_KEY=...
+```
+
+### 3. Run Development Server
 ```bash
 npm run dev
 ```
-Open your browser and navigate to `http://localhost:5173` (or the address shown in your console) to view the application.
 
-## Linting
+---
 
-To check for code style and potential errors in the frontend:
+## 🛡️ Roles & Permissions
 
-```bash
-npm run lint
-```
+| Role | Permissions |
+| :--- | :--- |
+| **Admin** | Full system access, User Management, Developer Tools, Multi-branch view. |
+| **Branch Admin** | Branch-specific data entry, reports, and member management. |
+| **Minister** | Read-only access to dashboard and specific datasets. |
 
-## Building for Production
+---
 
-To create a production-ready build of the frontend application:
+## 📱 Progressive Web App (PWA)
 
-```bash
-npm run build
-```
-This will generate optimized static assets in the `dist/` directory.
+This application is PWA-ready. It can be installed on iOS, Android, and Desktop for a native-like experience, supporting offline manifests and push-style notifications.
 
-## Project Structure
+---
 
--   `backend/`: Contains the Node.js/Express backend server and its `db.json` data store.
--   `src/`: Houses the React frontend application source code.
-    -   `assets/`: Static assets for the frontend.
-    -   `components/`: Reusable React components.
-    -   `pages/`: Individual pages of the application.
-    -   `routes/`: Frontend routing configuration.
--   `public/`: Publicly accessible static files for the frontend.
--   `dist/`: Production build output of the frontend.
--   `node_modules/`: Installed Node.js modules.
+## 📜 License
 
-## Contributions
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Contributions are welcome! Please follow the standard fork-and-pull request workflow.
+---
 
-## License
+## 📞 Support & Feedback
 
-This repository uses the MIT lincense
+For technical support or feature requests, please contact the IT Administration team or use the built-in **Help** section within the application.
