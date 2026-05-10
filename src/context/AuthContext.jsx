@@ -38,30 +38,50 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const email = appwriteUser.email;
+      const labels = appwriteUser.labels || [];
+      const isDev = labels.includes('developer');
+      const isAdminLabel = labels.includes('admin');
+
       // Priority 1: Check Firestore for detailed profile
       const userDoc = await getDoc(doc(db, 'users', email));
       let userData;
 
       if (userDoc.exists()) {
         const fireData = userDoc.data();
+        let role = fireData.role || 'guest';
+        
+        // Appwrite Labels override Firestore role for developer/admin
+        if (isDev) role = 'developer';
+        else if (isAdminLabel && role !== 'developer') role = 'admin';
+
         userData = {
           email: email,
-          role: fireData.role || 'guest',
+          role: role,
           branch: fireData.branch || 'all',
           name: fireData.name || appwriteUser.name || '',
         };
+
+        // Sync back to Firestore if role changed via labels
+        if (userData.role !== fireData.role) {
+          await setDoc(doc(db, 'users', email), { role: userData.role }, { merge: true });
+        }
       } else {
         // Priority 2: Use Appwrite Metadata (prefs) if Firestore entry missing
         const prefs = appwriteUser.prefs || {};
+        let role = prefs.role || 'guest';
+        
+        if (isDev) role = 'developer';
+        else if (isAdminLabel) role = 'admin';
+
         userData = {
           email: email,
-          role: prefs.role || 'guest',
+          role: role,
           branch: prefs.branch || 'all',
           name: appwriteUser.name || '',
         };
         
-        // Seed Firestore if it has role info in prefs
-        if (prefs.role) {
+        // Seed Firestore if it has role info
+        if (userData.role !== 'guest') {
           await setDoc(doc(db, 'users', email), {
             name: userData.name,
             email: userData.email,

@@ -124,7 +124,7 @@ const filteredUsers = users.filter(u =>
             </Stack>
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              When active, users with roles other than 'admin' will be redirected to the maintenance page.
+              When active, only users with the 'developer' role can bypass the maintenance page and access the system.
             </Typography>
 
             <TextField 

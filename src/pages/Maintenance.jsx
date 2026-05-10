@@ -59,7 +59,7 @@ const Maintenance = () => {
           <Box sx={{ p: 2, bgcolor: alpha(theme.palette.info.main, 0.05), borderRadius: 4, mb: 4, display: 'flex', gap: 2, alignItems: 'center', textAlign: 'left' }}>
             <AlertTriangle size={20} color={theme.palette.info.main} />
             <Typography variant="caption" fontWeight={600} color="info.main">
-              Admins can still access the system for configuration.
+              Developers can still access the system for maintenance.
             </Typography>
           </Box>
 
