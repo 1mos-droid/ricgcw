@@ -53,7 +53,9 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SearchIcon from '@mui/icons-material/Search';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import InstallButton from './InstallButton';
 
 const drawerWidth = 280; 
 
@@ -95,7 +97,7 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
-  borderRadius: 20,
+  borderRadius: 40,
   backgroundColor: theme.palette.mode === 'light' 
     ? alpha(theme.palette.common.black, 0.03) 
     : alpha(theme.palette.common.white, 0.03),
@@ -186,8 +188,8 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
       onClose={onClose}
       PaperProps={{
         sx: {
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
+          borderTopLeftRadius: 3,
+          borderTopRightRadius: 3,
           bgcolor: alpha(theme.palette.background.paper, 0.9),
           backdropFilter: 'blur(20px)',
           backgroundImage: 'none',
@@ -197,7 +199,7 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
         }
       }}
     >
-      <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.divider, borderRadius: 2, mx: 'auto', mb: 4 }} />
+      <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.divider, borderRadius: 1, mx: 'auto', mb: 4 }} />
       <Typography variant="h6" fontWeight={800} sx={{ mb: 3, px: 1 }}>Explore</Typography>
       
       <Grid container spacing={2}>
@@ -218,7 +220,7 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
                   alignItems: 'center',
                   gap: 1,
                   p: 2,
-                  borderRadius: 4,
+                  borderRadius: 2.5,
                   bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                   color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
                   transition: 'all 0.2s'
@@ -228,7 +230,7 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
                   sx={{ 
                     bgcolor: isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.05),
                     color: isActive ? '#fff' : theme.palette.text.primary,
-                    width: 50, height: 50, borderRadius: 3
+                    width: 50, height: 50, borderRadius: 2.5
                   }}
                 >
                   {item.icon}
@@ -259,8 +261,8 @@ const AppLayout = ({ children }) => {
     // Developers see everything
     if (userRole === 'developer') return true;
     
-    // Admins see management but NOT developer tools
-    if (userRole === 'admin') {
+    // Admins and Branch Admins see management but NOT developer tools
+    if (userRole === 'admin' || userRole === 'branch_admin') {
       return item.path !== '/developer';
     }
 
@@ -343,7 +345,7 @@ const AppLayout = ({ children }) => {
                 selected={isActive}
                 sx={{
                   py: 1.8,
-                  borderRadius: 4,
+                  borderRadius: 3,
                   '&.Mui-selected': {
                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                     color: theme.palette.primary.main,
@@ -384,7 +386,7 @@ const AppLayout = ({ children }) => {
                 selected={isActive}
                 sx={{
                   py: 1.6,
-                  borderRadius: 4,
+                  borderRadius: 3,
                   '&.Mui-selected': {
                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                     color: theme.palette.primary.main,
@@ -420,7 +422,7 @@ const AppLayout = ({ children }) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             sx={{ 
-              mb: 3, p: 2, borderRadius: 5, 
+              mb: 3, p: 2, borderRadius: 2.5, 
               background: userRole === 'developer' 
                 ? `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`
                 : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
@@ -430,12 +432,12 @@ const AppLayout = ({ children }) => {
               gap: 1.5
             }}
           >
-            <Box sx={{ p: 1, borderRadius: 3, bgcolor: userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, color: '#fff' }}>
+            <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, color: '#fff' }}>
                 <TerminalIcon sx={{ fontSize: 18 }} />
             </Box>
             <Box>
                 <Typography variant="caption" fontWeight={900} color={userRole === 'developer' ? "secondary" : "primary"} sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {localStorage.getItem('mimicData') ? 'Mimicking Mode' : (userRole === 'developer' ? 'Developer Console' : 'Admin Console')}
+                    {localStorage.getItem('mimicData') ? 'Mimicking Mode' : 'Developer Console'}
                 </Typography>
                 <Typography variant="body2" fontWeight={800} sx={{ color: theme.palette.text.primary }}>
                     {userRole === 'developer' ? 'Master Access' : 'Authorized'}
@@ -449,7 +451,7 @@ const AppLayout = ({ children }) => {
             alignItems: 'center', 
             gap: 2, 
             p: 2, 
-            borderRadius: 6, 
+            borderRadius: 3, 
             cursor: 'pointer',
             border: `1px solid ${theme.palette.divider}`,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -562,7 +564,7 @@ const AppLayout = ({ children }) => {
             anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }} 
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{ sx: { mb: 1, width: 220, borderRadius: 3, boxShadow: theme.shadows[8], mt: 1.5 } }}
+            PaperProps={{ sx: { mb: 1, width: 220, borderRadius: 1, boxShadow: theme.shadows[8], mt: 1.5 } }}
           >
             <Box sx={{ px: 2, py: 1.5 }}>
               <Typography variant="subtitle2" fontWeight={700}>My Account</Typography>

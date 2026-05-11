@@ -78,7 +78,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
       maxWidth="sm"
       PaperProps={{
         sx: {
-          borderRadius: 4,
+          borderRadius: 2,
           backgroundImage: 'none',
           overflow: 'hidden'
         }
@@ -95,7 +95,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
         bgcolor: alpha(theme.palette.primary.main, 0.03)
       }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 2.5 }}>
+          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 1.5 }}>
             <Edit size={20} />
           </Avatar>
           <Box>
@@ -131,7 +131,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -154,7 +154,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -174,7 +174,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -193,7 +193,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -205,7 +205,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
       <DialogActions sx={{ px: 4, pb: 4, pt: 1, gap: 1 }}>
         <Button 
           onClick={onClose} 
-          sx={{ borderRadius: 2.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary }}
+          sx={{ borderRadius: 1.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary }}
         >
           Discard
         </Button>
@@ -213,7 +213,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
           onClick={handleSubmit} 
           variant="contained"
           disabled={!formData.name || !formData.date}
-          sx={{ borderRadius: 2.5, fontWeight: 800, px: 4, py: 1.2, boxShadow: theme.shadows[4] }}
+          sx={{ borderRadius: 1.5, fontWeight: 800, px: 4, py: 1.2, boxShadow: theme.shadows[4] }}
         >
           Update Calendar
         </Button>

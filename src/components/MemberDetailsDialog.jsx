@@ -112,7 +112,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
           bgcolor: alpha(theme.palette[color]?.main || theme.palette.primary.main, 0.1),
           color: theme.palette[color]?.main || theme.palette.primary.main,
           fontWeight: 700,
-          borderRadius: '6px',
+          borderRadius: 1,
           textTransform: 'uppercase',
           fontSize: '0.65rem'
         }}
@@ -325,7 +325,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
       maxWidth="sm"
       PaperProps={{
         sx: {
-          borderRadius: 4,
+          borderRadius: 2,
           backgroundImage: 'none',
           overflow: 'hidden'
         }
@@ -347,7 +347,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     bgcolor: theme.palette.primary.main, 
                     color: '#fff', 
                     fontWeight: 800,
-                    borderRadius: 3,
+                    borderRadius: 1.5,
                     boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
                 }}
             >
@@ -403,12 +403,12 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange} 
                       error={!!errors.name}
                       helperText={errors.name}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 {/* ID is not editable as per requirements */}
                 <Grid size={{ xs: 12 }}>
-                   <Box sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha(theme.palette.action.disabledBackground, 0.05), border: `1px dashed ${theme.palette.divider}` }}>
+                   <Box sx={{ px: 2, py: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.action.disabledBackground, 0.05), border: `1px dashed ${theme.palette.divider}` }}>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, letterSpacing: 1 }}>MEMBER ID: {member.memberId || 'N/A'}</Typography>
                    </Box>
                 </Grid>
@@ -420,7 +420,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       fullWidth 
                       value={formData.email} 
                       onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -431,7 +431,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       fullWidth 
                       value={formData.phone} 
                       onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
@@ -441,7 +441,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                   </Grid>
 
@@ -453,7 +453,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       name="country"
                       value={formData.country}
                       onChange={handleChange}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                       />
                   </Grid>
                   )}
@@ -467,7 +467,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       value={formData.dob} 
                       onChange={handleChange} 
                       InputLabelProps={{ shrink: true }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -478,7 +478,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange}
                       label="Branch"
                       name="branch"
-                      sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
+                      sx={{ borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value="Langma">Langma</MenuItem>
                       <MenuItem value="Mallam">Mallam</MenuItem>
@@ -496,7 +496,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange}
                       label="Department"
                       name="department"
-                      sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
+                      sx={{ borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Children's Court">Children's Court</MenuItem>
@@ -513,7 +513,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange}
                       label="Position"
                       name="position"
-                      sx={{ borderRadius: 4, bgcolor: alpha(theme.palette.background.default, 0.4) }}
+                      sx={{ borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
@@ -542,7 +542,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
                     <Box sx={{ 
                         p: 2, 
-                        borderRadius: 3, 
+                        borderRadius: 1.5, 
                         bgcolor: alpha(theme.palette.background.default, 0.4),
                         border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                         transition: 'all 0.2s',
@@ -551,7 +551,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         <Stack direction="row" spacing={2} alignItems="center">
                             <Box sx={{ 
                                 p: 1, 
-                                borderRadius: 2, 
+                                borderRadius: 1, 
                                 bgcolor: alpha(theme.palette.primary.main, 0.08), 
                                 color: theme.palette.primary.main,
                                 display: 'flex'
@@ -570,7 +570,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 
                 <Box sx={{ 
                     p: 3, 
-                    borderRadius: 4, 
+                    borderRadius: 2, 
                     bgcolor: alpha(theme.palette.primary.main, 0.04),
                     border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
                 }}>
@@ -581,7 +581,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         startIcon={<Send size={18} />}
                         onClick={() => setTabValue(2)}
                         sx={{ 
-                            borderRadius: 3, 
+                            borderRadius: 1, 
                             py: 1.5, 
                             fontWeight: 800,
                             boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -599,7 +599,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
           <Box sx={{ p: 3 }}>
             <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid size={{ xs: 6 }}>
-                <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+                <Card variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}><DollarSign size={18}/></Avatar>
                     <Box>
@@ -610,7 +610,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 </Card>
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.success.main, 0.03) }}>
+                <Card variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.03) }}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Avatar sx={{ bgcolor: theme.palette.success.main, width: 32, height: 32 }}><HeartHandshake size={18}/></Avatar>
                     <Box>
@@ -626,7 +626,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Plus size={16} /> LOG CONTRIBUTION
                 </Typography>
-                <Card variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                <Card variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                 <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, sm: 4 }}>
                     <TextField
@@ -636,7 +636,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         value={newContribution.type}
                         onChange={(e) => setNewContribution({ ...newContribution, type: e.target.value })}
                         SelectProps={{ native: true }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
                     >
                         <option value="tithe">Tithe</option>
                         <option value="welfare">Welfare</option>
@@ -651,7 +651,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         value={newContribution.amount}
                         onChange={(e) => setNewContribution({ ...newContribution, amount: e.target.value })}
                         InputProps={{ startAdornment: <InputAdornment position="start">GHC</InputAdornment> }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
                     />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
@@ -659,7 +659,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         variant="contained" 
                         fullWidth 
                         onClick={handleAddContribution}
-                        sx={{ height: 56, borderRadius: 2, fontWeight: 700, boxShadow: 'none' }}
+                        sx={{ height: 56, borderRadius: 1, fontWeight: 700, boxShadow: 'none' }}
                     >
                         Save Entry
                     </Button>
@@ -671,7 +671,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <History size={16} /> RECENT TRANSACTIONS
             </Typography>
-            <Card variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+            <Card variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
                 <List sx={{ maxHeight: 300, overflow: 'auto', p: 0 }}>
                 {loadingContributions ? (
                     <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={24}/></Box>
@@ -723,7 +723,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 onChange={(e) => setMessageBody(e.target.value)}
                 sx={{ 
                     mb: 3,
-                    '& .MuiOutlinedInput-root': { borderRadius: 3 }
+                    '& .MuiOutlinedInput-root': { borderRadius: 1 }
                 }}
             />
 
@@ -734,7 +734,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 onClick={handleSendMessage}
                 disabled={!formData.email?.trim() || sendingEmail || !messageBody.trim()}
                 sx={{
-                   height: 56,                    borderRadius: 3, 
+                   height: 56,                    borderRadius: 1, 
                     fontWeight: 800,
                     boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.2)}`
                 }}
@@ -754,13 +754,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
       <DialogActions sx={{ px: 4, pb: 4, pt: 2, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
         {isEditing ? (
             <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="flex-end">
-                <Button onClick={handleCancelEdit} sx={{ borderRadius: 2.5, fontWeight: 700, color: theme.palette.text.secondary }}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 2.5, fontWeight: 800, px: 4, boxShadow: theme.shadows[4] }}>Update Member</Button>
+                <Button onClick={handleCancelEdit} sx={{ borderRadius: 1, fontWeight: 700, color: theme.palette.text.secondary }}>Cancel</Button>
+                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 1, fontWeight: 800, px: 4, boxShadow: theme.shadows[4] }}>Update Member</Button>
             </Stack>
         ) : (
             <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="space-between">
-                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 2.5 }}>Revoke</Button>
-                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 2.5, px: 4, boxShadow: theme.shadows[4] }}>Modify Profile</Button>
+                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 1 }}>Revoke</Button>
+                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 1, px: 4, boxShadow: theme.shadows[4] }}>Modify Profile</Button>
             </Stack>
         )}
       </DialogActions>

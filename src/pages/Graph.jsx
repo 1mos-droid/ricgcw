@@ -89,7 +89,7 @@ const Graph = () => {
         mb: 6, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: 2,
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
@@ -108,7 +108,7 @@ const Graph = () => {
       <Grid container spacing={4}>
         {/* Engagement Area Chart */}
         <Grid size={{ xs: 12 }}>
-            <Card sx={{ p: 4, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, boxShadow: theme.shadows[4] }}>
+            <Card sx={{ p: 4, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}`, boxShadow: theme.shadows[4] }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4, alignItems: 'center' }}>
                     <Box>
                         <Typography variant="h6" fontWeight={800}>Attendance Trends</Typography>
@@ -128,7 +128,7 @@ const Graph = () => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} unit="%" />
-                                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: theme.shadows[8] }} />
+                                <Tooltip contentStyle={{ borderRadius: 2, border: 'none', boxShadow: theme.shadows[8] }} />
                                 <Area type="monotone" dataKey="attendance" stroke={theme.palette.primary.main} strokeWidth={4} fillOpacity={1} fill="url(#colorAtt)" />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -139,7 +139,7 @@ const Graph = () => {
 
         {/* Financial Bar Chart */}
         <Grid size={{ xs: 12, md: 8 }}>
-            <Card sx={{ p: 4, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
+            <Card sx={{ p: 4, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
                 <Typography variant="h6" fontWeight={800} gutterBottom>Revenue Streams</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 4 }}>Daily contribution totals (GHC)</Typography>
                 <Box sx={{ height: 300, width: '100%', minWidth: 0, position: 'relative' }}>
@@ -149,7 +149,7 @@ const Graph = () => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} />
-                                <Tooltip cursor={{ fill: alpha(theme.palette.primary.main, 0.05) }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: theme.shadows[8] }} />
+                                <Tooltip cursor={{ fill: alpha(theme.palette.primary.main, 0.05) }} contentStyle={{ borderRadius: 2, border: 'none', boxShadow: theme.shadows[8] }} />
                                 <Bar dataKey="income" radius={[4, 4, 0, 0]} barSize={30}>
                                     {chartData.map((entry, index) => (
                                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -165,12 +165,12 @@ const Graph = () => {
         {/* Stats Summary Sidebar */}
         <Grid size={{ xs: 12, md: 4 }}>
             <Stack spacing={3}>
-                <Card sx={{ p: 3, borderRadius: 5, background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`, color: '#fff' }}>
+                <Card sx={{ p: 3, borderRadius: 1.5, background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`, color: '#fff' }}>
                     <Typography variant="subtitle2" fontWeight={800} sx={{ opacity: 0.8, letterSpacing: 1 }}>ANALYSIS</Typography>
                     <Typography variant="h4" fontWeight={800} sx={{ my: 1 }}>Live Sync</Typography>
                     <Typography variant="caption" sx={{ opacity: 0.7 }}>Data reflects current system state.</Typography>
                 </Card>
-                <Card sx={{ p: 3, borderRadius: 5, border: `1px solid ${theme.palette.divider}` }}>
+                <Card sx={{ p: 3, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}` }}>
                     <Typography variant="h6" fontWeight={800} gutterBottom>Metrics</Typography>
                     <Typography variant="body2" color="text.secondary">Use the reports page for detailed exports and audits.</Typography>
                 </Card>

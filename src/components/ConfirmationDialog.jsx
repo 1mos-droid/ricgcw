@@ -22,14 +22,14 @@ const ConfirmationDialog = ({ open, title, message, onConfirm, onClose, confirmT
       open={open} 
       onClose={onClose}
       PaperProps={{
-        sx: { borderRadius: 4, width: '100%', maxWidth: 400 }
+        sx: { borderRadius: 2, width: '100%', maxWidth: 400 }
       }}
     >
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <Box sx={{ 
           width: 64, 
           height: 64, 
-          borderRadius: '20px', 
+          borderRadius: '12px', 
           bgcolor: alpha(color, 0.1), 
           color: color,
           display: 'flex',
@@ -54,7 +54,7 @@ const ConfirmationDialog = ({ open, title, message, onConfirm, onClose, confirmT
             fullWidth 
             variant="outlined" 
             onClick={onClose}
-            sx={{ borderRadius: 3, fontWeight: 700, color: theme.palette.text.secondary, border: `1px solid ${theme.palette.divider}` }}
+            sx={{ borderRadius: 1.5, fontWeight: 700, color: theme.palette.text.secondary, border: `1px solid ${theme.palette.divider}` }}
           >
             {cancelText}
           </Button>
@@ -66,7 +66,7 @@ const ConfirmationDialog = ({ open, title, message, onConfirm, onClose, confirmT
               onConfirm();
               onClose();
             }}
-            sx={{ borderRadius: 3, fontWeight: 800, boxShadow: severity === 'error' ? theme.shadows[4] : 'none' }}
+            sx={{ borderRadius: 1.5, fontWeight: 800, boxShadow: severity === 'error' ? theme.shadows[4] : 'none' }}
           >
             {confirmText}
           </Button>

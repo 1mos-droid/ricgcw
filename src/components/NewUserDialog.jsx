@@ -44,6 +44,13 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
       return;
     }
 
+    // Restricted Test Emails Check
+    const restrictedEmails = ['kokrobitey@ricgcw.com', 'admin@ricgcw.com'];
+    if (restrictedEmails.includes(formData.email.toLowerCase())) {
+      setError('Please use your own personal email to sign up. This email has been restricted for test users only and you do not have access.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -87,7 +94,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
       fullWidth 
       maxWidth="xs"
       PaperProps={{
-        sx: { borderRadius: 4 }
+        sx: { borderRadius: 2 }
       }}
     >
       <DialogTitle sx={{ 
@@ -100,7 +107,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
         bgcolor: alpha(theme.palette.primary.main, 0.02)
       }}>
         <Stack direction="row" spacing={2} alignItems="center">
-            <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 2.5 }}>
+            <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 1.5 }}>
                 <UserPlus size={20} />
             </Avatar>
             <Box>
@@ -125,7 +132,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
             required
             variant="outlined"
             InputProps={{ startAdornment: <User size={18} style={{ marginRight: 8, opacity: 0.5 }} /> }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
           />
 
           <TextField
@@ -139,7 +146,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
             required
             variant="outlined"
             InputProps={{ startAdornment: <Mail size={18} style={{ marginRight: 8, opacity: 0.5 }} /> }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
           />
 
           <TextField
@@ -151,7 +158,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
             onChange={handleChange}
             variant="outlined"
             InputProps={{ startAdornment: <Shield size={18} style={{ marginRight: 8, opacity: 0.5 }} /> }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
           >
             <MenuItem value="admin">System Admin</MenuItem>
             <MenuItem value="branch_admin">Branch Admin</MenuItem>
@@ -168,7 +175,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
             onChange={handleChange}
             variant="outlined"
             InputProps={{ startAdornment: <Building size={18} style={{ marginRight: 8, opacity: 0.5 }} /> }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
           >
             <MenuItem value="all">Global Access (Overseer)</MenuItem>
             <MenuItem value="Langma">Langma</MenuItem>
@@ -178,7 +185,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
           </TextField>
 
           {error && (
-            <Typography color="error" variant="caption" sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.error.main, 0.05), p: 1, borderRadius: 2 }}>
+            <Typography color="error" variant="caption" sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.error.main, 0.05), p: 1, borderRadius: 1.5 }}>
               {error}
             </Typography>
           )}
@@ -190,7 +197,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 0, gap: 1 }}>
-        <Button onClick={handleClose} color="inherit" sx={{ fontWeight: 700, borderRadius: 2.5 }}>
+        <Button onClick={handleClose} color="inherit" sx={{ fontWeight: 700, borderRadius: 1.5 }}>
           Discard
         </Button>
         <Button 
@@ -198,7 +205,7 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
           variant="contained" 
           disabled={loading || !formData.name || !formData.email}
           sx={{ 
-            borderRadius: 2.5, 
+            borderRadius: 1.5, 
             fontWeight: 800, 
             px: 4,
             minWidth: 140,

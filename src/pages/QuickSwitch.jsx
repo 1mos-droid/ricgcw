@@ -59,7 +59,7 @@ const QuickSwitch = () => {
         mb: 6, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: 2,
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
@@ -90,7 +90,7 @@ const QuickSwitch = () => {
                             <Card 
                                 onClick={() => handleSwitch(ws.id, ws.label)}
                                 sx={{ 
-                                    p: 4, borderRadius: 6, cursor: 'pointer',
+                                    p: 4, borderRadius: 2, cursor: 'pointer',
                                     border: isActive ? `2px solid ${ws.color}` : `1px solid ${theme.palette.divider}`,
                                     bgcolor: isActive ? alpha(ws.color, 0.03) : theme.palette.background.paper,
                                     transition: 'all 0.3s ease',
@@ -98,7 +98,7 @@ const QuickSwitch = () => {
                                 }}
                             >
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                                    <Avatar sx={{ bgcolor: isActive ? ws.color : alpha(theme.palette.text.secondary, 0.1), color: isActive ? '#fff' : theme.palette.text.secondary, borderRadius: 2 }}>
+                                    <Avatar sx={{ bgcolor: isActive ? ws.color : alpha(theme.palette.text.secondary, 0.1), color: isActive ? '#fff' : theme.palette.text.secondary, borderRadius: 1 }}>
                                         <Globe size={24} />
                                     </Avatar>
                                     {isActive && <Chip label="ACTIVE" size="small" sx={{ bgcolor: ws.color, color: '#fff', fontWeight: 900, height: 20, fontSize: '0.6rem' }} />}
@@ -115,7 +115,7 @@ const QuickSwitch = () => {
         {/* --- RIGHT: SYSTEM HEALTH --- */}
         <Grid size={{ xs: 12, lg: 4 }}>
             <Stack spacing={3}>
-                <Card sx={{ p: 4, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.success.main, 0.02) }}>
+                <Card sx={{ p: 4, borderRadius: 2, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.success.main, 0.02) }}>
                     <Typography variant="h6" fontWeight={800} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Activity size={20} color={theme.palette.success.main} /> System Health
                     </Typography>
@@ -136,7 +136,7 @@ const QuickSwitch = () => {
                     </Stack>
                 </Card>
 
-                <Card sx={{ p: 4, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`, color: '#fff' }}>
+                <Card sx={{ p: 4, borderRadius: 2, border: `1px solid ${theme.palette.divider}`, background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`, color: '#fff' }}>
                     <Typography variant="h6" fontWeight={800} gutterBottom>Maintenance</Typography>
                     <Typography variant="body2" sx={{ opacity: 0.8, mb: 3 }}>No scheduled maintenance for the next 7 days.</Typography>
                     <Button fullWidth variant="contained" sx={{ bgcolor: '#fff', color: theme.palette.secondary.main, fontWeight: 800, '&:hover': { bgcolor: alpha('#fff', 0.9) } }}>

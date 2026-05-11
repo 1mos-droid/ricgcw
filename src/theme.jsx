@@ -54,7 +54,7 @@ const getDesignTokens = (mode) => {
       button: { textTransform: 'none', fontWeight: 900, letterSpacing: '0.05em' },
     },
     shape: {
-      borderRadius: 14,
+      borderRadius: 8,
     },
     components: {
       MuiCssBaseline: {
@@ -65,6 +65,23 @@ const getDesignTokens = (mode) => {
               ? 'radial-gradient(at 0% 0%, rgba(16, 52, 166, 0.04) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(255, 255, 255, 0.8) 0px, transparent 50%)' 
               : 'radial-gradient(at 50% 0%, rgba(212, 175, 55, 0.08) 0px, transparent 70%), url("data:image/svg+xml,%3Csvg width=\\"24\\" height=\\"24\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Ccircle cx=\\"2\\" cy=\\"2\\" r=\\"0.8\\" fill=\\"rgba(212,175,55,0.08)\\"/%3E%3C/svg%3E")'};
             background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+          /* Custom Scrollbar */
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
+            border-radius: 4px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'};
           }
         `,
       },
@@ -72,7 +89,7 @@ const getDesignTokens = (mode) => {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            borderRadius: 24,
+            borderRadius: 12,
             border: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.05)' : 'rgba(212, 175, 55, 0.1)'}`,
           },
           elevation1: {
@@ -82,10 +99,36 @@ const getDesignTokens = (mode) => {
           },
         },
       },
+      MuiBottomNavigation: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(11, 18, 34, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(212, 175, 55, 0.1)'}`,
+            height: 70,
+          },
+        },
+      },
+      MuiBottomNavigationAction: {
+        styleOverrides: {
+          root: {
+            '&.Mui-selected': {
+              color: primaryMain,
+            },
+          },
+          label: {
+            fontWeight: 800,
+            fontSize: '0.65rem',
+            '&.Mui-selected': {
+              fontSize: '0.7rem',
+            },
+          },
+        },
+      },
       MuiButton: {
         styleOverrides: {
           root: { 
-            borderRadius: 16,
+            borderRadius: 8,
             padding: '14px 30px',
             boxShadow: 'none',
             '&:hover': { boxShadow: '0 8px 20px rgba(0,0,0,0.1)', transform: 'translateY(-1px)' },
@@ -102,7 +145,7 @@ const getDesignTokens = (mode) => {
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 32,
+            borderRadius: 16,
             backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(11, 18, 34, 0.92)',
             backdropFilter: 'blur(40px)',
             border: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.08)' : 'rgba(212, 175, 55, 0.12)'}`,

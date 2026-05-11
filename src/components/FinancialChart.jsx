@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         bgcolor: alpha(theme.palette.background.paper, 0.9), 
         p: 2, 
         border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 3,
+        borderRadius: 1.5,
         boxShadow: theme.shadows[8],
         backdropFilter: 'blur(10px)'
       }}>
@@ -42,7 +42,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         </Typography>
         {payload.map((entry, index) => (
           <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: index === 0 ? 1 : 0 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: entry.color }} />
+            <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: entry.color }} />
             <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
               {entry.name}: <Typography component="span" variant="body2" fontWeight={800} color={entry.color}>GHC {Number(entry.value).toLocaleString()}</Typography>
             </Typography>
@@ -59,13 +59,13 @@ const FinancialChart = ({ data, loading }) => {
 
   if (loading) {
     return (
-      <Card sx={{ borderRadius: 4, height: '100%', border: `1px solid ${theme.palette.divider}` }}>
+      <Card sx={{ borderRadius: 2, height: '100%', border: `1px solid ${theme.palette.divider}` }}>
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
             <Skeleton variant="text" width={200} height={32} />
             <Skeleton variant="circular" width={24} height={24} />
           </Box>
-          <Skeleton variant="rectangular" width="100%" height={300} sx={{ borderRadius: 3 }} />
+          <Skeleton variant="rectangular" width="100%" height={300} sx={{ borderRadius: 1.5 }} />
         </CardContent>
       </Card>
     );
@@ -73,7 +73,7 @@ const FinancialChart = ({ data, loading }) => {
 
   if (!data || data.length === 0) {
     return (
-      <Card sx={{ borderRadius: 4, height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${theme.palette.divider}` }}>
+      <Card sx={{ borderRadius: 2, height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${theme.palette.divider}` }}>
         <Stack alignItems="center" spacing={2} sx={{ opacity: 0.4 }}>
           <Box sx={{ p: 2, borderRadius: '50%', bgcolor: alpha(theme.palette.text.secondary, 0.1) }}>
             <AlertCircle size={40} />
@@ -85,14 +85,14 @@ const FinancialChart = ({ data, loading }) => {
   }
 
   return (
-    <Card sx={{ borderRadius: 4, height: '100%', border: `1px solid ${theme.palette.divider}`, transition: 'all 0.3s ease', '&:hover': { boxShadow: theme.shadows[4] } }}>
+    <Card sx={{ borderRadius: 2, height: '100%', border: `1px solid ${theme.palette.divider}`, transition: 'all 0.3s ease', '&:hover': { boxShadow: theme.shadows[4] } }}>
       <CardContent sx={{ p: 4 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
           <Box>
             <Typography variant="h6" fontWeight={800}>Financial Trajectory</Typography>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ letterSpacing: 0.5 }}>INCOME VS EXPENDITURE OVERVIEW</Typography>
           </Box>
-          <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+          <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
             <TrendingUp size={20} />
           </Box>
         </Stack>

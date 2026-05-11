@@ -295,10 +295,15 @@ const Login = () => {
               </Stack>
             </form>
 ...
-            <Box sx={{ mt: 5, pt: 3, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, color: theme.palette.text.secondary }}>
-              <ShieldCheck size={18} color={theme.palette.success.main} />
-              <Typography variant="caption" fontWeight={900} sx={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Rhema Inner Court Network
+            <Box sx={{ mt: 5, pt: 3, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ color: theme.palette.text.secondary }}>
+                <ShieldCheck size={18} color={theme.palette.success.main} />
+                <Typography variant="caption" fontWeight={900} sx={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Rhema Inner Court Network
+                </Typography>
+              </Stack>
+              <Typography variant="caption" sx={{ color: theme.palette.text.disabled, fontWeight: 700, fontSize: '0.65rem' }}>
+                SECURED WITH 256-BIT MILITARY-GRADE ENCRYPTION
               </Typography>
             </Box>
           </Card>

@@ -46,6 +46,15 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, 'users', email));
       let userData;
 
+      const appwriteMetadata = {
+        appwriteId: appwriteUser.$id,
+        labels: labels,
+        verified: appwriteUser.emailVerification,
+        registration: appwriteUser.registration,
+        accessedAt: appwriteUser.accessedAt || new Date().toISOString(),
+        status: appwriteUser.status ? 'Active' : 'Disabled'
+      };
+
       if (userDoc.exists()) {
         const fireData = userDoc.data();
         let role = fireData.role || 'guest';
@@ -59,12 +68,15 @@ export const AuthProvider = ({ children }) => {
           role: role,
           branch: fireData.branch || 'all',
           name: fireData.name || appwriteUser.name || '',
+          ...appwriteMetadata
         };
 
-        // Sync back to Firestore if role changed via labels
-        if (userData.role !== fireData.role) {
-          await setDoc(doc(db, 'users', email), { role: userData.role }, { merge: true });
-        }
+        // Sync back to Firestore with fresh Appwrite metadata
+        await setDoc(doc(db, 'users', email), { 
+          role: userData.role,
+          name: userData.name,
+          ...appwriteMetadata
+        }, { merge: true });
       } else {
         // Priority 2: Use Appwrite Metadata (prefs) if Firestore entry missing
         const prefs = appwriteUser.prefs || {};
@@ -78,19 +90,18 @@ export const AuthProvider = ({ children }) => {
           role: role,
           branch: prefs.branch || 'all',
           name: appwriteUser.name || '',
+          ...appwriteMetadata
         };
         
-        // Seed Firestore if it has role info
-        if (userData.role !== 'guest') {
-          await setDoc(doc(db, 'users', email), {
-            name: userData.name,
-            email: userData.email,
-            role: userData.role,
-            branch: userData.branch,
-            status: 'Active',
-            lastActive: new Date().toISOString()
-          }, { merge: true });
-        }
+        // Seed Firestore
+        await setDoc(doc(db, 'users', email), {
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          branch: userData.branch,
+          ...appwriteMetadata,
+          lastActive: new Date().toISOString()
+        }, { merge: true });
       }
 
       setUser(userData);
@@ -103,6 +114,7 @@ export const AuthProvider = ({ children }) => {
         role: appwriteUser.prefs?.role || 'guest',
         branch: appwriteUser.prefs?.branch || 'all',
         name: appwriteUser.name || '',
+        appwriteId: appwriteUser.$id
       };
       setUser(fallbackUser);
       saveToLocal(fallbackUser);
@@ -135,6 +147,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     
+    // Restricted Test Emails Check
+    const restrictedEmails = ['kokrobitey@ricgcw.com', 'admin@ricgcw.com'];
+    if (restrictedEmails.includes(email.toLowerCase())) {
+      const message = 'Please use your own personal email to sign up. This email has been restricted for test users only and you do not have access.';
+      setError(message);
+      setLoading(false);
+      throw new Error(message);
+    }
+
     try {
       await account.createEmailPasswordSession(email, password);
       const sessionUser = await account.get();
@@ -153,6 +174,16 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password, name, branch) => {
     setLoading(true);
     setError(null);
+
+    // Restricted Test Emails Check
+    const restrictedEmails = ['kokrobitey@ricgcw.com', 'admin@ricgcw.com'];
+    if (restrictedEmails.includes(email.toLowerCase())) {
+      const message = 'Please use your own personal email to sign up. This email has been restricted for test users only and you do not have access.';
+      setError(message);
+      setLoading(false);
+      throw new Error(message);
+    }
+
     try {
       const role = branch === 'Overseer' ? 'admin' : 'branch_admin';
       const actualBranch = branch === 'Overseer' ? 'all' : branch;

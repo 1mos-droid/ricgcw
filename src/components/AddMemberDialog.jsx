@@ -134,7 +134,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
       maxWidth="sm"
       PaperProps={{
         sx: {
-          borderRadius: 4,
+          borderRadius: 2,
           backgroundImage: 'none',
           overflow: 'hidden'
         }
@@ -151,7 +151,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         bgcolor: alpha(theme.palette.primary.main, 0.03)
       }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 2.5 }}>
+          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, width: 40, height: 40, borderRadius: 1.5 }}>
             <UserPlus size={20} />
           </Avatar>
           <Box>
@@ -188,7 +188,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -208,7 +208,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -228,7 +228,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 
@@ -248,7 +248,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
 <Grid size={{ xs: 12 }}>
@@ -267,7 +267,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         </InputAdornment>
       ),
     }}
-    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
   />
 </Grid>
 
@@ -288,7 +288,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           </InputAdornment>
         ),
       }}
-      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
     />
   </Grid>
 )}
@@ -309,7 +309,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                       <Building size={18} color={theme.palette.text.secondary} />
                     </InputAdornment>
                   }
-                  sx={{ borderRadius: 3 }}
+                  sx={{ borderRadius: 1.5 }}
                 >
                   <MenuItem value="Langma">Langma</MenuItem>
                   <MenuItem value="Mallam">Mallam</MenuItem>
@@ -336,7 +336,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                       <Users size={18} color={theme.palette.text.secondary} />
                     </InputAdornment>
                   }
-                  sx={{ borderRadius: 3 }}
+                  sx={{ borderRadius: 1.5 }}
                 >
                   <MenuItem value=""><em>None</em></MenuItem>
                   <MenuItem value="Children's Court">Children's Court</MenuItem>
@@ -362,7 +362,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                       <Briefcase size={18} color={theme.palette.text.secondary} />
                     </InputAdornment>
                   }
-                  sx={{ borderRadius: 3 }}
+                  sx={{ borderRadius: 1.5 }}
                 >
                   <MenuItem value=""><em>None</em></MenuItem>
                   <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
@@ -377,7 +377,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <Card variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+              <Card variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
                 <FormLabel component="legend" sx={{ fontWeight: 700, fontSize: '0.75rem', mb: 1, textTransform: 'uppercase', color: theme.palette.text.secondary }}>Membership Type</FormLabel>
                 <RadioGroup
                   row
@@ -400,7 +400,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         <Button 
           onClick={onClose} 
           disabled={submitting}
-          sx={{ borderRadius: 2.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary }}
+          sx={{ borderRadius: 1.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary }}
         >
           Cancel
         </Button>
@@ -409,7 +409,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           variant="contained"
           disabled={!formData.name || submitting}
           sx={{ 
-            borderRadius: 2.5, 
+            borderRadius: 1.5, 
             fontWeight: 800, 
             px: 4, 
             py: 1.2, 

@@ -38,7 +38,8 @@ import {
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { 
-  ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis 
+  ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis,
+  PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { useCallback } from 'react';
 
@@ -49,7 +50,7 @@ import { syncMemberDepartments } from '../utils/syncDepartments';
 
 // --- SUB-COMPONENTS ---
 
-const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, delay = 0 }) => {
+const ModernStatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => {
   const theme = useTheme();
   
   return (
@@ -68,7 +69,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          borderRadius: 8,
+          borderRadius: 3,
           background: theme.palette.mode === 'light' 
             ? 'rgba(255, 255, 255, 0.9)' 
             : 'rgba(15, 23, 42, 0.6)',
@@ -94,7 +95,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
             </Typography>
             {trend && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2 }}>
-                <Box sx={{ bgcolor: alpha(color, 0.1), borderRadius: '8px', px: 1, py: 0.5, display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ bgcolor: alpha(color, 0.1), borderRadius: 1.5, px: 1, py: 0.5, display: 'flex', alignItems: 'center' }}>
                     <TrendingUp size={14} color={color} style={{ marginRight: 6 }} />
                     <Typography variant="caption" fontWeight={900} sx={{ color: color, fontSize: '0.7rem' }}>
                         {trend}
@@ -107,7 +108,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
             className="icon-box"
             sx={{ 
               p: 2, 
-              borderRadius: '20px', 
+              borderRadius: 2.5, 
               bgcolor: alpha(color, 0.1), 
               color: color,
               display: 'flex',
@@ -120,23 +121,6 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, chartData, del
             <Icon size={26} strokeWidth={2.5} />
           </Box>
         </Box>
-
-        {/* Mini Sparkline Background */}
-        {chartData && chartData.length > 0 && (
-          <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 110, opacity: 0.2, zIndex: 1, pointerEvents: 'none' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id={`color${title}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <Area type="monotone" dataKey="value" stroke={color} strokeWidth={3} fillOpacity={1} fill={`url(#color${title})`} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Box>
-        )}
       </Card>
     </motion.div>
   );
@@ -157,6 +141,28 @@ const Dashboard = () => {
     attendance: []
   });
   const [loading, setLoading] = useState(true);
+
+  const dynamicGreeting = useMemo(() => {
+    const greetings = [
+        "Let's lead with grace today",
+        "Excellence is our standard",
+        "Ready to make an impact?",
+        "Faith in action starts here",
+        "Empowered to serve the sanctuary",
+        "Charting the path of growth",
+        "Your leadership makes a difference",
+        "Cultivating the harvest together",
+        "A great day for ministry",
+        "Strength and honor today"
+    ];
+    const hour = new Date().getHours();
+    let timeGreeting = "Good Morning";
+    if (hour >= 12 && hour < 17) timeGreeting = "Good Afternoon";
+    else if (hour >= 17) timeGreeting = "Good Evening";
+    
+    const randomMsg = greetings[Math.floor(Math.random() * greetings.length)];
+    return { timeGreeting, randomMsg };
+  }, []);
 
   const checkUpcomingBirthdays = useCallback(async (members, allEvents) => {
     // Only admins or branch admins trigger automatic creation to avoid duplicates/unauthorized writes
@@ -271,6 +277,17 @@ const Dashboard = () => {
       .filter(t => t.type === 'contribution')
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [filteredData.transactions]);
+
+  const totalExpenses = useMemo(() => {
+    return filteredData.transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [filteredData.transactions]);
+
+  const budgetProgress = useMemo(() => {
+    const monthlyTarget = 25000;
+    return (totalContributions / monthlyTarget) * 100;
+  }, [totalContributions]);
   
   const aggregatedData = useMemo(() => {
     // 1. Financial Overview & Revenue Sparkline (Daily Income)
@@ -285,7 +302,7 @@ const Dashboard = () => {
     const financialChartData = Object.entries(incomeByDate)
       .map(([date, value]) => ({ date, value }))
       .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-15); // Show last 15 days with data
+      .slice(-15); 
 
     // 2. Members Sparkline (Daily Registrations)
     const membersByDate = filteredData.members.reduce((acc, m) => {
@@ -299,7 +316,7 @@ const Dashboard = () => {
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-7);
 
-    // 3. Events Sparkline (Daily Events)
+    // 3. Events Sparkline
     const eventsByDate = filteredData.events.reduce((acc, e) => {
       const d = format(safeParseDate(e.date), 'yyyy-MM-dd');
       acc[d] = (acc[d] || 0) + 1;
@@ -311,16 +328,79 @@ const Dashboard = () => {
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-7);
 
-    // Default Fallbacks for empty states
+    // --- RESTORED PIE CHART LOGIC ---
+    
+    // Attendance Pie
+    const attendancePieData = [
+      { name: 'Present', value: filteredData.attendance.reduce((sum, r) => sum + (r.attendees?.length || 0), 0), color: theme.palette.primary.main },
+      { name: 'Absent', value: (filteredData.members.length * filteredData.attendance.length) - filteredData.attendance.reduce((sum, r) => sum + (r.attendees?.length || 0), 0), color: alpha(theme.palette.primary.main, 0.2) }
+    ];
+
+    // Financial Distribution
+    const categoryTotals = filteredData.transactions.reduce((acc, t) => {
+      const cat = t.category || 'Other';
+      acc[cat] = (acc[cat] || 0) + (Number(t.amount) || 0);
+      return acc;
+    }, {});
+    
+    const financialPieData = Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
+
+    // Member Status (Restored logic from previous version)
+    const eightMonthsAgo = new Date();
+    eightMonthsAgo.setMonth(eightMonthsAgo.getMonth() - 8);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const memberStatusCounts = filteredData.members.reduce((acc, member) => {
+      const lastAttendance = filteredData.attendance
+        .filter(record => record.attendees && record.attendees.some(attendee => String(attendee.id) === String(member.id)))
+        .map(record => safeParseDate(record.date))
+        .sort((a, b) => b - a)[0];
+
+      let status = 'active';
+      if (!lastAttendance) {
+        // If brand new (joined < 1 month ago), count as active
+        const joinedDate = safeParseDate(member.createdAt);
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        status = joinedDate > oneMonthAgo ? 'active' : 'discontinued';
+      } else if (lastAttendance < eightMonthsAgo) {
+        status = 'discontinued';
+      } else if (lastAttendance < threeMonthsAgo) {
+        status = 'inactive';
+      }
+
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, { active: 0, inactive: 0, discontinued: 0 });
+
+    const statusPieData = [
+      { name: 'Active', value: memberStatusCounts.active },
+      { name: 'Inactive', value: memberStatusCounts.inactive },
+      { name: 'Discontinued', value: memberStatusCounts.discontinued }
+    ].filter(item => item.value > 0);
+
+    // Recent Activity Feed
+    const activities = [
+      ...filteredData.members.slice(-5).map(m => ({ id: m.id, type: 'member', title: 'New Member', description: m.name, date: safeParseDate(m.createdAt), branch: m.branch })),
+      ...filteredData.transactions.slice(-5).map(t => ({ id: t.id, type: 'transaction', title: t.category, description: `GHC ${t.amount}`, date: safeParseDate(t.date), branch: t.branch })),
+      ...filteredData.events.slice(-5).map(e => ({ id: e.id, type: 'event', title: 'New Event', description: e.name, date: safeParseDate(e.date), branch: e.branch }))
+    ].sort((a, b) => b.date - a.date).slice(0, 8);
+
+    // Default Fallbacks
     const fallback = [{ value: 0 }, { value: 0 }, { value: 0 }, { value: 0 }, { value: 0 }];
 
     return {
       financial: financialChartData.length > 0 ? financialChartData : fallback,
       members: membersSparklineData.length > 0 ? membersSparklineData : fallback,
       events: eventsSparklineData.length > 0 ? eventsSparklineData : fallback,
-      revenue: financialChartData.length > 0 ? financialChartData.slice(-7) : fallback
+      revenue: financialChartData.length > 0 ? financialChartData.slice(-7) : fallback,
+      attendancePie: attendancePieData,
+      financialPie: financialPieData,
+      statusPie: statusPieData,
+      activities: activities
     };
-  }, [filteredData]);
+  }, [filteredData, theme]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -340,9 +420,9 @@ const Dashboard = () => {
   if (loading) {
      return (
        <Box sx={{ p: 1 }}>
-         <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 8, mb: 4 }} />
+         <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 3, mb: 4 }} />
          <Grid container spacing={3}>
-           {[1, 2, 3].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={160} sx={{ borderRadius: 6 }} /></Grid>)}
+           {[1, 2, 3].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={160} sx={{ borderRadius: 2 }} /></Grid>)}
          </Grid>
        </Box>
      );
@@ -366,7 +446,7 @@ const Dashboard = () => {
               ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`
               : `linear-gradient(135deg, #020617 0%, #0D1117 100%)`,
             color: '#fff',
-            borderRadius: 10,
+            borderRadius: 4,
             position: 'relative',
             overflow: 'hidden',
             display: 'flex',
@@ -379,7 +459,7 @@ const Dashboard = () => {
         >
           <Box sx={{ position: 'relative', zIndex: 2, maxWidth: { md: '65%' } }}>
             <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
-              <Box sx={{ bgcolor: theme.palette.secondary.main, color: '#fff', px: 1.5, py: 0.5, borderRadius: 2, fontWeight: 900, fontSize: '0.65rem', letterSpacing: 1.5 }}>
+              <Box sx={{ bgcolor: theme.palette.secondary.main, color: '#fff', px: 1.5, py: 0.5, borderRadius: 1.5, fontWeight: 900, fontSize: '0.65rem', letterSpacing: 1.5 }}>
                 OFFICIAL PORTAL
               </Box>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase' }}>
@@ -396,14 +476,29 @@ const Dashboard = () => {
                 fontFamily: '"Playfair Display", serif',
                 textShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}>
-              Shalom, {workspaceContext?.userRole === 'admin' ? 'Administrator' : 'Minister'}
+              {dynamicGreeting.timeGreeting}, {workspaceContext?.userRole === 'admin' ? 'Administrator' : 'Minister'}
             </Typography>
             <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.85)', fontSize: { xs: '1rem', md: '1.25rem' }, fontWeight: 600, maxWidth: 600, lineHeight: 1.6 }}>
+              <Box component="span" sx={{ opacity: 0.6, fontSize: '0.8rem', letterSpacing: 2, display: 'block', mb: 0.5 }}>{dynamicGreeting.randomMsg.toUpperCase()}</Box>
               Governing the <Box component="span" sx={{ fontWeight: 900, color: theme.palette.secondary.light, borderBottom: `3px solid ${theme.palette.secondary.main}` }}>{workspace === 'main' ? 'Rhema Global Sanctuary' : workspace}</Box> with excellence.
             </Typography>
           </Box>
 
-          <Box sx={{ mt: { xs: 5, md: 0 }, display: 'flex', gap: 2.5, position: 'relative', zIndex: 2, width: { xs: '100%', md: 'auto' } }}>
+          <Box sx={{ mt: { xs: 5, md: 0 }, display: 'flex', gap: 2.5, position: 'relative', zIndex: 2, width: { xs: '100%', md: 'auto' }, alignItems: 'center' }}>
+            <Chip 
+              icon={<Activity size={16} color="#fff" />} 
+              label="SYSTEM ONLINE" 
+              sx={{ 
+                display: { xs: 'none', lg: 'flex' }, 
+                bgcolor: alpha(theme.palette.success.main, 0.2), 
+                color: '#fff', 
+                fontWeight: 900, 
+                border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                backdropFilter: 'blur(10px)',
+                px: 1,
+                borderRadius: 2
+              }} 
+            />
             <Button 
               component={Link} 
               to="/members" 
@@ -415,7 +510,7 @@ const Dashboard = () => {
                 color: '#fff', 
                 px: { md: 6 },
                 py: 2.5,
-                borderRadius: 4,
+                borderRadius: 2.5,
                 fontWeight: 900,
                 fontSize: '1.1rem',
                 border: '3px solid rgba(255,255,255,0.4)',
@@ -448,7 +543,6 @@ const Dashboard = () => {
             icon={Users} 
             color={theme.palette.primary.main} 
             trend="+12% growth"
-            chartData={aggregatedData.members}
             delay={0.1}
           />
         </Grid>
@@ -459,17 +553,16 @@ const Dashboard = () => {
             icon={DollarSign} 
             color={theme.palette.success.main} 
             trend="On target"
-            chartData={aggregatedData.revenue}
             delay={0.2}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           <ModernStatCard 
-            title="SCHEDULED EVENTS" 
-            value={filteredData.events.length} 
-            icon={Calendar} 
-            color="#F59E0B" 
-            chartData={aggregatedData.events}
+            title="TOTAL EXPENSES" 
+            value={`GHC ${totalExpenses.toLocaleString()}`} 
+            icon={CreditCard} 
+            color={theme.palette.error.main} 
+            trend="Managed"
             delay={0.3}
           />
         </Grid>
@@ -478,52 +571,51 @@ const Dashboard = () => {
       {/* 3. MAIN SECTION */}
       <Grid container spacing={5}>
         
-        {/* LEFT: ACTIVITY & ANALYTICS */}
+        {/* LEFT: ACTIVITY FEED */}
         <Grid size={{ xs: 12, lg: 8 }}>
           <Stack spacing={5}>
             
-            {/* Charts Section */}
+            {/* RESTORED: Recent Activity / Live Feed */}
             <motion.div variants={itemVariants}>
-              <Card sx={{ p: 4, borderRadius: 8, minHeight: 450 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight={900}>Financial Trajectory</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, opacity: 0.5, letterSpacing: 1 }}>ANALysis OF DAILY CONTRIBUTIONS</Typography>
-                  </Box>
-                  <IconButton size="medium" sx={{ bgcolor: alpha(theme.palette.text.primary, 0.03) }}><MoreHorizontal size={20} /></IconButton>
-                </Box>
-
-                <Box sx={{ height: 320, width: '100%', minWidth: 0, position: 'relative' }}>
-                  {aggregatedData.financial && aggregatedData.financial.length > 0 && (
-                    <ResponsiveContainer width="100%" height={320} minWidth={0}>
-                      <AreaChart data={aggregatedData.financial}>
-                      <defs>
-                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={false} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme.palette.text.secondary, fontWeight: 700 }} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: 24, border: 'none', boxShadow: theme.shadows[15], padding: '16px 24px', backgroundColor: alpha(theme.palette.background.paper, 0.9), backdropFilter: 'blur(20px)' }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke={theme.palette.primary.main} 
-                        strokeWidth={4} 
-                        fillOpacity={1} 
-                        fill="url(#chartGradient)" 
-                        animationDuration={2500}
-                        activeDot={{ r: 8, strokeWidth: 0, fill: theme.palette.primary.main }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                  )}
-                </Box>
-              </Card>
+                <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <Box sx={{ p: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}` }}>
+                        <Typography variant="h5" fontWeight={900}>Live Activity</Typography>
+                        <Button size="small" endIcon={<ArrowRight size={18} />}>Full Log</Button>
+                    </Box>
+                    <Box sx={{ p: 0 }}>
+                        {aggregatedData.activities.map((activity, idx) => (
+                            <Box 
+                                key={activity.id || idx} 
+                                sx={{ 
+                                    p: 3, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 3,
+                                    borderBottom: idx === aggregatedData.activities.length - 1 ? 'none' : `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) }
+                                }}
+                            >
+                                <Avatar sx={{ 
+                                    bgcolor: activity.type === 'member' ? alpha(theme.palette.primary.main, 0.1) : activity.type === 'transaction' ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.warning.main, 0.1),
+                                    color: activity.type === 'member' ? theme.palette.primary.main : activity.type === 'transaction' ? theme.palette.success.main : theme.palette.warning.main,
+                                    width: 48, height: 48, borderRadius: 2
+                                }}>
+                                    {activity.type === 'member' ? <Users size={22} /> : activity.type === 'transaction' ? <CreditCard size={22} /> : <Calendar size={22} />}
+                                </Avatar>
+                                <Box sx={{ flexGrow: 1 }}>
+                                    <Typography variant="subtitle1" fontWeight={800}>{activity.title}</Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>{activity.description}</Typography>
+                                </Box>
+                                <Box sx={{ textAlign: 'right' }}>
+                                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>
+                                        {format(activity.date, 'h:mm a')}
+                                    </Typography>
+                                    <Chip label={activity.branch || 'Global'} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.6rem', fontWeight: 900, mt: 0.5, border: 'none', bgcolor: alpha(theme.palette.text.primary, 0.05) }} />
+                                </Box>
+                            </Box>
+                        ))}
+                    </Box>
+                </Card>
             </motion.div>
           </Stack>
         </Grid>
@@ -532,7 +624,7 @@ const Dashboard = () => {
         <Grid size={{ xs: 12, lg: 4 }}>
           <Stack spacing={4}>
             <motion.div variants={itemVariants}>
-                <Card sx={{ borderRadius: 6, overflow: 'hidden' }}>
+                <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
                     <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="h6" fontWeight={800}>Upcoming Events</Typography>
                         <Button size="small" component={Link} to="/events">View All</Button>
@@ -557,7 +649,7 @@ const Dashboard = () => {
                                     }}
                                 >
                                     <Box sx={{ 
-                                        width: 50, height: 50, borderRadius: 3, 
+                                        width: 50, height: 50, borderRadius: 2, 
                                         bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main,
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                                     }}>

@@ -112,7 +112,7 @@ const AppRouter = () => {
           path="/user-management" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin']}>
+              <RequireRole roles={['admin', 'branch_admin', 'developer']}>
                 <MotionWrap><UserManagement /></MotionWrap>
               </RequireRole>
             </RequireAuth>
@@ -132,7 +132,7 @@ const AppRouter = () => {
           path="/quick-switch" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin']}>
+              <RequireRole roles={['admin', 'branch_admin', 'developer']}>
                 <MotionWrap><QuickSwitch /></MotionWrap>
               </RequireRole>
             </RequireAuth>
@@ -142,7 +142,7 @@ const AppRouter = () => {
           path="/graph" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin']}>
+              <RequireRole roles={['admin', 'branch_admin', 'developer']}>
                 <MotionWrap><Graph /></MotionWrap>
               </RequireRole>
             </RequireAuth>
