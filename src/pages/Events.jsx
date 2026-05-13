@@ -133,26 +133,34 @@ const Events = () => {
     }
 
     setSubmitting(true);
+    // 1. Create a local preview URL for instant UI feedback if there's a flier
+    const localFlierPreview = flierFile ? URL.createObjectURL(flierFile) : null;
+
     try {
       let flierUrl = null;
       if (flierFile) {
-        const timestamp = Date.now();
-        const fileName = `flier_${timestamp}_${flierFile.name}`;
-        flierUrl = await uploadToHuggingFace(flierFile, `fliers/${fileName}`);
+        // The utility now handles unique filename and root path
+        flierUrl = await uploadToHuggingFace(flierFile);
       }
 
-      await addDoc(collection(db, "events"), {
+      const eventData = {
         ...formData,
         date: new Date(formData.date).toISOString(), 
         location: formData.location || (formData.isOnline ? 'Zoom / Online' : (isBranchRestricted ? `${userBranch} Sanctuary` : 'Main Auditorium')),
         branch: isBranchRestricted ? userBranch : 'Main', 
         createdAt: new Date().toISOString(),
         flierUrl
-      });
+      };
+
+      const docRef = await addDoc(collection(db, "events"), eventData);
+      
+      // Update local state with the new event, using the local preview URL if available
+      // to bypass Hugging Face propagation delay.
+      const newEvent = { id: docRef.id, ...eventData, flierUrl: localFlierPreview || flierUrl };
+      setEvents(prev => [...prev, newEvent].sort((a, b) => safeParseDate(a.date) - safeParseDate(b.date)));
       
       setFormData({ name: '', date: '', time: '', location: isBranchRestricted ? `${userBranch} Sanctuary` : '', isOnline: false });
       setFlierFile(null);
-      await fetchEvents();
       showNotification("Event scheduled successfully!", "success");
     } catch (error) {
       console.error("Schedule Event Error:", error);
