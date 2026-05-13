@@ -6,10 +6,9 @@ const HF_REPO_ID = import.meta.env.VITE_HF_REPO_ID;
 /**
  * Uploads a file to a Hugging Face Dataset repository.
  * @param {File} file - The file object to upload.
- * @param {string} path - The path inside the repository.
  * @returns {Promise<string>} - The URL of the uploaded file.
  */
-export const uploadToHuggingFace = async (file, path) => {
+export const uploadToHuggingFace = async (file) => {
   if (!HF_TOKEN || !HF_REPO_ID) {
     throw new Error(`Hugging Face configuration missing. Please check your GitHub Secrets or .env file.`);
   }
@@ -58,5 +57,4 @@ export const uploadToHuggingFace = async (file, path) => {
     const detail = error.response?.data?.error || error.message;
     throw new Error(`Upload failed: ${detail}`);
   }
-};
 };
