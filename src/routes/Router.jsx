@@ -22,6 +22,8 @@ const Graph = lazy(() => import('../pages/Graph'));
 const Login = lazy(() => import('../pages/Login'));
 const Developer = lazy(() => import('../pages/Developer'));
 const Maintenance = lazy(() => import('../pages/Maintenance'));
+const SelfCheckIn = lazy(() => import('../pages/SelfCheckIn'));
+const Join = lazy(() => import('../pages/Join'));
 
 // --- ANIMATION CONFIGURATION ---
 const pageVariants = {
@@ -94,6 +96,8 @@ const AppRouter = () => {
       <Routes>
         <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
         <Route path="/maintenance" element={<MotionWrap><Maintenance /></MotionWrap>} />
+        <Route path="/checkin" element={<MotionWrap><SelfCheckIn /></MotionWrap>} />
+        <Route path="/join" element={<MotionWrap><Join /></MotionWrap>} />
         
         {/* Protected Routes (Authenticated) */}
         <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />

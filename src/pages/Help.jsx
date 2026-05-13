@@ -40,7 +40,8 @@ const Help = () => {
   const faqs = [
     { id: 1, q: "How do I sync member data?", a: "The system automatically syncs every 5 minutes. You can force a manual sync in Settings > Maintenance." },
     { id: 2, q: "Can I use the app offline?", a: "Yes, RICGCW CMS is a PWA. Core features like viewing member lists work without an active connection." },
-    { id: 3, q: "Who can see financial reports?", a: "Access is restricted to users with the 'Admin' or 'Auditor' role assigned in User Management." }
+    { id: 3, q: "Who can see financial reports?", a: "Access is restricted to users with the 'Admin' or 'Auditor' role assigned in User Management." },
+    { id: 4, q: "How do I use QR attendance?", a: "Navigate to the Attendance page and tap the Camera icon in the toolbar. This activates the scanner. Members can access their unique QR codes from their profile details under the 'QR ID' tab." }
   ];
 
   const categories = [

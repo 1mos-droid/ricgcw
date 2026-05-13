@@ -30,7 +30,9 @@ import {
   MenuItem,
   alpha,
   Stack,
-  CircularProgress
+  CircularProgress,
+  Autocomplete,
+  Paper
 } from '@mui/material';
 import { 
   X, 
@@ -52,9 +54,17 @@ import {
   History,
   Globe,
   Send,
-  Loader2
+  Loader2,
+  QrCode,
+  Download,
+  Printer,
+  Waves,
+  Cross,
+  Heart,
+  Baby
 } from 'lucide-react';
 import { getDepartmentByAge } from '../utils/dateUtils';
+import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
@@ -75,6 +85,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [messageBody, setMessageBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [allMembers, setAllMembers] = useState([]);
   
   const [newContribution, setNewContribution] = useState({ 
     type: 'tithe', 
@@ -93,7 +104,14 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
     status: '',
     branch: '', 
     department: '', 
-    position: ''    
+    position: '',
+    baptismDate: '',
+    confirmationDate: '',
+    occupation: '',
+    spouseId: null,
+    childrenIds: [],
+    spouseName: '',
+    childrenNames: ''
   });
 
   const getStatusChip = (status) => {
@@ -123,6 +141,19 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "members"));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name, memberId: doc.data().memberId }));
+        setAllMembers(data);
+      } catch (err) {
+        console.error("Fetch members error:", err);
+      }
+    };
+    if (open) fetchMembers();
+  }, [open]);
+
+  useEffect(() => {
     if (member) {
       setFormData({
         name: member.name || '',
@@ -131,11 +162,17 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
         address: member.address || '',
         country: member.country || '',
         dob: member.dob || '',
- 
         status: member.status || 'active',
         branch: member.branch || '', 
         department: member.department || '', 
-        position: member.position || ''      
+        position: member.position || '',
+        baptismDate: member.baptismDate || '',
+        confirmationDate: member.confirmationDate || '',
+        occupation: member.occupation || '',
+        spouseId: member.spouseId || null,
+        childrenIds: member.childrenIds || [],
+        spouseName: member.spouseName || '',
+        childrenNames: member.childrenNames || ''
       });
       setErrors({});
       setIsEditing(false);
@@ -229,11 +266,17 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
         address: member.address || '',
         country: member.country || '',
         dob: member.dob || '',
- 
         status: member.status || 'active',
         branch: member.branch || '', 
         department: member.department || '', 
-        position: member.position || ''       
+        position: member.position || '',
+        baptismDate: member.baptismDate || '',
+        confirmationDate: member.confirmationDate || '',
+        occupation: member.occupation || '',
+        spouseId: member.spouseId || null,
+        childrenIds: member.childrenIds || [],
+        spouseName: member.spouseName || '',
+        childrenNames: member.childrenNames || ''
     });
     setIsEditing(false);
     setErrors({});
@@ -313,6 +356,26 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   const totalWelfare = contributions
     .filter(c => c.type === 'welfare')
     .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+  const downloadQRCode = () => {
+    const svg = document.getElementById("MemberQRCode");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `${member.name}_QR.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
   
   if (!member) return null;
 
@@ -386,12 +449,18 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
           <Tab label="Profile Details" />
           <Tab label="Contributions" />
           <Tab label="Message" />
+          <Tab label="QR ID" />
         </Tabs>
 
         {tabValue === 0 ? (
         <Box sx={{ p: 4 }}>
           {isEditing ? (
-            <Grid container spacing={3}>
+            <Grid container spacing={2.5}>
+                {/* --- SECTION 1: IDENTITY --- */}
+                <Grid size={{ xs: 12 }}>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>1. IDENTITY & CONTACT</Typography>
+                    <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+                </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField 
                       autoFocus 
@@ -403,14 +472,8 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange} 
                       error={!!errors.name}
                       helperText={errors.name}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                   />
-                </Grid>
-                {/* ID is not editable as per requirements */}
-                <Grid size={{ xs: 12 }}>
-                   <Box sx={{ px: 2, py: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.action.disabledBackground, 0.05), border: `1px dashed ${theme.palette.divider}` }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, letterSpacing: 1 }}>MEMBER ID: {member.memberId || 'N/A'}</Typography>
-                   </Box>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField 
@@ -420,7 +483,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       fullWidth 
                       value={formData.email} 
                       onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -431,17 +494,29 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       fullWidth 
                       value={formData.phone} 
                       onChange={handleChange} 
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                   />
                 </Grid>
-                <Grid size={{ xs: 12 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField 
+                      label="Birth Date" 
+                      name="dob" 
+                      type="date" 
+                      fullWidth 
+                      value={formData.dob} 
+                      onChange={handleChange} 
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Address"
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                   />
                   </Grid>
 
@@ -453,22 +528,15 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       name="country"
                       value={formData.country}
                       onChange={handleChange}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                       />
                   </Grid>
                   )}
 
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField 
-                      label="Birth Date" 
-                      name="dob" 
-                      type="date" 
-                      fullWidth 
-                      value={formData.dob} 
-                      onChange={handleChange} 
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) } }}
-                  />
+                {/* --- SECTION 2: CHURCH LIFE --- */}
+                <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>2. CHURCH LIFE</Typography>
+                    <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
@@ -478,14 +546,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange}
                       label="Branch"
                       name="branch"
-                      sx={{ borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) }}
+                      sx={{ borderRadius: 1.5 }}
                     >
                       <MenuItem value="Langma">Langma</MenuItem>
                       <MenuItem value="Mallam">Mallam</MenuItem>
                       <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                       <MenuItem value="Diaspora">Diaspora</MenuItem>
                     </Select>
-
                   </FormControl>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -496,7 +563,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange}
                       label="Department"
                       name="department"
-                      sx={{ borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) }}
+                      sx={{ borderRadius: 1.5 }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Children's Court">Children's Court</MenuItem>
@@ -505,7 +572,8 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       <MenuItem value="Women">Women</MenuItem>
                     </Select>
                   </FormControl>
-                </Grid>                <Grid size={{ xs: 12, sm: 6 }}>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Position</InputLabel>
                     <Select
@@ -513,7 +581,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                       onChange={handleChange}
                       label="Position"
                       name="position"
-                      sx={{ borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.4) }}
+                      sx={{ borderRadius: 1.5 }}
                     >
                       <MenuItem value=""><em>None</em></MenuItem>
                       <MenuItem value="Youth Pastor">Youth Pastor</MenuItem>
@@ -525,48 +593,309 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     </Select>
                   </FormControl>
                 </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={formData.status}
+                      onChange={handleChange}
+                      label="Status"
+                      name="status"
+                      sx={{ borderRadius: 1.5 }}
+                    >
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                      <MenuItem value="discontinued">Discontinued</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* --- SECTION 3: SPIRITUAL MILESTONES --- */}
+                <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>3. SPIRITUAL MILESTONES</Typography>
+                    <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField 
+                      label="Baptism Date" 
+                      name="baptismDate" 
+                      type="date" 
+                      fullWidth 
+                      value={formData.baptismDate} 
+                      onChange={handleChange} 
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField 
+                      label="Confirmation Date" 
+                      name="confirmationDate" 
+                      type="date" 
+                      fullWidth 
+                      value={formData.confirmationDate} 
+                      onChange={handleChange} 
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                </Grid>
+
+                {/* --- SECTION 4: FAMILY & PROFESSIONAL --- */}
+                <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>4. FAMILY & PROFESSIONAL</Typography>
+                    <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Occupation"
+                    name="occupation"
+                    value={formData.occupation}
+                    onChange={handleChange}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                        fullWidth
+                        label="Spouse Name (Text)"
+                        name="spouseName"
+                        value={formData.spouseName}
+                        onChange={handleChange}
+                        placeholder="Manual entry if not linked"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                        fullWidth
+                        label="Children's Names (Text)"
+                        name="childrenNames"
+                        value={formData.childrenNames}
+                        onChange={handleChange}
+                        placeholder="Manual entry if not linked"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                    <Autocomplete
+                        options={allMembers.filter(m => m.id !== member.id)}
+                        getOptionLabel={(option) => option.name || ""}
+                        value={allMembers.find(m => m.id === formData.spouseId) || null}
+                        onChange={(_, newValue) => setFormData({ ...formData, spouseId: newValue ? newValue.id : null })}
+                        renderInput={(params) => (
+                            <TextField 
+                                {...params} 
+                                label="Spouse" 
+                                placeholder="Search members..."
+                                InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                        <>
+                                            <InputAdornment position="start">
+                                                <Heart size={18} color={theme.palette.text.secondary} />
+                                            </InputAdornment>
+                                            {params.InputProps.startAdornment}
+                                        </>
+                                    )
+                                }}
+                            />
+                        )}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                    <Autocomplete
+                        multiple
+                        options={allMembers.filter(m => m.id !== member.id)}
+                        getOptionLabel={(option) => option.name || ""}
+                        value={allMembers.filter(m => formData.childrenIds?.includes(m.id))}
+                        onChange={(_, newValue) => setFormData({ ...formData, childrenIds: newValue.map(v => v.id) })}
+                        renderInput={(params) => (
+                            <TextField 
+                                {...params} 
+                                label="Children" 
+                                placeholder="Link children..."
+                                InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                        <>
+                                            <InputAdornment position="start">
+                                                <Baby size={18} color={theme.palette.text.secondary} />
+                                            </InputAdornment>
+                                            {params.InputProps.startAdornment}
+                                        </>
+                                    )
+                                }}
+                            />
+                        )}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    />
+                </Grid>
             </Grid>
           ) : (
             <Stack spacing={4}>
-                <Grid container spacing={3}>
-                {[
-                    { icon: <Mail size={18}/>, label: 'EMAIL', value: member.email },
-                    { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
-                    { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
-                    { icon: <Globe size={18}/>, label: 'COUNTRY', value: member.country },
-                    { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) },
-                    { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
-                    { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
-                    { icon: <Briefcase size={18}/>, label: 'POSITION', value: member.position }
-                ].map((item, idx) => (
-                    <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
-                    <Box sx={{ 
-                        p: 2, 
-                        borderRadius: 1.5, 
-                        bgcolor: alpha(theme.palette.background.default, 0.4),
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                        transition: 'all 0.2s',
-                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02), borderColor: alpha(theme.palette.primary.main, 0.1) }
-                    }}>
-                        <Stack direction="row" spacing={2} alignItems="center">
-                            <Box sx={{ 
-                                p: 1, 
-                                borderRadius: 1, 
-                                bgcolor: alpha(theme.palette.primary.main, 0.08), 
-                                color: theme.palette.primary.main,
-                                display: 'flex'
-                            }}>
-                                {item.icon}
-                            </Box>
-                            <Box>
-                                <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>{item.label}</Typography>
-                                <Typography variant="body2" fontWeight={700} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
-                            </Box>
-                        </Stack>
-                    </Box>
+                {/* --- SECTION 1: IDENTITY & CONTACT --- */}
+                <Box>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1.5, display: 'block' }}>1. IDENTITY & CONTACT</Typography>
+                    <Grid container spacing={2}>
+                        {[
+                            { icon: <Mail size={18}/>, label: 'EMAIL', value: member.email },
+                            { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
+                            { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
+                            { icon: <Globe size={18}/>, label: 'COUNTRY', value: member.country },
+                            { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) }
+                        ].map((item, idx) => (
+                            <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
+                                <Box sx={{ 
+                                    p: 2, 
+                                    borderRadius: 1.5, 
+                                    bgcolor: alpha(theme.palette.background.default, 0.4),
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    height: '100%'
+                                }}>
+                                    <Stack direction="row" spacing={2} alignItems="center">
+                                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, display: 'flex' }}>{item.icon}</Box>
+                                        <Box>
+                                            <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>{item.label}</Typography>
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </Box>
+                            </Grid>
+                        ))}
                     </Grid>
-                ))}
-                </Grid>
+                </Box>
+
+                {/* --- SECTION 2: CHURCH LIFE --- */}
+                <Box>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1.5, display: 'block' }}>2. CHURCH LIFE</Typography>
+                    <Grid container spacing={2}>
+                        {[
+                            { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
+                            { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
+                            { icon: <Briefcase size={18}/>, label: 'POSITION', value: member.position }
+                        ].map((item, idx) => (
+                            <Grid size={{ xs: 12, sm: 6 }} key={idx}>
+                                <Box sx={{ 
+                                    p: 2, 
+                                    borderRadius: 1.5, 
+                                    bgcolor: alpha(theme.palette.background.default, 0.4),
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    height: '100%'
+                                }}>
+                                    <Stack direction="row" spacing={2} alignItems="center">
+                                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, display: 'flex' }}>{item.icon}</Box>
+                                        <Box>
+                                            <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>{item.label}</Typography>
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </Box>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+
+                {/* --- SECTION 3: SPIRITUAL MILESTONES --- */}
+                <Box>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1.5, display: 'block' }}>3. SPIRITUAL MILESTONES</Typography>
+                    <Grid container spacing={2}>
+                        {[
+                            { icon: <Waves size={18}/>, label: 'BAPTISM DATE', value: formatDOB(member.baptismDate) },
+                            { icon: <Cross size={18}/>, label: 'CONFIRMATION DATE', value: formatDOB(member.confirmationDate) }
+                        ].map((item, idx) => (
+                            <Grid size={{ xs: 12, sm: 6 }} key={idx}>
+                                <Box sx={{ 
+                                    p: 2, 
+                                    borderRadius: 1.5, 
+                                    bgcolor: alpha(theme.palette.background.default, 0.4),
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    height: '100%'
+                                }}>
+                                    <Stack direction="row" spacing={2} alignItems="center">
+                                        <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, display: 'flex' }}>{item.icon}</Box>
+                                        <Box>
+                                            <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>{item.label}</Typography>
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: item.value ? 'text.primary' : 'text.disabled' }}>{item.value || 'Not provided'}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </Box>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+
+                {/* --- SECTION 4: FAMILY & PROFESSIONAL --- */}
+                <Box>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1.5, display: 'block' }}>4. FAMILY & PROFESSIONAL</Typography>
+                    <Grid container spacing={2}>
+                        <Grid size={{ xs: 12 }}>
+                            <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: alpha(theme.palette.background.default, 0.4), border: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+                                <Stack direction="row" spacing={2} alignItems="center">
+                                    <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, display: 'flex' }}><Briefcase size={18}/></Box>
+                                    <Box>
+                                        <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>OCCUPATION</Typography>
+                                        <Typography variant="body2" fontWeight={700} sx={{ color: member.occupation ? 'text.primary' : 'text.disabled' }}>{member.occupation || 'Not provided'}</Typography>
+                                    </Box>
+                                </Stack>
+                            </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: alpha(theme.palette.background.default, 0.4), border: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+                                <Stack direction="row" spacing={2} alignItems="center">
+                                    <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, display: 'flex' }}><Heart size={18}/></Box>
+                                    <Box>
+                                        <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>SPOUSE</Typography>
+                                        {member.spouseId ? (
+                                            <Chip 
+                                                label={allMembers.find(m => m.id === member.spouseId)?.name || "Linked Profile"} 
+                                                size="small" 
+                                                onClick={() => {
+                                                    const spouse = allMembers.find(m => m.id === member.spouseId);
+                                                    if (spouse) {
+                                                        showNotification(`Viewing ${spouse.name}'s profile...`, "info");
+                                                    }
+                                                }}
+                                                sx={{ mt: 0.5, fontWeight: 700, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}
+                                            />
+                                        ) : member.spouseName ? (
+                                            <Typography variant="body2" fontWeight={700}>{member.spouseName}</Typography>
+                                        ) : (
+                                            <Typography variant="body2" fontWeight={700} color="text.disabled">No spouse linked</Typography>
+                                        )}
+                                    </Box>
+                                </Stack>
+                            </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: alpha(theme.palette.background.default, 0.4), border: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+                                <Stack direction="row" spacing={2} alignItems="center">
+                                    <Box sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.08), color: theme.palette.primary.main, display: 'flex' }}><Baby size={18}/></Box>
+                                    <Box>
+                                        <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ letterSpacing: 0.5, fontSize: '0.65rem' }}>CHILDREN</Typography>
+                                        <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                                            {member.childrenIds && member.childrenIds.length > 0 ? (
+                                                member.childrenIds.map(childId => (
+                                                    <Chip 
+                                                        key={childId}
+                                                        label={allMembers.find(m => m.id === childId)?.name || "Child Profile"} 
+                                                        size="small"
+                                                        sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, mb: 0.5 }}
+                                                    />
+                                                ))
+                                            ) : member.childrenNames ? (
+                                                <Typography variant="body2" fontWeight={700}>{member.childrenNames}</Typography>
+                                            ) : (
+                                                <Typography variant="body2" fontWeight={700} color="text.disabled">No children linked</Typography>
+                                            )}
+                                        </Stack>
+                                    </Box>
+                                </Stack>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Box>
                 
                 <Box sx={{ 
                     p: 3, 
@@ -581,7 +910,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         startIcon={<Send size={18} />}
                         onClick={() => setTabValue(2)}
                         sx={{ 
-                            borderRadius: 1, 
+                            borderRadius: 1.5, 
                             py: 1.5, 
                             fontWeight: 800,
                             boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -705,7 +1034,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 </List>
             </Card>
           </Box>
-        ) : (
+        ) : tabValue === 2 ? (
           <Box sx={{ p: 4 }}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Mail size={16} /> COMPOSE MESSAGE
@@ -747,6 +1076,45 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 </Typography>
             )}
           </Box>
+        ) : (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <QrCode size={18} /> DIGITAL IDENTITY
+            </Typography>
+            
+            <Paper variant="outlined" sx={{ p: 3, display: 'inline-block', borderRadius: 4, bgcolor: '#fff', mb: 4 }}>
+                <QRCode 
+                    id="MemberQRCode"
+                    value={member.memberId || member.id} 
+                    size={200}
+                    level="H"
+                />
+            </Paper>
+
+            <Typography variant="h6" fontWeight={800} sx={{ mb: 0.5 }}>{member.memberId || 'NO ID'}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                This unique QR code contains the member's digital identity and can be scanned for automated attendance check-ins.
+            </Typography>
+
+            <Stack direction="row" spacing={2} justifyContent="center">
+                <Button 
+                    variant="outlined" 
+                    startIcon={<Download size={18} />}
+                    onClick={downloadQRCode}
+                    sx={{ borderRadius: 2, fontWeight: 700 }}
+                >
+                    Save Image
+                </Button>
+                <Button 
+                    variant="contained" 
+                    startIcon={<Printer size={18} />}
+                    onClick={() => window.print()}
+                    sx={{ borderRadius: 2, fontWeight: 800 }}
+                >
+                    Print ID Card
+                </Button>
+            </Stack>
+          </Box>
         )}
       </DialogContent>
 
@@ -754,13 +1122,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
       <DialogActions sx={{ px: 4, pb: 4, pt: 2, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
         {isEditing ? (
             <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="flex-end">
-                <Button onClick={handleCancelEdit} sx={{ borderRadius: 1, fontWeight: 700, color: theme.palette.text.secondary }}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 1, fontWeight: 800, px: 4, boxShadow: theme.shadows[4] }}>Update Member</Button>
+                <Button onClick={handleCancelEdit} sx={{ borderRadius: 1.5, fontWeight: 700, color: theme.palette.text.secondary }}>Cancel</Button>
+                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 1.5, fontWeight: 800, px: 4, boxShadow: theme.shadows[4] }}>Update Member</Button>
             </Stack>
         ) : (
             <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="space-between">
-                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 1 }}>Revoke</Button>
-                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 1, px: 4, boxShadow: theme.shadows[4] }}>Modify Profile</Button>
+                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 1.5 }}>Revoke</Button>
+                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 1.5, px: 4, boxShadow: theme.shadows[4] }}>Modify Profile</Button>
             </Stack>
         )}
       </DialogActions>

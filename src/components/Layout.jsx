@@ -266,9 +266,9 @@ const AppLayout = ({ children }) => {
       return item.path !== '/developer';
     }
 
-    // Everyone else is restricted
-    const restrictedPaths = ['/user-management', '/quick-switch', '/graph', '/developer'];
-    return !restrictedPaths.includes(item.path);
+    // Regular Members (Guests) - Restricted to Personal View and Content
+    const memberAllowedPaths = ['/', '/events', '/bible-studies', '/live-bible', '/settings', '/help'];
+    return memberAllowedPaths.includes(item.path);
   });
 
   const [open, setOpen] = useState(true);
@@ -292,17 +292,33 @@ const AppLayout = ({ children }) => {
     }
   }, [isMobile]);
 
+  const filteredBottomNavItems = [
+    { text: 'Home', icon: <DashboardIcon />, path: '/' },
+    ...(userRole === 'admin' || userRole === 'branch_admin' || userRole === 'developer' 
+      ? [
+          { text: 'Members', icon: <PeopleIcon />, path: '/members' },
+          { text: 'Finance', icon: <AccountBalanceWalletIcon />, path: '/financials' }
+        ]
+      : [
+          { text: 'Bible', icon: <MenuBookIcon />, path: '/live-bible' },
+          { text: 'Help', icon: <HelpCenterIcon />, path: '/help' }
+        ]
+    ),
+    { text: 'Events', icon: <EventIcon />, path: '/events' },
+    { text: 'More', icon: <MenuIcon />, path: '/settings' }, 
+  ];
+
   // Handle Bottom Nav Change
   const [bottomNavValue, setBottomNavValue] = useState(location.pathname);
   useEffect(() => {
     const currentPath = location.pathname;
-    const matched = BOTTOM_NAV_ITEMS.find(item => item.path === currentPath);
+    const matched = filteredBottomNavItems.find(item => item.path === currentPath);
     if (matched && currentPath !== '/settings') {
         setBottomNavValue(currentPath);
     } else if (currentPath === '/settings' || !matched) {
         setBottomNavValue('/settings'); // Use settings path as 'More' indicator
     }
-  }, [location.pathname]);
+  }, [location.pathname, filteredBottomNavItems]);
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
@@ -634,7 +650,7 @@ const AppLayout = ({ children }) => {
                     }
                 }}
              >
-                {BOTTOM_NAV_ITEMS.map((item) => (
+                {filteredBottomNavItems.map((item) => (
                     <BottomNavigationAction 
                         key={item.text} 
                         label={item.text} 

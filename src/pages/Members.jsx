@@ -35,7 +35,11 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Container,
-  Menu
+  Menu,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { 
   UserPlus, 
@@ -55,10 +59,12 @@ import {
   Filter,
   FileText,
   FileSpreadsheet,
-  Clock
+  Clock,
+  QrCode
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
+import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -82,6 +88,7 @@ const Members = () => {
   const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : '');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
+  const [registrationQrOpen, setRegistrationQrOpen] = useState(false);
 
   // --- HANDLERS ---
   const handleOpenDetails = (member, tab = 0) => {
@@ -407,6 +414,26 @@ const Members = () => {
     </Grid>
   );
 
+  const downloadRegistrationQRCode = () => {
+    const svg = document.getElementById("RegistrationQRCode");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = "Onboarding_QR.png";
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
+
   return (
     <Box sx={{ pb: 8 }}>
       
@@ -543,6 +570,21 @@ const Members = () => {
                   <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1.5, fontWeight: 600 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
               </Menu>
 
+              <Tooltip title="Onboarding QR">
+                <IconButton 
+                  onClick={() => setRegistrationQrOpen(true)}
+                  sx={{ 
+                    bgcolor: alpha(theme.palette.secondary.main, 0.1), 
+                    color: theme.palette.secondary.main,
+                    borderRadius: 4,
+                    width: 56,
+                    height: 56
+                  }}
+                >
+                  <QrCode size={22} />
+                </IconButton>
+              </Tooltip>
+
               <Tooltip title="Add New Member">
                 <Button 
                     variant="contained" 
@@ -657,6 +699,45 @@ const Members = () => {
         onDelete={handleDelete}
         initialTab={dialogTab}
       />
+
+      {/* --- ONBOARDING QR DIALOG --- */}
+      <Dialog 
+        open={registrationQrOpen} 
+        onClose={() => setRegistrationQrOpen(false)}
+        PaperProps={{ sx: { borderRadius: 6, p: 2, textAlign: 'center' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Member Onboarding QR</DialogTitle>
+        <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                New members can scan this code to register their details directly into the church database.
+            </Typography>
+            
+            <Paper elevation={0} sx={{ p: 4, bgcolor: '#fff', borderRadius: 4, display: 'inline-block', border: `1px solid ${theme.palette.divider}` }}>
+                <QRCode 
+                    id="RegistrationQRCode"
+                    value={`${window.location.origin}/join`} 
+                    size={250}
+                    level="H"
+                />
+            </Paper>
+            
+            <Typography variant="h6" fontWeight={800} sx={{ mt: 3, color: theme.palette.secondary.main }}>
+                Scan to Register
+            </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3, gap: 2 }}>
+            <Button onClick={() => setRegistrationQrOpen(false)} sx={{ fontWeight: 700 }}>Close</Button>
+            <Button 
+                variant="contained" 
+                color="secondary"
+                startIcon={<Download size={18} />} 
+                onClick={downloadRegistrationQRCode}
+                sx={{ borderRadius: 2, fontWeight: 800 }}
+            >
+                Download QR
+            </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );

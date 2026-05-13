@@ -49,9 +49,14 @@ import {
   Trash2,
   Edit,
   TrendingUp,
-  BarChart2
+  BarChart2,
+  QrCode,
+  Camera,
+  Download
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -75,6 +80,8 @@ const Attendance = () => {
   const [submitting, setSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedAttendees, setEditedAttendees] = useState(new Set());
+  const [scannerMode, setScannerMode] = useState(false);
+  const [serviceQrOpen, setServiceQrOpen] = useState(false);
 
   const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
   const filteredRecords = useMemo(() => {
@@ -141,6 +148,53 @@ const Attendance = () => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    let scanner = null;
+    if (scannerMode) {
+      const timer = setTimeout(() => {
+        try {
+          scanner = new Html5QrcodeScanner("reader", { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: true
+          }, false);
+
+          scanner.render((decodedText) => {
+            const member = members.find(m => 
+              String(m.memberId || '').trim().toLowerCase() === String(decodedText).trim().toLowerCase() ||
+              String(m.id || '').trim().toLowerCase() === String(decodedText).trim().toLowerCase()
+            );
+
+            if (member) {
+              setSelectedAttendees(prev => {
+                if (prev.has(member.id)) return prev;
+                const newSet = new Set(prev);
+                newSet.add(member.id);
+                showNotification(`Checked in: ${member.name}`, "success");
+                if (navigator.vibrate) navigator.vibrate(200);
+                return newSet;
+              });
+            } else {
+              showNotification("Unknown Member Code", "warning");
+            }
+          }, (err) => {
+            // Scanning...
+          });
+        } catch (e) {
+          console.error("Scanner Initialization Error", e);
+        }
+      }, 300);
+
+      return () => {
+        clearTimeout(timer);
+        if (scanner) {
+          scanner.clear().catch(err => console.error("Scanner cleanup failed", err));
+        }
+      };
+    }
+  }, [scannerMode, members, showNotification]);
+
   const handleToggle = (id) => {
     const newSet = new Set(selectedAttendees);
     if (newSet.has(id)) newSet.delete(id);
@@ -176,7 +230,8 @@ const Attendance = () => {
         createdAt: new Date().toISOString()
       };
 
-      await addDoc(collection(db, "attendance"), recordData);
+      const recordId = `${selectedDate}_${(isBranchRestricted ? userBranch : selectedBranch) || 'All'}`;
+      await setDoc(doc(db, "attendance", recordId), recordData, { merge: true });
       
       setSelectedAttendees(new Set());
       await fetchData(); 
@@ -241,6 +296,26 @@ const Attendance = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const downloadServiceQRCode = () => {
+    const svg = document.getElementById("ServiceQRCode");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `Service_QR_${selectedDate}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
   // --- HEATMAP ACTUAL DATA ---
@@ -339,7 +414,35 @@ const Attendance = () => {
                             <CheckCircle size={20} color={theme.palette.success.main} /> New Record
                         </Typography>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', gap: 2 }}>
+                    <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                        <Tooltip title="Self Check-in QR">
+                            <IconButton 
+                                onClick={() => setServiceQrOpen(true)}
+                                sx={{ 
+                                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
+                                    color: theme.palette.secondary.main,
+                                    borderRadius: 3,
+                                    width: 44,
+                                    height: 44
+                                }}
+                            >
+                                <QrCode size={20} />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Scan Member QR">
+                            <IconButton 
+                                onClick={() => setScannerMode(!scannerMode)} 
+                                color={scannerMode ? "primary" : "default"}
+                                sx={{ 
+                                    bgcolor: scannerMode ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.action.hover, 0.5),
+                                    borderRadius: 3,
+                                    width: 44,
+                                    height: 44
+                                }}
+                            >
+                                {scannerMode ? <X size={20} /> : <Camera size={20} />}
+                            </IconButton>
+                        </Tooltip>
                         <input 
                             type="date" 
                             value={selectedDate}
@@ -371,6 +474,39 @@ const Attendance = () => {
                     </Grid>
                 </Grid>
             </Box>
+
+            {/* --- QR SCANNER COMPONENT --- */}
+            <AnimatePresence>
+                {scannerMode && (
+                    <Box 
+                        component={motion.div}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        sx={{ px: 3, pt: 2, overflow: 'hidden' }}
+                    >
+                        <Box id="reader" sx={{ 
+                            borderRadius: 4, 
+                            overflow: 'hidden', 
+                            border: `1px solid ${theme.palette.divider}`,
+                            '& #reader__dashboard_section_csr button': {
+                                bgcolor: theme.palette.primary.main,
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: 1,
+                                padding: '8px 16px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                marginTop: '10px'
+                            }
+                        }} />
+                        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1, mb: 2, fontWeight: 700, color: 'text.secondary' }}>
+                            Position the member's QR code within the frame to check in.
+                        </Typography>
+                        <Divider />
+                    </Box>
+                )}
+            </AnimatePresence>
 
             {/* Member List */}
             <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 3, py: 3, maxHeight: '600px', minHeight: '400px' }}>
@@ -628,6 +764,44 @@ const Attendance = () => {
           </div>
         </div>
       )}
+
+      {/* --- SERVICE QR DIALOG --- */}
+      <Dialog 
+        open={serviceQrOpen} 
+        onClose={() => setServiceQrOpen(false)}
+        PaperProps={{ sx: { borderRadius: 6, p: 2, textAlign: 'center' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Service Check-in QR</DialogTitle>
+        <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                Members can scan this code to access the self check-in page for <strong>{selectedDate}</strong> ({selectedBranch || 'All Branches'}).
+            </Typography>
+            
+            <Paper elevation={0} sx={{ p: 4, bgcolor: '#fff', borderRadius: 4, display: 'inline-block', border: `1px solid ${theme.palette.divider}` }}>
+                <QRCode 
+                    id="ServiceQRCode"
+                    value={`${window.location.origin}/checkin?date=${selectedDate}&branch=${selectedBranch || 'All'}`} 
+                    size={250}
+                    level="H"
+                />
+            </Paper>
+            
+            <Typography variant="h6" fontWeight={800} sx={{ mt: 3, color: theme.palette.primary.main }}>
+                Scan to Check-in
+            </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3, gap: 2 }}>
+            <Button onClick={() => setServiceQrOpen(false)} sx={{ fontWeight: 700 }}>Close</Button>
+            <Button 
+                variant="contained" 
+                startIcon={<Download size={18} />} 
+                onClick={downloadServiceQRCode}
+                sx={{ borderRadius: 2, fontWeight: 800 }}
+            >
+                Download QR
+            </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );

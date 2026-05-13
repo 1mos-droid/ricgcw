@@ -26,10 +26,14 @@ import {
   Stack,
   Avatar,
   Card,
-  CircularProgress
+  CircularProgress,
+  Autocomplete,
+  Divider
 } from '@mui/material';
-import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase, Globe } from 'lucide-react';
+import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase, Globe, Waves, Cross, Heart, Baby } from 'lucide-react';
 import { getDepartmentByAge } from '../utils/dateUtils';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -39,6 +43,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   const theme = useTheme();
   const { userBranch, isBranchRestricted, currentDepartment, isDepartmentRestricted } = useWorkspace();
   const [submitting, setSubmitting] = useState(false);
+  const [allMembers, setAllMembers] = useState([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -51,9 +56,29 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
     department: isDepartmentRestricted ? currentDepartment : '', 
     position: '',   
     membershipType: 'Member',
+    baptismDate: '',
+    confirmationDate: '',
+    occupation: '',
+    spouseId: null,
+    childrenIds: [],
+    spouseName: '',
+    childrenNames: ''
   });
 
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "members"));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name, memberId: doc.data().memberId }));
+        setAllMembers(data);
+      } catch (err) {
+        console.error("Fetch members error:", err);
+      }
+    };
+    if (open) fetchMembers();
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -67,7 +92,14 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         branch: isBranchRestricted ? userBranch : '', 
         department: isDepartmentRestricted ? currentDepartment : '', 
         position: '',   
-        membershipType: 'Member' 
+        membershipType: 'Member',
+        baptismDate: '',
+        confirmationDate: '',
+        occupation: '',
+        spouseId: null,
+        childrenIds: [],
+        spouseName: '',
+        childrenNames: ''
       });
       setErrors({});
       setSubmitting(false);
@@ -114,7 +146,14 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           country: String(formData.country || "").trim() || null,
           dob: formData.dob || null,
           department: formData.department || null,
-          position: formData.position || null
+          position: formData.position || null,
+          baptismDate: formData.baptismDate || null,
+          confirmationDate: formData.confirmationDate || null,
+          occupation: String(formData.occupation || "").trim() || null,
+          spouseId: formData.spouseId || null,
+          childrenIds: formData.childrenIds || [],
+          spouseName: String(formData.spouseName || "").trim() || null,
+          childrenNames: String(formData.childrenNames || "").trim() || null
         };
         await onAddMember(payload);
         // The parent will set open=false upon success, triggering the reset useEffect
@@ -164,11 +203,16 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
         </IconButton>
       </Box>
 
-      {/* --- CONTENT --- */}
       <DialogContent sx={{ p: 4 }}>
         <Box component="form" noValidate autoComplete="off">
           <Grid container spacing={2.5}>
             
+            {/* --- SECTION 1: IDENTITY --- */}
+            <Grid size={{ xs: 12 }}>
+                <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>1. IDENTITY & CONTACT</Typography>
+                <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+            </Grid>
+
             <Grid size={{ xs: 12 }}>
               <TextField
                 autoFocus
@@ -251,48 +295,53 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
-<Grid size={{ xs: 12 }}>
-  <TextField
-    label="Full Address"
-    name="address"
-    fullWidth
-    value={formData.address}
-    onChange={handleChange}
-    placeholder="House Number, Street, City"
-    variant="outlined"
-    InputProps={{
-      startAdornment: (
-        <InputAdornment position="start">
-          <MapPin size={18} color={theme.palette.text.secondary} />
-        </InputAdornment>
-      ),
-    }}
-    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-  />
-</Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="Full Address"
+                name="address"
+                fullWidth
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="House Number, Street, City"
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MapPin size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+            </Grid>
 
-{formData.branch === 'Diaspora' && (
-  <Grid size={{ xs: 12 }}>
-    <TextField
-      label="Country of Residence"
-      name="country"
-      fullWidth
-      value={formData.country}
-      onChange={handleChange}
-      placeholder="e.g. United Kingdom, USA, etc."
-      variant="outlined"
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <Globe size={18} color={theme.palette.text.secondary} />
-          </InputAdornment>
-        ),
-      }}
-      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-    />
-  </Grid>
-)}
+            {formData.branch === 'Diaspora' && (
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  label="Country of Residence"
+                  name="country"
+                  fullWidth
+                  value={formData.country}
+                  onChange={handleChange}
+                  placeholder="e.g. United Kingdom, USA, etc."
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Globe size={18} color={theme.palette.text.secondary} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+              </Grid>
+            )}
 
+            {/* --- SECTION 2: CHURCH LIFE --- */}
+            <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>2. CHURCH LIFE</Typography>
+                <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+            </Grid>
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth required error={!!errors.branch} disabled={isBranchRestricted}>
@@ -389,6 +438,172 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
                   <FormControlLabel value="Visitor" control={<Radio size="small" />} label={<Typography variant="body2" fontWeight={600}>Visitor</Typography>} />
                 </RadioGroup>
               </Card>
+            </Grid>
+
+            {/* --- SECTION 3: SPIRITUAL MILESTONES --- */}
+            <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>3. SPIRITUAL MILESTONES</Typography>
+                <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Baptism Date"
+                name="baptismDate"
+                type="date"
+                fullWidth
+                value={formData.baptismDate}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Waves size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Confirmation Date"
+                name="confirmationDate"
+                type="date"
+                fullWidth
+                value={formData.confirmationDate}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Cross size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+            </Grid>
+
+            {/* --- SECTION 4: FAMILY & PROFESSIONAL --- */}
+            <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>4. FAMILY & PROFESSIONAL</Typography>
+                <Divider sx={{ mb: 3, mt: 0.5, opacity: 0.6 }} />
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="Occupation / Profession"
+                name="occupation"
+                fullWidth
+                value={formData.occupation}
+                onChange={handleChange}
+                placeholder="e.g. Software Engineer, Teacher, Merchant"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Briefcase size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Spouse Name (Manual)"
+                name="spouseName"
+                fullWidth
+                value={formData.spouseName}
+                onChange={handleChange}
+                placeholder="Entry if not linked"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Heart size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Children's Names (Manual)"
+                name="childrenNames"
+                fullWidth
+                value={formData.childrenNames}
+                onChange={handleChange}
+                placeholder="Entry if not linked"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Baby size={18} color={theme.palette.text.secondary} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+                <Autocomplete
+                    options={allMembers.filter(m => m.id !== formData.spouseId)}
+                    getOptionLabel={(option) => option.name || ""}
+                    value={allMembers.find(m => m.id === formData.spouseId) || null}
+                    onChange={(_, newValue) => setFormData({ ...formData, spouseId: newValue ? newValue.id : null })}
+                    renderInput={(params) => (
+                        <TextField 
+                            {...params} 
+                            label="Spouse" 
+                            placeholder="Search members..."
+                            InputProps={{
+                                ...params.InputProps,
+                                startAdornment: (
+                                    <>
+                                        <InputAdornment position="start">
+                                            <Heart size={18} color={theme.palette.text.secondary} />
+                                        </InputAdornment>
+                                        {params.InputProps.startAdornment}
+                                    </>
+                                )
+                            }}
+                        />
+                    )}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+                <Autocomplete
+                    multiple
+                    options={allMembers}
+                    getOptionLabel={(option) => option.name || ""}
+                    value={allMembers.filter(m => formData.childrenIds?.includes(m.id))}
+                    onChange={(_, newValue) => setFormData({ ...formData, childrenIds: newValue.map(v => v.id) })}
+                    renderInput={(params) => (
+                        <TextField 
+                            {...params} 
+                            label="Children" 
+                            placeholder="Link children..."
+                            InputProps={{
+                                ...params.InputProps,
+                                startAdornment: (
+                                    <>
+                                        <InputAdornment position="start">
+                                            <Baby size={18} color={theme.palette.text.secondary} />
+                                        </InputAdornment>
+                                        {params.InputProps.startAdornment}
+                                    </>
+                                )
+                            }}
+                        />
+                    )}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
             </Grid>
 
           </Grid>
