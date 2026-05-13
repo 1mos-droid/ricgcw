@@ -50,7 +50,7 @@ export const uploadToHuggingFace = async (file, path) => {
       },
     });
 
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}`;
+    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}?download=true`;
   } catch (error) {
     console.error('Hugging Face Upload Error:', error.response?.data || error.message);
     const detail = error.response?.data?.error || error.message;
