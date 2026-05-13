@@ -36,7 +36,7 @@ import {
 import { useWorkspace } from '../context/WorkspaceContext';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { uploadToHuggingFace } from '../utils/huggingFaceApi';
+import { uploadToAppwrite } from '../utils/appwriteApi';
 
 const Gallery = () => {
   const theme = useTheme();
@@ -94,11 +94,7 @@ const Gallery = () => {
 
     setUploading(true);
     try {
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${newImageFile.name}`;
-      const path = `gallery/${fileName}`;
-      
-      const imageUrl = await uploadToHuggingFace(newImageFile, path);
+      const imageUrl = await uploadToAppwrite(newImageFile);
       
       const imageData = {
         title: newImageTitle,
@@ -110,7 +106,7 @@ const Gallery = () => {
       const docRef = await addDoc(collection(db, "gallery"), imageData);
       setImages([{ id: docRef.id, ...imageData }, ...images]);
       
-      showNotification("Image uploaded to Hugging Face successfully!", "success");
+      showNotification("Image uploaded successfully!", "success");
       handleCloseUpload();
     } catch (err) {
       showNotification(err.message, "error");
@@ -260,7 +256,6 @@ const Gallery = () => {
                     component="img" 
                     src={img.url} 
                     alt={img.title}
-                    crossOrigin="anonymous"
                     sx={{ 
                       width: '100%', 
                       height: 250, 
