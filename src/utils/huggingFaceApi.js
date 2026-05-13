@@ -16,23 +16,28 @@ export const uploadToHuggingFace = async (file, path) => {
 
   // Ensure path doesn't start with a slash
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  const url = `https://huggingface.co/api/datasets/${HF_REPO_ID}/upload/${cleanPath}`;
+
+  // New Commit API endpoint
+  const url = `https://huggingface.co/api/datasets/${HF_REPO_ID}/commit/main`;
 
   try {
-    const response = await axios.post(url, file, {
+    // We need to convert the file to base64 for the commit API if using JSON
+    // or use FormData for binary uploads to the commit endpoint.
+    // The most reliable way for browser-based large files is FormData.
+    const formData = new FormData();
+    formData.append('files', file, cleanPath);
+
+    const response = await axios.post(url, formData, {
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': file.type,
+        'Content-Type': 'multipart/form-data',
       },
     });
 
-    // Hugging Face returns information about the commit.
-    // The public URL for a file in a dataset is usually:
-    // https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${path}
-    
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${path}`;
+    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}`;
   } catch (error) {
     console.error('Hugging Face Upload Error:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.error || 'Failed to upload to Hugging Face');
+    const detail = error.response?.data?.error || error.message;
+    throw new Error(`Upload failed: ${detail}`);
   }
 };
