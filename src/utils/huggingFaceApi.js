@@ -50,8 +50,8 @@ export const uploadToHuggingFace = async (file, path) => {
       },
     });
 
-    // Use the download endpoint which redirects to LFS and handles CORS better
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/download/main/${cleanPath}`;
+    // The CDN URL format is the most reliable for cross-origin image display
+    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}`;
   } catch (error) {
     console.error('Hugging Face Upload Error:', error.response?.data || error.message);
     const detail = error.response?.data?.error || error.message;
