@@ -57,7 +57,7 @@ A bespoke, high-performance digital headquarters for the **Redeemed Christian Ch
 ```bash
 git clone <repository_url>
 cd ricgcw
-npm install
+npm install --legacy-peer-deps
 npm run dev
 ```
 
