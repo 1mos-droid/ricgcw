@@ -14,9 +14,10 @@ export const uploadToHuggingFace = async (file, path) => {
     throw new Error(`Hugging Face configuration missing. Please check your GitHub Secrets or .env file.`);
   }
 
-  // Ensure path doesn't start with a slash
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  
+  // Use just the filename to avoid folder creation issues in simple commits
+  const fileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const cleanPath = `${Date.now()}_${fileName}`;
+
   // New Commit API endpoint
   const url = `https://huggingface.co/api/datasets/${HF_REPO_ID}/commit/main`;
 
@@ -42,7 +43,7 @@ export const uploadToHuggingFace = async (file, path) => {
         }
       ]
     };
-    
+
     const response = await axios.post(url, payload, {
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
@@ -50,11 +51,12 @@ export const uploadToHuggingFace = async (file, path) => {
       },
     });
 
-    // The CDN URL format is the most reliable for cross-origin image display
+    // Resolve URL format
     return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}`;
   } catch (error) {
     console.error('Hugging Face Upload Error:', error.response?.data || error.message);
     const detail = error.response?.data?.error || error.message;
     throw new Error(`Upload failed: ${detail}`);
   }
+};
 };

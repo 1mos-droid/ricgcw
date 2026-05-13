@@ -94,11 +94,7 @@ const Gallery = () => {
 
     setUploading(true);
     try {
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${newImageFile.name}`;
-      const path = `gallery/${fileName}`;
-      
-      const imageUrl = await uploadToHuggingFace(newImageFile, path);
+      const imageUrl = await uploadToHuggingFace(newImageFile);
       
       const imageData = {
         title: newImageTitle,
