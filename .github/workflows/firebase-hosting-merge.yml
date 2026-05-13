@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci --legacy-peer-deps && npm run build
+        env:
+          VITE_HF_TOKEN: ${{ secrets.VITE_HF_TOKEN }}
+          VITE_HF_REPO_ID: ${{ secrets.VITE_HF_REPO_ID }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
