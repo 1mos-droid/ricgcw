@@ -260,6 +260,7 @@ const Gallery = () => {
                     component="img" 
                     src={img.url} 
                     alt={img.title}
+                    crossOrigin="anonymous"
                     sx={{ 
                       width: '100%', 
                       height: 250, 
