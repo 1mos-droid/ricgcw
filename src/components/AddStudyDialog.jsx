@@ -21,6 +21,8 @@ import { X, BookOpen, Layers, Type, FileText } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
+import { useWorkspace } from '../context/WorkspaceContext';
+
 const AddStudyDialog = ({ open, onClose, onStudyAdded }) => {
   const theme = useTheme();
   const { currentDepartment, isDepartmentRestricted } = useWorkspace();

@@ -19,6 +19,8 @@ import { X, Upload, FileText, Music } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
+import { useWorkspace } from '../context/WorkspaceContext';
+
 const AddResourceDialog = ({ open, onClose, onResourceAdded }) => {
   const theme = useTheme();
   const { currentDepartment, isDepartmentRestricted } = useWorkspace();

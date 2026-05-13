@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
@@ -52,8 +52,6 @@ import {
   ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { useCallback } from 'react';
-
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
@@ -449,7 +447,8 @@ const Dashboard = () => {
   const { user } = useAuth();
   const workspaceContext = useWorkspace();
   const workspace = workspaceContext?.workspace || 'main';
-  const filterData = workspaceContext?.filterData || ((d) => d);
+  const defaultFilterData = useCallback((d) => d, []);
+  const filterData = workspaceContext?.filterData || defaultFilterData;
   const userRole = workspaceContext?.userRole || 'guest';
   
   const [data, setData] = useState({
@@ -583,7 +582,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, [checkUpcomingBirthdays]);
+  }, [checkUpcomingBirthdays, userRole]);
 
   const filteredData = useMemo(() => {
     return {

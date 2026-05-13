@@ -86,6 +86,7 @@ const SelfCheckIn = () => {
       }
     };
     fetchMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchParam, isAuthenticated, user]);
 
   const filteredMembers = useMemo(() => {
@@ -104,12 +105,16 @@ const SelfCheckIn = () => {
       
       const recordSnap = await getDoc(recordRef);
       
+      const isChild = String(member.department || '').toLowerCase().includes('child');
+      const pickupTag = isChild ? Math.random().toString(36).substring(2, 8).toUpperCase() : null;
+
       // Member object as stored in attendance records
       const memberObj = {
         id: member.id,
         name: member.name,
         branch: member.branch || '',
-        memberId: member.memberId || ''
+        memberId: member.memberId || '',
+        pickupTag: pickupTag || null
       };
 
       if (!recordSnap.exists()) {
@@ -169,9 +174,16 @@ const SelfCheckIn = () => {
                 <CheckCircle2 size={40} color="#fff" />
             </Avatar>
             <Typography variant="h4" fontWeight={900} gutterBottom>You're Checked In!</Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500, mb: typeof checkedIn === 'string' ? 3 : 0 }}>
                 Welcome to the service. We are glad to have you with us today!
             </Typography>
+            {typeof checkedIn === 'string' && (
+                <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 4, display: 'inline-block', border: `2px dashed ${theme.palette.success.main}` }}>
+                    <Typography variant="overline" color="success.main" fontWeight={900} sx={{ letterSpacing: 2 }}>CHILD PICKUP TAG</Typography>
+                    <Typography variant="h3" fontWeight={900} sx={{ letterSpacing: 4, fontFamily: 'monospace' }}>{checkedIn}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 700 }}>Present this tag to pick up your child after service.</Typography>
+                </Box>
+            )}
           </Box>
           <Button 
             variant="outlined" 

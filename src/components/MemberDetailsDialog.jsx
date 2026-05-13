@@ -165,6 +165,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
         status: member.status || 'active',
         branch: member.branch || '', 
         department: member.department || '', 
+        cellGroup: member.cellGroup || '',
         position: member.position || '',
         baptismDate: member.baptismDate || '',
         confirmationDate: member.confirmationDate || '',
@@ -269,6 +270,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
         status: member.status || 'active',
         branch: member.branch || '', 
         department: member.department || '', 
+        cellGroup: member.cellGroup || '',
         position: member.position || '',
         baptismDate: member.baptismDate || '',
         confirmationDate: member.confirmationDate || '',
@@ -774,6 +776,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         {[
                             { icon: <Building size={18}/>, label: 'BRANCH', value: member.branch },
                             { icon: <Users size={18}/>, label: 'DEPARTMENT', value: member.department },
+                            { icon: <Users size={18}/>, label: 'CELL/GROUP', value: member.cellGroup },
                             { icon: <Briefcase size={18}/>, label: 'POSITION', value: member.position }
                         ].map((item, idx) => (
                             <Grid size={{ xs: 12, sm: 6 }} key={idx}>

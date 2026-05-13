@@ -493,7 +493,7 @@ const Members = () => {
         }}
       >
         <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <TextField
               fullWidth
               placeholder="Search directory..."
@@ -507,6 +507,7 @@ const Members = () => {
                 ),
                 sx: { 
                     borderRadius: 4, 
+                    height: 56,
                     bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
                     transition: 'all 0.3s',
                     '&.Mui-focused': { boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}` }
@@ -521,7 +522,11 @@ const Members = () => {
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   displayEmpty
-                  sx={{ borderRadius: 4, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
+                  sx={{ 
+                    borderRadius: 4, 
+                    height: 56,
+                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) 
+                  }}
                 >
                   <MenuItem value="">All Branches</MenuItem>
                   <MenuItem value="Langma">Langma</MenuItem>
@@ -537,7 +542,11 @@ const Members = () => {
                 <Select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  sx={{ borderRadius: 4, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
+                  sx={{ 
+                    borderRadius: 4, 
+                    height: 56,
+                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) 
+                  }}
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -545,13 +554,18 @@ const Members = () => {
                 </Select>
              </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5 }}>
+          <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5 }}>
               <ToggleButtonGroup
                 value={viewMode}
                 exclusive
                 onChange={(e, v) => v && setViewMode(v)}
-                size="medium"
-                sx={{ bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5), borderRadius: 4, p: 0.5 }}
+                sx={{ 
+                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5), 
+                    borderRadius: 4, 
+                    p: 0.5,
+                    height: 56,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                }}
               >
                 <ToggleButton value="grid" sx={{ px: 2, border: 'none', borderRadius: '12px !important' }}><LayoutGrid size={18} /></ToggleButton>
                 <ToggleButton value="table" sx={{ px: 2, border: 'none', borderRadius: '12px !important' }}><TableIcon size={18} /></ToggleButton>
@@ -561,43 +575,69 @@ const Members = () => {
                 variant="outlined" 
                 startIcon={<Download size={18} />}
                 onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                sx={{ borderRadius: 4, px: 2, fontWeight: 800, borderWidth: 2, '&:hover': { borderWidth: 2 } }}
+                sx={{ 
+                    borderRadius: 4, 
+                    px: isMobile ? 2 : 3, 
+                    height: 56,
+                    fontWeight: 800, 
+                    borderWidth: 2, 
+                    borderColor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    '&:hover': { 
+                        borderWidth: 2, 
+                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        borderColor: theme.palette.primary.main
+                    } 
+                }}
               >
-                Export
+                {!isMobile && "Export"}
               </Button>
               <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
                   <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1.5, fontWeight: 600 }}><FileText size={18} /> Export as PDF</MenuItem>
                   <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1.5, fontWeight: 600 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
               </Menu>
 
-              <Tooltip title="Onboarding QR">
-                <IconButton 
-                  onClick={() => setRegistrationQrOpen(true)}
-                  sx={{ 
-                    bgcolor: alpha(theme.palette.secondary.main, 0.1), 
+              <Button 
+                onClick={() => setRegistrationQrOpen(true)}
+                startIcon={<QrCode size={20} />}
+                sx={{ 
+                    borderRadius: 4, 
+                    height: 56,
+                    px: isMobile ? 2 : 3,
+                    fontWeight: 800,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.08), 
                     color: theme.palette.secondary.main,
-                    borderRadius: 4,
-                    width: 56,
-                    height: 56
-                  }}
-                >
-                  <QrCode size={22} />
-                </IconButton>
-              </Tooltip>
+                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                    '&:hover': { 
+                        bgcolor: alpha(theme.palette.secondary.main, 0.15),
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 16px -4px ${alpha(theme.palette.secondary.main, 0.2)}`
+                    },
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+              >
+                {!isMobile && "Join QR"}
+              </Button>
 
-              <Tooltip title="Add New Member">
-                <Button 
-                    variant="contained" 
-                    onClick={() => setOpenAddMemberDialog(true)}
-                    sx={{ 
-                        borderRadius: 4, minWidth: 56, height: 56, fontWeight: 800,
-                        boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
-                        '&:hover': { boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}` }
-                    }}
-                >
-                    <UserPlus size={22} />
-                </Button>
-              </Tooltip>
+              <Button 
+                  variant="contained" 
+                  startIcon={<UserPlus size={22} />}
+                  onClick={() => setOpenAddMemberDialog(true)}
+                  sx={{ 
+                      borderRadius: 4, 
+                      height: 56, 
+                      px: isMobile ? 2 : 4,
+                      fontWeight: 800,
+                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      '&:hover': { 
+                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                          transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
+              >
+                  {!isMobile && "Add Member"}
+              </Button>
           </Grid>
         </Grid>
       </Paper>

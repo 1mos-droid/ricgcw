@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { Snackbar, Alert } from '@mui/material';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useAuth } from './AuthContext';
@@ -99,7 +99,7 @@ export const WorkspaceProvider = ({ children }) => {
     localStorage.setItem('activeWorkspace', id);
   };
 
-  const filterData = (data) => {
+  const filterData = useCallback((data) => {
     if (!data || !Array.isArray(data)) return [];
     
     // Use the latest branch info from the user object or mimic
@@ -124,7 +124,7 @@ export const WorkspaceProvider = ({ children }) => {
       if (workspace === 'kids') return department === "children's court";
       return true;
     });
-  };
+  }, [userBranch, workspace]);
 
   const canEdit = (itemBranch) => {
     const role = userRole;

@@ -60,7 +60,7 @@ const SCRIPTURES = [
 
 const BibleStudies = () => {
   const theme = useTheme();
-  const { showNotification, showConfirmation } = useWorkspace();
+  const { showNotification, showConfirmation, filterData } = useWorkspace();
   
   // --- STATE ---
   const [activeTab, setActiveTab] = useState(0);
@@ -77,34 +77,33 @@ const BibleStudies = () => {
     return SCRIPTURES[Math.floor(Math.random() * SCRIPTURES.length)];
   }, []);
 
-  // --- FETCH DATA ---
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [seriesSnapshot, resourcesSnapshot] = await Promise.all([
-        getDocs(collection(db, "bible-studies")),
-        getDocs(collection(db, "resources")),
-      ]);
-      
-      const seriesData = (seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
-        .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
-        
-      const resourcesData = (resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
-        .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
-      
-      setStudySeries(seriesData);
-      setResources(resourcesData);
-    } catch (err) {
-      console.error("Bible Studies Sync Error:", err);
-      showNotification("Failed to load content.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [seriesSnapshot, resourcesSnapshot] = await Promise.all([
+          getDocs(collection(db, "bible-studies")),
+          getDocs(collection(db, "resources")),
+        ]);
+        
+        const seriesData = (seriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
+          .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
+          
+        const resourcesData = (resourcesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [])
+          .sort((a, b) => safeParseDate(b.createdAt || 0) - safeParseDate(a.createdAt || 0));
+        
+        setStudySeries(seriesData);
+        setResources(resourcesData);
+      } catch (err) {
+        console.error("Bible Studies Sync Error:", err);
+        showNotification("Failed to load content.", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
-  }, []);
+  }, [showNotification]);
 
   const handleOpenResource = (res) => {
     if (!res.link) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -292,7 +292,7 @@ const AppLayout = ({ children }) => {
     }
   }, [isMobile]);
 
-  const filteredBottomNavItems = [
+  const filteredBottomNavItems = useMemo(() => [
     { text: 'Home', icon: <DashboardIcon />, path: '/' },
     ...(userRole === 'admin' || userRole === 'branch_admin' || userRole === 'developer' 
       ? [
@@ -306,7 +306,7 @@ const AppLayout = ({ children }) => {
     ),
     { text: 'Events', icon: <EventIcon />, path: '/events' },
     { text: 'More', icon: <MenuIcon />, path: '/settings' }, 
-  ];
+  ], [userRole]);
 
   // Handle Bottom Nav Change
   const [bottomNavValue, setBottomNavValue] = useState(location.pathname);

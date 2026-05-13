@@ -53,8 +53,8 @@ const LiveBible = () => {
         const bibleId = VERSION_MAP[selectedVersion] || VERSION_MAP.KJV;
         const data = await fetchBooks(bibleId);
         setBooks(data);
-        if (data.length > 0 && !selectedBookId) {
-          setSelectedBookId(data[0].id);
+        if (data.length > 0) {
+          setSelectedBookId(prev => prev || data[0].id);
         }
       } catch (error) {
         console.error("Error fetching books:", error);

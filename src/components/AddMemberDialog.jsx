@@ -146,6 +146,7 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           country: String(formData.country || "").trim() || null,
           dob: formData.dob || null,
           department: formData.department || null,
+          cellGroup: String(formData.cellGroup || "").trim() || null,
           position: formData.position || null,
           baptismDate: formData.baptismDate || null,
           confirmationDate: formData.confirmationDate || null,
