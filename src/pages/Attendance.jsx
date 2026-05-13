@@ -15,6 +15,7 @@ import {
   Avatar, 
   Divider, 
   useTheme, 
+  useMediaQuery,
   Chip,
   CircularProgress,
   Skeleton,
@@ -35,7 +36,8 @@ import {
   alpha,
   Tooltip,
   Container,
-  Paper
+  Paper,
+  Stack
 } from '@mui/material';
 import { 
   Calendar, 
@@ -64,6 +66,7 @@ import { safeParseDate } from '../utils/dateUtils';
 
 const Attendance = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { filterData, isBranchRestricted, userBranch, showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
@@ -400,79 +403,138 @@ const Attendance = () => {
           </Box>
       </Card>
 
+      {/* --- COMMAND BAR --- */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          borderRadius: 6, 
+          mb: 5, 
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+          bgcolor: alpha(theme.palette.background.paper, 0.8), 
+          backdropFilter: 'blur(20px)',
+          position: 'sticky',
+          top: 20,
+          zIndex: 10,
+          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
+        }}
+        className="no-print"
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Box sx={{ position: 'relative' }}>
+                <input 
+                    type="date" 
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    style={{ 
+                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`, 
+                        borderRadius: 16,
+                        padding: '0 16px',
+                        fontFamily: 'inherit', 
+                        fontWeight: 700,
+                        width: '100%',
+                        height: 56,
+                        fontSize: '0.9rem',
+                        backgroundColor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
+                        color: theme.palette.text.primary,
+                        outline: 'none'
+                    }}
+                />
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, md: 2 }}>
+            <FormControl fullWidth size="medium" disabled={isBranchRestricted}>
+                <Select 
+                    value={selectedBranch} 
+                    onChange={(e) => setSelectedBranch(e.target.value)} 
+                    displayEmpty
+                    sx={{ borderRadius: 4, height: 56, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
+                >
+                    <MenuItem value="">All Branches</MenuItem>
+                    <MenuItem value="Langma">Langma</MenuItem>
+                    <MenuItem value="Mallam">Mallam</MenuItem>
+                    <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
+                    <MenuItem value="Diaspora">Diaspora</MenuItem>
+                </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 6, md: 7 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+              <Tooltip title="Self Check-in QR">
+                  <Button 
+                      onClick={() => setServiceQrOpen(true)}
+                      variant="outlined"
+                      sx={{ 
+                          borderRadius: 4,
+                          height: 56,
+                          px: isMobile ? 2 : 3,
+                          fontWeight: 800,
+                          borderColor: alpha(theme.palette.secondary.main, 0.2),
+                          color: theme.palette.secondary.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05), borderColor: theme.palette.secondary.main }
+                      }}
+                  >
+                      <QrCode size={22} />
+                      {!isMobile && <Typography variant="button" sx={{ ml: 1 }}>Check-in QR</Typography>}
+                  </Button>
+              </Tooltip>
+
+              <Button 
+                  onClick={() => setScannerMode(!scannerMode)} 
+                  variant={scannerMode ? "contained" : "outlined"}
+                  color={scannerMode ? "primary" : "inherit"}
+                  sx={{ 
+                      borderRadius: 4,
+                      height: 56,
+                      px: isMobile ? 2 : 3,
+                      fontWeight: 800,
+                      boxShadow: scannerMode ? `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` : 'none'
+                  }}
+              >
+                  {scannerMode ? <X size={22} /> : <Camera size={22} />}
+                  {!isMobile && <Typography variant="button" sx={{ ml: 1 }}>{scannerMode ? "Close Scanner" : "Scan QR"}</Typography>}
+              </Button>
+
+              <Button 
+                  variant="contained" 
+                  onClick={handleSave} 
+                  disabled={submitting || selectedAttendees.size === 0}
+                  startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <CheckCircle size={22} />}
+                  sx={{ 
+                      borderRadius: 4,
+                      height: 56,
+                      px: isMobile ? 2 : 4,
+                      fontWeight: 800,
+                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      '&:hover': { 
+                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                          transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
+              >
+                  {!isMobile && `Submit Record (${selectedAttendees.size})`}
+                  {isMobile && selectedAttendees.size}
+              </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* --- CONTENT GRID --- */}
       <Grid container spacing={4} className="no-print">
         
         {/* --- LEFT COL: MARK ATTENDANCE --- */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 5, overflow: 'hidden', boxShadow: theme.shadows[4] }}>
-            {/* Toolbar */}
-            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-                <Grid container spacing={2} alignItems="center">
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Typography variant="h6" fontWeight={800} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CheckCircle size={20} color={theme.palette.success.main} /> New Record
-                        </Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                        <Tooltip title="Self Check-in QR">
-                            <IconButton 
-                                onClick={() => setServiceQrOpen(true)}
-                                sx={{ 
-                                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
-                                    color: theme.palette.secondary.main,
-                                    borderRadius: 3,
-                                    width: 44,
-                                    height: 44
-                                }}
-                            >
-                                <QrCode size={20} />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Scan Member QR">
-                            <IconButton 
-                                onClick={() => setScannerMode(!scannerMode)} 
-                                color={scannerMode ? "primary" : "default"}
-                                sx={{ 
-                                    bgcolor: scannerMode ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.action.hover, 0.5),
-                                    borderRadius: 3,
-                                    width: 44,
-                                    height: 44
-                                }}
-                            >
-                                {scannerMode ? <X size={20} /> : <Camera size={20} />}
-                            </IconButton>
-                        </Tooltip>
-                        <input 
-                            type="date" 
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            style={{ 
-                                border: `1px solid ${theme.palette.divider}`, 
-                                borderRadius: 12,
-                                padding: '8px 12px',
-                                fontFamily: 'inherit', 
-                                fontWeight: 600,
-                                flex: 1
-                            }}
-                        />
-                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={isBranchRestricted}>
-                            <Select 
-                                value={selectedBranch} 
-                                onChange={(e) => setSelectedBranch(e.target.value)} 
-                                displayEmpty
-                                sx={{ borderRadius: 3 }}
-                            >
-                                <MenuItem value="">All Branches</MenuItem>
-                                <MenuItem value="Langma">Langma</MenuItem>
-                                <MenuItem value="Mallam">Mallam</MenuItem>
-                                <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                                <MenuItem value="Diaspora">Diaspora</MenuItem>
-                            </Select>
-
-                        </FormControl>
-                    </Grid>
-                </Grid>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', boxShadow: theme.shadows[4], border: `1px solid ${theme.palette.divider}` }}>
+            {/* Header / Title */}
+            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5), display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main, width: 44, height: 44, borderRadius: 3 }}>
+                    <Users size={22} />
+                </Avatar>
+                <Box>
+                    <Typography variant="h6" fontWeight={800}>Attendance Registry</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700}>Mark present members for today's service</Typography>
+                </Box>
             </Box>
 
             {/* --- QR SCANNER COMPONENT --- */}
@@ -483,42 +545,48 @@ const Attendance = () => {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        sx={{ px: 3, pt: 2, overflow: 'hidden' }}
+                        sx={{ px: 3, pt: 3, pb: 2, overflow: 'hidden', bgcolor: alpha(theme.palette.primary.main, 0.02) }}
                     >
                         <Box id="reader" sx={{ 
                             borderRadius: 4, 
                             overflow: 'hidden', 
-                            border: `1px solid ${theme.palette.divider}`,
+                            border: `2px solid ${theme.palette.primary.main}`,
+                            boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.2)}`,
                             '& #reader__dashboard_section_csr button': {
                                 bgcolor: theme.palette.primary.main,
                                 color: '#fff',
                                 border: 'none',
-                                borderRadius: 1,
-                                padding: '8px 16px',
-                                fontWeight: 700,
+                                borderRadius: 1.5,
+                                padding: '10px 20px',
+                                fontWeight: 800,
                                 cursor: 'pointer',
-                                marginTop: '10px'
+                                marginTop: '10px',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1
                             }
                         }} />
-                        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1, mb: 2, fontWeight: 700, color: 'text.secondary' }}>
-                            Position the member's QR code within the frame to check in.
+                        <Typography variant="body2" sx={{ display: 'block', textAlign: 'center', mt: 2, fontWeight: 700, color: theme.palette.primary.main }}>
+                            READY TO SCAN • ALIGN QR CODE IN FRAME
                         </Typography>
-                        <Divider />
+                        <Divider sx={{ mt: 3 }} />
                     </Box>
                 )}
             </AnimatePresence>
 
             {/* Member List */}
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 3, py: 3, maxHeight: '600px', minHeight: '400px' }}>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 3, py: 4, maxHeight: '700px', minHeight: '400px' }}>
               {loading ? (
-                 Array.from(new Array(5)).map((_, index) => (
-                   <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                     <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-                     <Skeleton variant="text" width="60%" />
+                 Array.from(new Array(6)).map((_, index) => (
+                   <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                     <Skeleton variant="circular" width={48} height={48} sx={{ mr: 2, borderRadius: 2 }} />
+                     <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" width="40%" height={24} />
+                        <Skeleton variant="text" width="60%" height={20} />
+                     </Box>
                    </Box>
                  ))
               ) : (
-                <Grid container spacing={1.5}>
+                <Grid container spacing={2}>
                   {filteredMembers.filter(m => {
                     if (!selectedBranch) return true;
                     return String(m.branch).toLowerCase() === String(selectedBranch).toLowerCase();
@@ -529,29 +597,39 @@ const Attendance = () => {
                         <ListItemButton 
                             onClick={() => handleToggle(member.id)}
                             sx={{ 
-                                borderRadius: 3, 
-                                border: isSelected ? `1px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`, 
-                                bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                                transition: 'all 0.2s',
-                                '&:hover': { bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.12) : theme.palette.action.hover }
+                                p: 2,
+                                borderRadius: 4, 
+                                border: isSelected ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+                                bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.05) : theme.palette.background.paper,
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                '&:hover': { 
+                                    transform: 'scale(1.02)',
+                                    bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : alpha(theme.palette.primary.main, 0.02),
+                                    borderColor: theme.palette.primary.main
+                                }
                             }}
                         >
                             <ListItemAvatar>
                             <Avatar sx={{ 
-                                bgcolor: isSelected ? theme.palette.primary.main : theme.palette.action.hover, 
+                                width: 44, height: 44,
+                                bgcolor: isSelected ? theme.palette.primary.main : alpha(theme.palette.action.hover, 0.1), 
                                 color: isSelected ? '#FFF' : theme.palette.text.secondary,
-                                fontWeight: 800,
-                                borderRadius: 2
+                                fontWeight: 900,
+                                borderRadius: 2.5,
+                                fontSize: '1.1rem'
                             }}>
                                 {(member.name || "?").charAt(0).toUpperCase()}
                             </Avatar>
                             </ListItemAvatar>
                             <ListItemText 
-                                primary={member.name} 
-                                primaryTypographyProps={{ fontWeight: isSelected ? 700 : 600 }}
-                                secondary={member.email} 
+                                primary={<Typography variant="subtitle2" fontWeight={800}>{member.name}</Typography>} 
+                                secondary={<Typography variant="caption" fontWeight={600} color="text.secondary">{member.memberId || 'NO ID'}</Typography>} 
                             />
-                            {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
+                            {isSelected && (
+                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                    <CheckCircle size={24} color={theme.palette.primary.main} />
+                                </motion.div>
+                            )}
                         </ListItemButton>
                       </Grid>
                     );
@@ -559,26 +637,26 @@ const Attendance = () => {
                 </Grid>
               )}
             </Box>
-
-            <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.default }}>
-              <Button variant="contained" fullWidth size="large" disabled={submitting || selectedAttendees.size === 0} onClick={handleSave} sx={{ borderRadius: 3, py: 1.5, fontWeight: 800, boxShadow: theme.shadows[4] }}>
-                {submitting ? <CircularProgress size={24} color="inherit"/> : `Submit (${selectedAttendees.size})`}
-              </Button>
-            </Box>
           </Card>
         </Grid>
 
         {/* --- RIGHT COL: HISTORY LOG --- */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: 5, maxHeight: '800px', overflow: 'hidden', boxShadow: theme.shadows[3] }}>
-            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, width: 40, height: 40, borderRadius: 3 }}><History size={20} /></Avatar>
-              <Typography variant="h6" fontWeight={800}>History</Typography>
+          <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: 6, maxHeight: '800px', overflow: 'hidden', boxShadow: theme.shadows[3], border: `1px solid ${theme.palette.divider}` }}>
+            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+              <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, width: 44, height: 44, borderRadius: 3 }}><History size={22} /></Avatar>
+              <Box>
+                <Typography variant="h6" fontWeight={800}>Service History</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={700}>Previous attendance records</Typography>
+              </Box>
             </Box>
 
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
               {filteredRecords.length === 0 ? (
-                <Box sx={{ textAlign: 'center', mt: 4, opacity: 0.5 }}><Typography>No history yet.</Typography></Box>
+                <Box sx={{ textAlign: 'center', py: 5, opacity: 0.5 }}>
+                    <History size={48} style={{ marginBottom: 16 }} />
+                    <Typography fontWeight={700}>No history found</Typography>
+                </Box>
               ) : (
                 filteredRecords.map((record, index) => (
                   <Box 
@@ -589,26 +667,31 @@ const Attendance = () => {
                       setEditedAttendees(attendeeIds);
                     }}
                     sx={{ 
-                      p: 2.5, mb: 2, borderRadius: 4, 
+                      p: 3, mb: 2, borderRadius: 5, 
                       bgcolor: theme.palette.background.paper, 
-                      border: `1px solid ${theme.palette.divider}`,
+                      border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                       cursor: 'pointer',
-                      '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[4], borderColor: theme.palette.primary.main },
-                      transition: 'all 0.2s',
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[8], borderColor: theme.palette.primary.main },
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       position: 'relative',
                       overflow: 'hidden'
                     }}
                   >
-                    <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, bgcolor: theme.palette.primary.main }} />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, bgcolor: theme.palette.primary.main, opacity: 0.8 }} />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
                             {safeFormat(record.date, 'MMM dd, yyyy')}
                         </Typography>
-                        <Chip label={record.branch || 'Main'} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, borderRadius: 1 }} />
+                        <Chip label={record.branch || 'Main'} size="small" sx={{ height: 20, fontSize: '0.6rem', fontWeight: 900, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main }} />
                     </Box>
-                    <Typography variant="h5" color="text.primary" fontWeight={800}>
-                        {record.attendees ? record.attendees.length : 0} <Typography component="span" variant="body2" color="text.secondary" fontWeight={600}>Present</Typography>
-                    </Typography>
+                    <Stack direction="row" alignItems="baseline" spacing={1}>
+                        <Typography variant="h4" color="text.primary" fontWeight={900} sx={{ letterSpacing: -1 }}>
+                            {record.attendees ? record.attendees.length : 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.7rem' }}>
+                            Attendees Present
+                        </Typography>
+                    </Stack>
                   </Box>
                 ))
               )}
@@ -624,28 +707,33 @@ const Attendance = () => {
         maxWidth="md"
         fullWidth
         className="no-print"
-        PaperProps={{ sx: { borderRadius: 5 } }}
+        PaperProps={{ sx: { borderRadius: 6, overflow: 'hidden' } }}
       >
         {selectedRecord && (
           <>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}`, p: 3 }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.palette.divider}`, p: 3, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
               <Box>
-                <Typography variant="h5" fontWeight={800}>
-                  {isEditing ? 'Edit Record' : 'Attendance Report'}
+                <Typography variant="h5" fontWeight={900} sx={{ letterSpacing: '-0.02em' }}>
+                  {isEditing ? 'Modify Registry' : 'Service Report'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                  {safeFormat(selectedRecord.date, 'EEEE, MMMM do')}
-                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                    <Calendar size={14} color={theme.palette.primary.main} />
+                    <Typography variant="body2" color="text.secondary" fontWeight={800}>
+                    {safeFormat(selectedRecord.date, 'EEEE, MMMM do, yyyy')}
+                    </Typography>
+                    <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'divider' }} />
+                    <Typography variant="caption" fontWeight={900} color="primary" sx={{ textTransform: 'uppercase' }}>{selectedRecord.branch || 'Global'}</Typography>
+                </Stack>
               </Box>
-              <IconButton onClick={() => setSelectedRecord(null)} sx={{ bgcolor: theme.palette.action.hover }}>
-                <X />
+              <IconButton onClick={() => setSelectedRecord(null)} sx={{ bgcolor: theme.palette.action.hover, borderRadius: 3 }}>
+                <X size={20} />
               </IconButton>
             </DialogTitle>
             
             <DialogContent sx={{ p: 0 }}>
               {isEditing ? (
-                <Box sx={{ p: 2, maxHeight: '60vh', overflowY: 'auto' }}>
-                  <Grid container spacing={1}>
+                <Box sx={{ p: 3, maxHeight: '60vh', overflowY: 'auto', bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+                  <Grid container spacing={2}>
                     {filteredMembers.filter(m => {
                       const recordBranch = selectedRecord?.branch || '';
                       if (!recordBranch) return true;
@@ -656,15 +744,22 @@ const Attendance = () => {
                         <Grid size={{ xs: 12, sm: 6 }} key={member.id}>
                             <ListItemButton 
                             onClick={() => handleToggleEdited(member.id)}
-                            sx={{ borderRadius: 3, mb: 1, border: isSelected ? `1px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`, bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent' }}
+                            sx={{ 
+                                p: 2,
+                                borderRadius: 4, 
+                                mb: 1, 
+                                border: isSelected ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+                                bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.05) : theme.palette.background.paper,
+                                transition: 'all 0.2s'
+                            }}
                             >
                             <ListItemAvatar>
-                                <Avatar sx={{ bgcolor: isSelected ? theme.palette.primary.main : theme.palette.grey[200], color: isSelected ? '#FFF' : theme.palette.text.secondary, borderRadius: 2 }}>
+                                <Avatar sx={{ width: 40, height: 40, bgcolor: isSelected ? theme.palette.primary.main : alpha(theme.palette.action.hover, 0.1), color: isSelected ? '#FFF' : theme.palette.text.secondary, borderRadius: 2, fontWeight: 800 }}>
                                 {(member.name || "?").charAt(0).toUpperCase()}
                                 </Avatar>
                             </ListItemAvatar>
-                            <ListItemText primary={member.name} primaryTypographyProps={{ fontWeight: 700 }} />
-                            {isSelected && <CheckCircle size={20} color={theme.palette.primary.main} />}
+                            <ListItemText primary={<Typography fontWeight={800}>{member.name}</Typography>} />
+                            {isSelected && <CheckCircle size={22} color={theme.palette.primary.main} />}
                             </ListItemButton>
                         </Grid>
                       );
@@ -673,48 +768,65 @@ const Attendance = () => {
                 </Box>
               ) : (
                 <>
-                  <Box sx={{ bgcolor: alpha(theme.palette.background.default, 0.5), p: 3 }}>
-                    <Grid container spacing={2}>
+                  <Box sx={{ bgcolor: theme.palette.background.default, p: 4, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                    <Grid container spacing={3}>
                       <Grid size={{ xs: 6 }}>
-                        <Card sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.dark, boxShadow: 'none', border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`, borderRadius: 4 }}>
-                          <Typography variant="h3" fontWeight={800} letterSpacing={-1}>{selectedRecord.attendees ? selectedRecord.attendees.length : 0}</Typography>
-                          <Typography variant="caption" fontWeight={800} letterSpacing={1}>PRESENT</Typography>
+                        <Card elevation={0} sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.08), color: theme.palette.success.main, border: `2px solid ${alpha(theme.palette.success.main, 0.1)}`, borderRadius: 5 }}>
+                          <Typography variant="h2" fontWeight={900} sx={{ letterSpacing: -2, mb: 0.5 }}>{selectedRecord.attendees ? selectedRecord.attendees.length : 0}</Typography>
+                          <Typography variant="caption" fontWeight={900} sx={{ letterSpacing: 1.5, opacity: 0.8 }}>PRESENT MEMBERS</Typography>
                         </Card>
                       </Grid>
                       <Grid size={{ xs: 6 }}>
-                        <Card sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.dark, boxShadow: 'none', border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`, borderRadius: 4 }}>
-                          <Typography variant="h3" fontWeight={800} letterSpacing={-1}>{getAbsentMembers(selectedRecord).length}</Typography>
-                          <Typography variant="caption" fontWeight={800} letterSpacing={1}>ABSENT</Typography>
+                        <Card elevation={0} sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.error.main, 0.08), color: theme.palette.error.main, border: `2px solid ${alpha(theme.palette.error.main, 0.1)}`, borderRadius: 5 }}>
+                          <Typography variant="h2" fontWeight={900} sx={{ letterSpacing: -2, mb: 0.5 }}>{getAbsentMembers(selectedRecord).length}</Typography>
+                          <Typography variant="caption" fontWeight={900} sx={{ letterSpacing: 1.5, opacity: 0.8 }}>ABSENT MEMBERS</Typography>
                         </Card>
                       </Grid>
                     </Grid>
                   </Box>
 
-                  <Tabs value={reportTab} onChange={(e, v) => setReportTab(v)} variant="fullWidth" sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tab label="Present List" sx={{ fontWeight: 700 }} />
-                    <Tab label="Absent List" sx={{ fontWeight: 700 }} />
+                  <Tabs 
+                    value={reportTab} 
+                    onChange={(e, v) => setReportTab(v)} 
+                    variant="fullWidth" 
+                    sx={{ 
+                        borderBottom: 1, 
+                        borderColor: 'divider',
+                        '& .MuiTabs-indicator': { height: 3 }
+                    }}
+                  >
+                    <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CheckCircle size={16} /> Present</Box>} sx={{ fontWeight: 800, minHeight: 60 }} />
+                    <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><X size={16} /> Absent</Box>} sx={{ fontWeight: 800, minHeight: 60 }} />
                   </Tabs>
 
-                  <Box sx={{ p: 0, maxHeight: '40vh', overflowY: 'auto' }}>
+                  <Box sx={{ p: 0, maxHeight: '45vh', overflowY: 'auto' }}>
                     {reportTab === 0 ? (
-                      <List>
+                      <List sx={{ px: 2 }}>
                         {selectedRecord.attendees && selectedRecord.attendees.filter(m => m).map((m, i) => (
-                          <ListItem key={m.id || i} divider>
+                          <ListItem key={m.id || i} sx={{ px: 2, py: 1.5, borderRadius: 3, mb: 0.5, '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.02) } }}>
                             <ListItemAvatar>
-                              <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.success.main, fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{(m.name || "?").charAt(0)}</Avatar>
+                              <Avatar sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main, fontSize: '0.9rem', fontWeight: 900, borderRadius: 2 }}>{(m.name || "?").charAt(0)}</Avatar>
                             </ListItemAvatar>
-                            <ListItemText primary={m.name || "Unknown"} primaryTypographyProps={{ fontWeight: 700 }} />
+                            <ListItemText 
+                                primary={<Typography fontWeight={800}>{m.name || "Unknown"}</Typography>} 
+                                secondary={<Typography variant="caption" fontWeight={700} color="text.secondary">{m.memberId || 'NO ID'}</Typography>}
+                            />
+                            <Chip label="PRESENT" size="small" sx={{ fontWeight: 900, fontSize: '0.6rem', bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main, borderRadius: 1 }} />
                           </ListItem>
                         ))}
                       </List>
                     ) : (
-                      <List>
+                      <List sx={{ px: 2 }}>
                         {getAbsentMembers(selectedRecord).filter(m => m).map((m, i) => (
-                          <ListItem key={m.id || i} divider>
+                          <ListItem key={m.id || i} sx={{ px: 2, py: 1.5, borderRadius: 3, mb: 0.5, '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.02) } }}>
                             <ListItemAvatar>
-                              <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.error.main, fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{(m.name || "?").charAt(0)}</Avatar>
+                              <Avatar sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.main, fontSize: '0.9rem', fontWeight: 900, borderRadius: 2 }}>{(m.name || "?").charAt(0)}</Avatar>
                             </ListItemAvatar>
-                            <ListItemText primary={m.name || "Unknown"} primaryTypographyProps={{ fontWeight: 700 }} />
+                            <ListItemText 
+                                primary={<Typography fontWeight={800}>{m.name || "Unknown"}</Typography>} 
+                                secondary={<Typography variant="caption" fontWeight={700} color="text.secondary">{m.memberId || 'NO ID'}</Typography>}
+                            />
+                            <Chip label="ABSENT" size="small" sx={{ fontWeight: 900, fontSize: '0.6rem', bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.main, borderRadius: 1 }} />
                           </ListItem>
                         ))}
                       </List>
@@ -724,19 +836,19 @@ const Attendance = () => {
               )}
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.default }}>
+            <DialogActions sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.8), backdropFilter: 'blur(10px)', gap: 1.5 }}>
               {isEditing ? (
                 <>
-                  <Button onClick={() => setIsEditing(false)} sx={{ fontWeight: 700 }}>Cancel</Button>
-                  <Button variant="contained" onClick={handleUpdate} disabled={submitting} sx={{ borderRadius: 2, fontWeight: 700 }}>
-                    {submitting ? <CircularProgress size={20} /> : 'Save Changes'}
+                  <Button onClick={() => setIsEditing(false)} sx={{ fontWeight: 800, borderRadius: 2.5, px: 3 }}>Cancel</Button>
+                  <Button variant="contained" onClick={handleUpdate} disabled={submitting} sx={{ borderRadius: 2.5, fontWeight: 900, px: 4, boxShadow: theme.shadows[4] }}>
+                    {submitting ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button color="error" startIcon={<Trash2 size={18}/>} onClick={handleDelete} sx={{ mr: 'auto', fontWeight: 700 }}>Delete</Button>
-                  <Button variant="outlined" startIcon={<Edit size={18}/>} onClick={() => setIsEditing(true)} sx={{ borderRadius: 2, fontWeight: 700 }}>Edit</Button>
-                  <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint} sx={{ borderRadius: 2, fontWeight: 700 }}>Print</Button>
+                  <Button color="error" startIcon={<Trash2 size={18}/>} onClick={handleDelete} sx={{ mr: 'auto', fontWeight: 800, borderRadius: 2.5 }}>Delete</Button>
+                  <Button variant="outlined" startIcon={<Edit size={18}/>} onClick={() => setIsEditing(true)} sx={{ borderRadius: 2.5, fontWeight: 800, px: 3, borderWidth: 2, '&:hover': { borderWidth: 2 } }}>Edit</Button>
+                  <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint} sx={{ borderRadius: 2.5, fontWeight: 900, px: 3, boxShadow: theme.shadows[4] }}>Print Report</Button>
                 </>
               )}
             </DialogActions>

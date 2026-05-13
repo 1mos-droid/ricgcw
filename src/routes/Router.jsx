@@ -24,6 +24,7 @@ const Developer = lazy(() => import('../pages/Developer'));
 const Maintenance = lazy(() => import('../pages/Maintenance'));
 const SelfCheckIn = lazy(() => import('../pages/SelfCheckIn'));
 const Join = lazy(() => import('../pages/Join'));
+const Gallery = lazy(() => import('../pages/Gallery'));
 
 // --- ANIMATION CONFIGURATION ---
 const pageVariants = {
@@ -108,6 +109,7 @@ const AppRouter = () => {
         <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
         <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
         <Route path="/live-bible" element={<RequireAuth><MotionWrap><LiveBible /></MotionWrap></RequireAuth>} />
+        <Route path="/gallery" element={<RequireAuth><MotionWrap><Gallery /></MotionWrap></RequireAuth>} />
         <Route path="/settings" element={<RequireAuth><MotionWrap><Settings /></MotionWrap></RequireAuth>} />
         <Route path="/help" element={<RequireAuth><MotionWrap><Help /></MotionWrap></RequireAuth>} />
 

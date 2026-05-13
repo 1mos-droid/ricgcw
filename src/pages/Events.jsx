@@ -34,13 +34,17 @@ import {
   Video, 
   Wifi,
   Globe,
-  Sparkles
+  Sparkles,
+  Upload,
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import EditEventDialog from '../components/EditEventDialog';
 
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
+import { uploadToHuggingFace } from '../utils/huggingFaceApi';
 
 const Events = () => {
   const theme = useTheme();
@@ -51,6 +55,7 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [flierFile, setFlierFile] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -109,6 +114,17 @@ const Events = () => {
     }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showNotification("Please select an image file for the flier.", "warning");
+        return;
+      }
+      setFlierFile(file);
+    }
+  };
+
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.date || !formData.time) {
@@ -118,15 +134,24 @@ const Events = () => {
 
     setSubmitting(true);
     try {
+      let flierUrl = null;
+      if (flierFile) {
+        const timestamp = Date.now();
+        const fileName = `flier_${timestamp}_${flierFile.name}`;
+        flierUrl = await uploadToHuggingFace(flierFile, `fliers/${fileName}`);
+      }
+
       await addDoc(collection(db, "events"), {
         ...formData,
         date: new Date(formData.date).toISOString(), 
         location: formData.location || (formData.isOnline ? 'Zoom / Online' : (isBranchRestricted ? `${userBranch} Sanctuary` : 'Main Auditorium')),
         branch: isBranchRestricted ? userBranch : 'Main', 
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        flierUrl
       });
       
       setFormData({ name: '', date: '', time: '', location: isBranchRestricted ? `${userBranch} Sanctuary` : '', isOnline: false });
+      setFlierFile(null);
       await fetchEvents();
       showNotification("Event scheduled successfully!", "success");
     } catch (error) {
@@ -306,6 +331,58 @@ const Events = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
+                  <Box>
+                    <input
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="event-flier-upload"
+                      type="file"
+                      onChange={handleFileChange}
+                    />
+                    <label htmlFor="event-flier-upload">
+                      <Box sx={{
+                        border: `2px dashed ${flierFile ? theme.palette.primary.main : theme.palette.divider}`,
+                        borderRadius: 3,
+                        p: flierFile ? 1.5 : 2,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        bgcolor: flierFile ? alpha(theme.palette.primary.main, 0.05) : alpha(theme.palette.action.hover, 0.3),
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          borderColor: theme.palette.primary.main,
+                          bgcolor: alpha(theme.palette.primary.main, 0.05)
+                        }
+                      }}>
+                        {flierFile ? (
+                          <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
+                            <Box sx={{ position: 'relative' }}>
+                                <Avatar 
+                                    src={URL.createObjectURL(flierFile)} 
+                                    variant="rounded" 
+                                    sx={{ width: 40, height: 40, borderRadius: 1.5 }} 
+                                />
+                                <IconButton 
+                                    size="small" 
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFlierFile(null); }}
+                                    sx={{ position: 'absolute', top: -10, right: -10, bgcolor: theme.palette.error.main, color: '#fff', '&:hover': { bgcolor: theme.palette.error.dark }, width: 20, height: 20 }}
+                                >
+                                    <X size={12} />
+                                </IconButton>
+                            </Box>
+                            <Typography variant="caption" fontWeight={700} noWrap sx={{ maxWidth: 150 }}>{flierFile.name}</Typography>
+                          </Stack>
+                        ) : (
+                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                            <Upload size={18} color={theme.palette.text.secondary} />
+                            <Typography variant="caption" fontWeight={700} color="text.secondary">Upload Event Flier</Typography>
+                          </Stack>
+                        )}
+                      </Box>
+                    </label>
+                  </Box>
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
                   <Button 
                     type="submit" 
                     variant="contained" 
@@ -368,9 +445,14 @@ const Events = () => {
                     alignItems: 'center', 
                     justifyContent: 'center',
                     p: { xs: 2, sm: 3 },
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    background: event.flierUrl 
+                      ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${event.flierUrl})` 
+                      : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                     color: '#fff',
                     minWidth: { sm: 130 },
+                    minHeight: { sm: 130 },
                     gap: { xs: 2, sm: 0 },
                     textAlign: 'center'
                   }}>
@@ -385,9 +467,19 @@ const Events = () => {
                   {/* Details */}
                   <Box sx={{ flexGrow: 1, p: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.text.primary, lineHeight: 1.2 }}>
-                        {event.name}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        {event.flierUrl && (
+                            <Avatar 
+                                src={event.flierUrl} 
+                                variant="rounded" 
+                                sx={{ width: 40, height: 40, borderRadius: 1.5, cursor: 'pointer' }}
+                                onClick={() => window.open(event.flierUrl, '_blank')}
+                            />
+                        )}
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.text.primary, lineHeight: 1.2 }}>
+                            {event.name}
+                        </Typography>
+                      </Box>
                       {event.isOnline && (
                         <Chip 
                           icon={<Wifi size={12} />} 

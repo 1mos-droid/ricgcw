@@ -211,27 +211,82 @@ const BibleStudies = () => {
         <BookOpen size={300} style={{ position: 'absolute', right: -50, bottom: -100, opacity: 0.05, transform: 'rotate(-15deg)' }} />
       </Box>
 
+      {/* --- COMMAND BAR --- */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          borderRadius: 6, 
+          mb: 5, 
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+          bgcolor: alpha(theme.palette.background.paper, 0.8), 
+          backdropFilter: 'blur(20px)',
+          position: 'sticky',
+          top: 20,
+          zIndex: 10,
+          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Tabs 
+              value={activeTab} 
+              onChange={(e, v) => setActiveTab(v)} 
+              sx={{ 
+                minHeight: 56,
+                '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+              }}
+            >
+              <Tab label="Study Modules" sx={{ fontWeight: 800, minHeight: 56, fontSize: '0.9rem' }} />
+              <Tab label="Resource Vault" sx={{ fontWeight: 800, minHeight: 56, fontSize: '0.9rem' }} />
+            </Tabs>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              placeholder={activeTab === 0 ? "Search modules..." : "Search resources..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, height: 56, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) } }}
+              InputProps={{
+                startAdornment: (
+                    <InputAdornment position="start">
+                        <Search size={18} strokeWidth={2.5} color={theme.palette.primary.main} />
+                    </InputAdornment>
+                )
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button 
+              variant="contained" 
+              startIcon={<Plus size={22} />}
+              onClick={() => activeTab === 0 ? setIsAddStudyOpen(true) : setIsAddResourceOpen(true)}
+              sx={{ 
+                height: 56, 
+                borderRadius: 4, 
+                px: 3, 
+                fontWeight: 800,
+                whiteSpace: 'nowrap',
+                boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
+                '&:hover': { 
+                    boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }}
+            >
+              {activeTab === 0 ? 'Add Module' : 'Add Resource'}
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* --- MAIN LAYOUT --- */}
       <Grid container spacing={4}>
         
         {/* --- LEFT: MODULES & CONTENT --- */}
         <Grid size={{ xs: 12, lg: 8 }}>
-            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, flexGrow: 1 }}>
-                    <Tab label="Study Modules" sx={{ fontWeight: 700 }} />
-                    <Tab label="Resource Vault" sx={{ fontWeight: 700 }} />
-                </Tabs>
-                <Button 
-                  variant="contained" 
-                  size="small" 
-                  startIcon={<Plus size={16} />} 
-                  onClick={() => activeTab === 0 ? setIsAddStudyOpen(true) : setIsAddResourceOpen(true)}
-                  sx={{ borderRadius: 2, ml: 2, display: { xs: 'none', sm: 'flex' } }}
-                >
-                    {activeTab === 0 ? 'Add Module' : 'Add Resource'}
-                </Button>
-            </Box>
-
             <AnimatePresence mode="wait">
                 {activeTab === 0 ? (
                     <motion.div key="modules" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
@@ -239,13 +294,17 @@ const BibleStudies = () => {
                             <Grid container spacing={3}>
                                 {filteredStudies.length === 0 ? (
                                     <Grid size={{ xs: 12 }}>
-                                        <Typography color="text.secondary" align="center">No study modules found.</Typography>
+                                        <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 8 }}>
+                                            <BookOpen size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />
+                                            <Typography variant="h6" fontWeight={800} color="text.secondary">No study modules found</Typography>
+                                            <Typography variant="body2" color="text.secondary">Try a different search term or check back later.</Typography>
+                                        </Box>
                                     </Grid>
                                 ) : filteredStudies.map((study) => (
                                     <Grid size={{ xs: 12, sm: 6 }} key={study.id}>
                                         <Card sx={{ 
                                             p: 3, height: '100%', borderRadius: 5, border: `1px solid ${theme.palette.divider}`,
-                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                                             '&:hover': { transform: 'translateY(-8px)', boxShadow: theme.shadows[8], borderColor: theme.palette.primary.main }
                                         }}>
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -253,23 +312,23 @@ const BibleStudies = () => {
                                                     <Bookmark size={20} />
                                                 </Avatar>
                                                 <Stack direction="row" spacing={1} alignItems="center">
-                                                    {study.active && <Chip label="Live" color="success" size="small" sx={{ fontWeight: 800, height: 20 }} />}
-                                                    <IconButton size="small" color="error" onClick={() => handleDeleteStudy(study.id, study.title)}>
+                                                    {study.active && <Chip label="Live" color="success" size="small" sx={{ fontWeight: 900, height: 20, fontSize: '0.65rem', textTransform: 'uppercase' }} />}
+                                                    <IconButton size="small" color="error" onClick={() => handleDeleteStudy(study.id, study.title)} sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}>
                                                         <Trash2 size={16} />
                                                     </IconButton>
                                                 </Stack>
                                             </Box>
-                                            <Typography variant="h6" fontWeight={800} gutterBottom>{study.title}</Typography>
-                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>{study.subtitle}</Typography>
+                                            <Typography variant="h6" fontWeight={800} gutterBottom sx={{ letterSpacing: '-0.01em' }}>{study.title}</Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>{study.subtitle}</Typography>
                                             
                                             <Box sx={{ mt: 'auto' }}>
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                    <Typography variant="caption" fontWeight={700} color="text.secondary">{study.sessions} Sessions</Typography>
-                                                    <Typography variant="caption" fontWeight={800} color="primary">{study.progress || 0}%</Typography>
+                                                    <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{study.sessions} Sessions</Typography>
+                                                    <Typography variant="caption" fontWeight={900} color="primary">{study.progress || 0}% Complete</Typography>
                                                 </Box>
-                                                <LinearProgress variant="determinate" value={study.progress || 0} sx={{ height: 6, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1) }} />
-                                                <Button fullWidth variant="outlined" endIcon={<ChevronRight size={16} />} sx={{ mt: 3, borderRadius: 3, fontWeight: 700 }} onClick={() => setSelectedStudy(study)}>
-                                                    View Details
+                                                <LinearProgress variant="determinate" value={study.progress || 0} sx={{ height: 8, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.1) }} />
+                                                <Button fullWidth variant="outlined" endIcon={<ChevronRight size={16} />} sx={{ mt: 3, borderRadius: 3, fontWeight: 800, borderWidth: 2, '&:hover': { borderWidth: 2 } }} onClick={() => setSelectedStudy(study)}>
+                                                    Open Study Module
                                                 </Button>
                                             </Box>
                                         </Card>
@@ -280,29 +339,41 @@ const BibleStudies = () => {
                     </motion.div>
                 ) : (
                     <motion.div key="resources" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                        <TextField 
-                            fullWidth placeholder="Search resources..." sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: alpha(theme.palette.background.paper, 0.5) } }}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            InputProps={{ startAdornment: <InputAdornment position="start"><Search size={18} /></InputAdornment> }}
-                        />
-                        <Card sx={{ borderRadius: 4, overflow: 'hidden', border: `1px solid ${theme.palette.divider}` }}>
+                        <Card sx={{ borderRadius: 6, overflow: 'hidden', border: `1px solid ${theme.palette.divider}`, boxShadow: theme.shadows[2] }}>
                             {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
                                 <List disablePadding>
                                     {filteredResources.length === 0 ? (
-                                        <ListItem><ListItemText primary="No resources found." /></ListItem>
+                                        <Box sx={{ py: 10, textAlign: 'center' }}>
+                                            <FileText size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />
+                                            <Typography variant="h6" fontWeight={800} color="text.secondary">No resources found</Typography>
+                                        </Box>
                                     ) : filteredResources.map((res, i) => (
                                         <React.Fragment key={res.id}>
-                                            <ListItemButton sx={{ py: 2, px: 3 }} onClick={() => handleOpenResource(res)}>
+                                            <ListItemButton sx={{ py: 2.5, px: 3, '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => handleOpenResource(res)}>
                                                 <ListItemAvatar>
-                                                    <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, borderRadius: 2 }}>
-                                                        {res.type === 'audio' ? <Headphones size={20} /> : <FileText size={20} />}
+                                                    <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, borderRadius: 2.5, width: 48, height: 48 }}>
+                                                        {res.type === 'audio' ? <Headphones size={22} /> : <FileText size={22} />}
                                                     </Avatar>
                                                 </ListItemAvatar>
-                                                <ListItemText primary={<Typography fontWeight={700}>{res.title}</Typography>} secondary={`${res.type?.toUpperCase()} • ${res.size || 'N/A'}`} />
-                                                <Stack direction="row" spacing={1}>
-                                                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleOpenResource(res); }}><Download size={18} /></IconButton>
-                                                    <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteResource(res.id, res.title); }}><Trash2 size={18} /></IconButton>
+                                                <ListItemText 
+                                                    primary={<Typography variant="subtitle1" fontWeight={800}>{res.title}</Typography>} 
+                                                    secondary={
+                                                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                            {res.type?.toUpperCase()} • {res.size || 'N/A'}
+                                                        </Typography>
+                                                    } 
+                                                />
+                                                <Stack direction="row" spacing={1.5}>
+                                                    <Tooltip title="Download">
+                                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleOpenResource(res); }} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main }}>
+                                                            <Download size={18} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Remove">
+                                                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteResource(res.id, res.title); }} sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}>
+                                                            <Trash2 size={18} />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                 </Stack>
                                             </ListItemButton>
                                             {i < filteredResources.length - 1 && <Divider />}

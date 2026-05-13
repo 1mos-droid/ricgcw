@@ -12,7 +12,8 @@ import {
   CircularProgress,
   Stack,
   alpha,
-  useTheme
+  useTheme,
+  MenuItem
 } from '@mui/material';
 import { X, Upload, FileText, Music } from 'lucide-react';
 

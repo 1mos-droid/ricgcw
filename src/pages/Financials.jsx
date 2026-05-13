@@ -36,7 +36,8 @@ import {
   InputAdornment,
   CircularProgress,
   useMediaQuery,
-  Menu
+  Menu,
+  Container
 } from '@mui/material';
 import { 
   TrendingUp, 
@@ -334,54 +335,124 @@ const Financials = () => {
   };
 
   return (
-    <Box sx={{ pb: 6 }}>
+    <Box sx={{ pb: 8 }}>
       
-      {/* --- HEADER --- */}
-      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: 5 }}>
-        <Box>
-            <Typography variant="overline" color="primary" fontWeight={800} letterSpacing={1.5}>FINANCIAL OVERVIEW</Typography>
-            <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>Treasury</Typography>
-        </Box>
-        <Stack direction="row" spacing={2}>
-            {!isBranchRestricted && (
-                <Paper elevation={0} sx={{ p: 0.5, borderRadius: 6, border: `1px solid ${theme.palette.divider}`, display: { xs: 'none', md: 'flex' } }}>
+      {/* --- HERO HEADER --- */}
+      <Box sx={{ 
+        py: { xs: 4, md: 5 }, 
+        mb: 4, 
+        textAlign: 'center',
+        position: 'relative',
+        borderRadius: 8,
+        background: theme.palette.mode === 'light' 
+           ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
+           : alpha(theme.palette.primary.main, 0.05),
+      }}>
+        <Container maxWidth="md">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+                <Chip icon={<TrendingUp size={14} />} label="Financial Registry" size="small" sx={{ mb: 2, fontWeight: 800, bgcolor: theme.palette.background.paper }} />
+                <Typography variant="h2" sx={{ fontWeight: 900, letterSpacing: '-0.03em', mb: 1 }}>
+                    Church Treasury
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
+                    Track contributions, manage expenses, and generate detailed financial reports for the ministry.
+                </Typography>
+            </motion.div>
+        </Container>
+      </Box>
+
+      {/* --- COMMAND BAR (Sticky) --- */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          borderRadius: 6, 
+          mb: 5, 
+          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+          bgcolor: alpha(theme.palette.background.paper, 0.8), 
+          backdropFilter: 'blur(20px)',
+          position: 'sticky',
+          top: 20,
+          zIndex: 10,
+          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 6 }}>
+             {!isBranchRestricted && (
+                <Stack direction="row" spacing={1} sx={{ overflowX: 'auto', pb: { xs: 1, md: 0 } }}>
                     {['All', 'Mallam', 'Langma', 'Kokrobitey', 'Diaspora'].map((loc) => (
                         <Button 
                             key={loc}
-                            size="small"
-                            variant={selectedLocation === (loc === 'All' ? null : loc) ? 'contained' : 'text'}
+                            variant={selectedLocation === (loc === 'All' ? null : loc) ? 'contained' : 'outlined'}
                             onClick={() => setSelectedLocation(loc === 'All' ? null : loc)}
-                            sx={{ borderRadius: 4, px: 2, fontWeight: 700, minWidth: 'auto' }}
+                            sx={{ 
+                                borderRadius: 4, 
+                                height: 56,
+                                px: 3, 
+                                fontWeight: 800, 
+                                minWidth: 'auto',
+                                whiteSpace: 'nowrap',
+                                borderWidth: 2,
+                                borderColor: selectedLocation === (loc === 'All' ? null : loc) ? 'primary.main' : alpha(theme.palette.divider, 0.1),
+                                '&:hover': { borderWidth: 2 }
+                            }}
                         >
                             {loc}
                         </Button>
                     ))}
-                </Paper>
-            )}
-            
-            <Button 
+                </Stack>
+             )}
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+              <Button 
                 variant="outlined" 
-                startIcon={<Download size={18} />} 
+                startIcon={<Download size={20} />}
                 onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                sx={{ borderRadius: 6, px: 3, fontWeight: 700 }}
-            >
-                Export
-            </Button>
-            <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1 }}><FileText size={18} /> Export as PDF</MenuItem>
-                <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
-            </Menu>
+                sx={{ 
+                    borderRadius: 4, 
+                    px: isMobile ? 2 : 3, 
+                    height: 56,
+                    fontWeight: 800, 
+                    borderWidth: 2, 
+                    borderColor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    '&:hover': { 
+                        borderWidth: 2, 
+                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        borderColor: theme.palette.primary.main
+                    } 
+                }}
+              >
+                {!isMobile && "Export Report"}
+              </Button>
+              <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+                  <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1.5, fontWeight: 600 }}><FileText size={18} /> Export as PDF</MenuItem>
+                  <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1.5, fontWeight: 600 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
+              </Menu>
 
-            <Button 
-                variant="contained" 
-                startIcon={<Plus size={18} />} 
-                onClick={() => { resetForm(); setOpenLogDialog(true); }}
-                sx={{ borderRadius: 6, px: 3, fontWeight: 800, boxShadow: `0 8px 20px -4px ${alpha(theme.palette.primary.main, 0.4)}` }}
-            >
-                New Entry
-            </Button>
-        </Stack>
-      </Stack>
+              <Button 
+                  variant="contained" 
+                  startIcon={<Plus size={22} />}
+                  onClick={() => { resetForm(); setOpenLogDialog(true); }}
+                  sx={{ 
+                      borderRadius: 4, 
+                      height: 56, 
+                      px: isMobile ? 2 : 4,
+                      fontWeight: 800,
+                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      '&:hover': { 
+                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
+                          transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
+              >
+                  {!isMobile && "Log Transaction"}
+              </Button>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* --- STATS GRID --- */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

@@ -14,7 +14,8 @@ import {
   alpha,
   useTheme,
   Grid,
-  Slider
+  Slider,
+  MenuItem
 } from '@mui/material';
 import { X, BookOpen, Layers, Type, FileText } from 'lucide-react';
 

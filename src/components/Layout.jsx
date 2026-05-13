@@ -44,6 +44,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import EventIcon from '@mui/icons-material/Event';
 import DescriptionIcon from '@mui/icons-material/Description';
 import SupervisedUserCircleIcon from '@mui/icons-material/SupervisedUserCircle';
+import ImageIcon from '@mui/icons-material/Image';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -163,6 +164,7 @@ const NAV_ITEMS = [
   { text: 'Events', icon: <EventIcon />, path: '/events' },
   { text: 'Bible Studies', icon: <MenuBookIcon />, path: '/bible-studies' },
   { text: 'Live Bible', icon: <MenuBookIcon />, path: '/live-bible' },
+  { text: 'Gallery', icon: <ImageIcon />, path: '/gallery' },
   { text: 'Reports', icon: <DescriptionIcon />, path: '/reports' },
   { text: 'Graph', icon: <BarChartIcon />, path: '/graph' },
   { text: 'Users', icon: <SupervisedUserCircleIcon />, path: '/user-management' },
@@ -267,7 +269,7 @@ const AppLayout = ({ children }) => {
     }
 
     // Regular Members (Guests) - Restricted to Personal View and Content
-    const memberAllowedPaths = ['/', '/events', '/bible-studies', '/live-bible', '/settings', '/help'];
+    const memberAllowedPaths = ['/', '/events', '/bible-studies', '/live-bible', '/gallery', '/settings', '/help'];
     return memberAllowedPaths.includes(item.path);
   });
 
