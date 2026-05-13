@@ -16,21 +16,37 @@ export const uploadToHuggingFace = async (file, path) => {
 
   // Ensure path doesn't start with a slash
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-
+  
   // New Commit API endpoint
   const url = `https://huggingface.co/api/datasets/${HF_REPO_ID}/commit/main`;
 
   try {
-    // We need to convert the file to base64 for the commit API if using JSON
-    // or use FormData for binary uploads to the commit endpoint.
-    // The most reliable way for browser-based large files is FormData.
-    const formData = new FormData();
-    formData.append('files', file, cleanPath);
-    formData.append('summary', `Upload ${file.name} via RICGCW CMS`);
+    // Convert file to Base64
+    const base64Content = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
-    const response = await axios.post(url, formData, {      headers: {
+    const payload = {
+      summary: `Upload ${file.name} via RICGCW CMS`,
+      operations: [
+        {
+          action: 'add',
+          path: cleanPath,
+          content: base64Content
+        }
+      ]
+    };
+    
+    const response = await axios.post(url, payload, {
+      headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/json',
       },
     });
 
