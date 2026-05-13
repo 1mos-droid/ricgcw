@@ -26,9 +26,9 @@ export const uploadToHuggingFace = async (file, path) => {
     // The most reliable way for browser-based large files is FormData.
     const formData = new FormData();
     formData.append('files', file, cleanPath);
+    formData.append('summary', `Upload ${file.name} via RICGCW CMS`);
 
-    const response = await axios.post(url, formData, {
-      headers: {
+    const response = await axios.post(url, formData, {      headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'multipart/form-data',
       },
