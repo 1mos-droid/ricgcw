@@ -50,8 +50,8 @@ export const uploadToHuggingFace = async (file) => {
       },
     });
 
-    // Resolve URL format using /blob/ with ?raw=true for better redirection handling
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/blob/main/${cleanPath}?raw=true`;
+    // Resolve URL format using /resolve/ as recommended for <img> tags
+    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}`;
   } catch (error) {
     console.error('Hugging Face Upload Error:', error.response?.data || error.message);
     const detail = error.response?.data?.error || error.message;

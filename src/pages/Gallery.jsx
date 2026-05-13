@@ -93,7 +93,11 @@ const Gallery = () => {
     }
 
     setUploading(true);
+    // 1. Create a local preview URL for instant UI feedback
+    const localPreviewUrl = URL.createObjectURL(newImageFile);
+    
     try {
+      // 2. Start the upload in the background
       const imageUrl = await uploadToHuggingFace(newImageFile);
       
       const imageData = {
@@ -103,10 +107,15 @@ const Gallery = () => {
         createdAt: new Date().toISOString(),
       };
       
+      // 3. Save to Firestore
       const docRef = await addDoc(collection(db, "gallery"), imageData);
-      setImages([{ id: docRef.id, ...imageData }, ...images]);
       
-      showNotification("Image uploaded to Hugging Face successfully!", "success");
+      // 4. Update local state using the localPreviewUrl for immediate display
+      // This bypasses the Hugging Face 404 race condition.
+      const newImageWithPreview = { id: docRef.id, ...imageData, url: localPreviewUrl };
+      setImages([newImageWithPreview, ...images]);
+      
+      showNotification("Image uploaded successfully!", "success");
       handleCloseUpload();
     } catch (err) {
       showNotification(err.message, "error");
