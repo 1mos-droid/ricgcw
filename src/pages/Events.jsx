@@ -453,17 +453,33 @@ const Events = () => {
                     alignItems: 'center', 
                     justifyContent: 'center',
                     p: { xs: 2, sm: 3 },
-                    background: event.flierUrl 
-                      ? `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${event.flierUrl})` 
-                      : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    position: 'relative',
+                    overflow: 'hidden',
                     color: '#fff',
                     minWidth: { sm: 130 },
                     minHeight: { sm: 130 },
                     gap: { xs: 2, sm: 0 },
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    zIndex: 1
                   }}>
+                    {event.flierUrl && (
+                        <Box 
+                            component="img"
+                            src={event.flierUrl}
+                            crossOrigin="anonymous"
+                            sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                opacity: 0.4,
+                                zIndex: -1
+                            }}
+                        />
+                    )}
                     <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
                       {format(eventDate, 'dd')}
                     </Typography>
