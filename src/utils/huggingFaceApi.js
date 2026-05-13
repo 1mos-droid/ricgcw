@@ -10,8 +10,12 @@ const HF_REPO_ID = import.meta.env.VITE_HF_REPO_ID;
  * @returns {Promise<string>} - The URL of the uploaded file.
  */
 export const uploadToHuggingFace = async (file, path) => {
+  // Debugging (Remove in production later)
+  console.log('HF_TOKEN defined:', !!HF_TOKEN);
+  console.log('HF_REPO_ID:', HF_REPO_ID);
+
   if (!HF_TOKEN || !HF_REPO_ID) {
-    throw new Error('Hugging Face token or Repo ID not configured in .env');
+    throw new Error(`Hugging Face configuration missing. Token: ${!!HF_TOKEN}, Repo: ${HF_REPO_ID}`);
   }
 
   const url = `https://huggingface.co/api/datasets/${HF_REPO_ID}/upload/${path}`;
