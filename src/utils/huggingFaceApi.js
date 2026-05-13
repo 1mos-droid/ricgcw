@@ -50,7 +50,8 @@ export const uploadToHuggingFace = async (file, path) => {
       },
     });
 
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/raw/main/${cleanPath}`;
+    // Use the download endpoint which redirects to LFS and handles CORS better
+    return `https://huggingface.co/datasets/${HF_REPO_ID}/download/main/${cleanPath}`;
   } catch (error) {
     console.error('Hugging Face Upload Error:', error.response?.data || error.message);
     const detail = error.response?.data?.error || error.message;
