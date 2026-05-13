@@ -80,18 +80,20 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
   const handleSubmit = async () => {
     if (validate()) {
       setSubmitting(true);
+      // 1. Local preview for instant feedback
+      const localFlierPreview = flierFile ? URL.createObjectURL(flierFile) : null;
+
       try {
         let flierUrl = formData.flierUrl;
         if (flierFile) {
-          const timestamp = Date.now();
-          const fileName = `flier_${timestamp}_${flierFile.name}`;
-          flierUrl = await uploadToHuggingFace(flierFile, `fliers/${fileName}`);
+          // The utility now handles unique filename and root path
+          flierUrl = await uploadToHuggingFace(flierFile);
         }
         
         const payload = {
           ...formData,
           date: new Date(formData.date).toISOString(),
-          flierUrl
+          flierUrl: localFlierPreview || flierUrl // Use local preview for immediate display
         };
         
         await onEditEvent(event.id, payload);
@@ -260,6 +262,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
                         <Avatar 
                           src={flierFile ? URL.createObjectURL(flierFile) : formData.flierUrl} 
                           variant="rounded" 
+                          imgProps={{ crossOrigin: 'anonymous' }}
                           sx={{ width: 40, height: 40, borderRadius: 1.5 }} 
                         />
                         <Box sx={{ textAlign: 'left' }}>
