@@ -1,60 +1,47 @@
-import axios from 'axios';
+import { commit } from "@huggingface/hub";
 
-const HF_TOKEN = import.meta.env.VITE_HF_TOKEN;
-const HF_REPO_ID = import.meta.env.VITE_HF_REPO_ID;
+const HF_TOKEN = import.meta.env.VITE_HF_TOKEN || import.meta.env.VITE_HF_WRITE_TOKEN;
+const HF_REPO_ID = import.meta.env.VITE_HF_REPO_ID || "1mos-droid/church-media";
 
 /**
- * Uploads a file to a Hugging Face Dataset repository.
+ * Uploads a file to a Hugging Face Dataset repository using the @huggingface/hub library.
  * @param {File} file - The file object to upload.
+ * @param {string} [filename] - Optional filename. If not provided, one will be generated.
  * @returns {Promise<string>} - The URL of the uploaded file.
  */
-export const uploadToHuggingFace = async (file) => {
-  if (!HF_TOKEN || !HF_REPO_ID) {
-    throw new Error(`Hugging Face configuration missing. Please check your GitHub Secrets or .env file.`);
+export async function uploadToHuggingFace(file, filename) {
+  if (!HF_TOKEN) {
+    throw new Error(`Hugging Face token missing. Please check your .env file.`);
   }
 
-  // Use just the filename to avoid folder creation issues in simple commits
-  const fileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-  const cleanPath = `${Date.now()}_${fileName}`;
-
-  // New Commit API endpoint
-  const url = `https://huggingface.co/api/datasets/${HF_REPO_ID}/commit/main`;
+  // Use provided filename or generate one based on timestamp and cleaned original name
+  const actualFilename = filename || `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
 
   try {
-    // Convert file to Base64
-    const base64Content = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64String = reader.result.split(',')[1];
-        resolve(base64String);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    const payload = {
-      summary: `Upload ${file.name} via RICGCW CMS`,
+    const result = await commit({
+      credentials: { accessToken: HF_TOKEN },
+      repo: {
+        type: "dataset",
+        name: HF_REPO_ID
+      },
+      title: `CMS Upload: Added ${actualFilename}`, // Acts as the Git commit message
       operations: [
         {
-          action: 'add',
-          path: cleanPath,
-          content: base64Content
+          operation: "addOrUpdate",
+          path: actualFilename, // Path in the repo
+          content: file
         }
       ]
-    };
-
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
     });
 
+    console.log("Success! File fully committed to Hugging Face:", result);
+
+    // Return the URL as expected by the application
     // Resolve URL format using /resolve/ with ?download=true to force LFS binary delivery
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${cleanPath}?download=true`;
+    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${actualFilename}?download=true`;
+
   } catch (error) {
-    console.error('Hugging Face Upload Error:', error.response?.data || error.message);
-    const detail = error.response?.data?.error || error.message;
-    throw new Error(`Upload failed: ${detail}`);
+    console.error("Hugging Face commit error:", error);
+    throw new Error(`Upload failed: ${error.message}`);
   }
-};
+}
