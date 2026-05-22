@@ -54,7 +54,7 @@ import {
   FileSpreadsheet,
   Edit2
 } from 'lucide-react';
-import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
+import { format } from 'date-fns';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
@@ -67,7 +67,7 @@ import * as XLSX from 'xlsx';
 
 // --- SUB-COMPONENTS ---
 
-const StatCard = ({ title, value, subValue, icon: Icon, color, delay }) => {
+const StatCard = ({ title, value, subValue, icon: Icon, color, delay }) => { // eslint-disable-line no-unused-vars
   const theme = useTheme();
   return (
     <motion.div
@@ -122,11 +122,10 @@ const StatCard = ({ title, value, subValue, icon: Icon, color, delay }) => {
 const Financials = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { filterData, showNotification, showConfirmation, workspace, userBranch, isBranchRestricted } = useWorkspace();
+  const { filterData, showNotification, showConfirmation, userBranch, isBranchRestricted } = useWorkspace();
   
   // --- STATE ---
   const [transactions, setTransactions] = useState([]);
-  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [openLogDialog, setOpenLogDialog] = useState(false);
@@ -147,12 +146,8 @@ const Financials = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [txSnapshot, memSnapshot] = await Promise.all([
-        getDocs(collection(db, "transactions")),
-        getDocs(collection(db, "members"))
-      ]);
+      const txSnapshot = await getDocs(collection(db, "transactions"));
       const txData = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const memData = memSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Sort transactions by date descending (newest first)
       const sortedTx = (txData || []).sort((a, b) => {
@@ -162,7 +157,6 @@ const Financials = () => {
       });
       
       setTransactions(sortedTx);
-      setMembers(memData || []);
     } catch (err) {
       console.error("Finance Sync Error:", err);
       showNotification("Failed to sync financial data.", "error");

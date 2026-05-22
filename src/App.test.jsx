@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render } from '@testing-library/react';
+import { describe, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import { WorkspaceProvider } from './context/WorkspaceContext';

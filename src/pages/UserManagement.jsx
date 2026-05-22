@@ -98,7 +98,7 @@ const UserManagement = () => {
           await deleteDoc(doc(db, "users", selectedUser.id));
           showNotification("Access revoked.");
           fetchUsers();
-        } catch (err) {
+        } catch {
           showNotification("Failed to revoke access.", "error");
         }
       }
@@ -118,7 +118,7 @@ const UserManagement = () => {
     if (!dateStr || dateStr === 'Never') return 'N/A';
     try {
       return format(new Date(dateStr), 'MMM dd, yyyy');
-    } catch (e) {
+    } catch {
       return 'Invalid Date';
     }
   };

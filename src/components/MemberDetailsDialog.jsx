@@ -32,7 +32,9 @@ import {
   Stack,
   CircularProgress,
   Autocomplete,
-  Paper
+  Paper,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import { 
   X, 
@@ -61,9 +63,12 @@ import {
   Waves,
   Cross,
   Heart,
-  Baby
+  Baby,
+  Calendar,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
-import { getDepartmentByAge } from '../utils/dateUtils';
+import { getDepartmentByAge, calculateAge } from '../utils/dateUtils';
 import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
@@ -87,11 +92,35 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   const [sendingEmail, setSendingEmail] = useState(false);
   const [allMembers, setAllMembers] = useState([]);
   
+  const getCurrentMonthString = () => {
+    const d = new Date();
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  };
+
+  const getMonthsList = useCallback(() => {
+    const months = [];
+    const currentYear = new Date().getFullYear();
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    for (let i = 0; i < 12; i++) {
+      months.push(`${monthNames[i]} ${currentYear}`);
+    }
+    return months;
+  }, []);
+
   const [newContribution, setNewContribution] = useState({ 
     type: 'tithe', 
     amount: '', 
     description: '', 
-    date: new Date().toISOString().split('T')[0] 
+    date: new Date().toISOString().split('T')[0],
+    month: getCurrentMonthString(),
+    tithePaid: true
   });
   
   const [formData, setFormData] = useState({
@@ -207,18 +236,51 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
   }, [member, open, tabValue, fetchContributions]);
 
   const handleAddContribution = async () => {
-    if (!newContribution.amount || !member) return;
-    const payload = {
-      ...newContribution,
-      memberId: String(member.id), 
-      memberName: member.name,
-      amount: Number(newContribution.amount),
-      isPrivateMemberRecord: true 
-    };
+    if (newContribution.type === 'tithe') {
+      if (!newContribution.tithePaid) return;
+      if (isMonthAlreadyPaid) {
+        showNotification(`Tithe for ${newContribution.month} has already been logged.`, "warning");
+        return;
+      }
+    } else {
+      if (!newContribution.amount) return;
+    }
+    if (!member) return;
+
+    let payload;
+    if (newContribution.type === 'tithe') {
+      payload = {
+        type: 'tithe',
+        amount: 0,
+        month: newContribution.month,
+        description: `Tithe paid for ${newContribution.month}`,
+        date: newContribution.date || new Date().toISOString().split('T')[0],
+        memberId: String(member.id), 
+        memberName: member.name,
+        isPrivateMemberRecord: true 
+      };
+    } else {
+      payload = {
+        type: newContribution.type,
+        amount: Number(newContribution.amount),
+        description: newContribution.description || '',
+        date: newContribution.date || new Date().toISOString().split('T')[0],
+        memberId: String(member.id), 
+        memberName: member.name,
+        isPrivateMemberRecord: true 
+      };
+    }
 
     try {
       await addDoc(collection(db, "transactions"), payload);
-      setNewContribution({ type: 'tithe', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+      setNewContribution({ 
+        type: 'tithe', 
+        amount: '', 
+        description: '', 
+        date: new Date().toISOString().split('T')[0],
+        month: getCurrentMonthString(),
+        tithePaid: true
+      });
       fetchContributions();
       showNotification("Contribution recorded successfully", "success");
     } catch (err) {
@@ -351,13 +413,14 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
     }
   };
 
-  const totalTithe = contributions
-    .filter(c => c.type === 'tithe')
-    .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
     
   const totalWelfare = contributions
     .filter(c => c.type === 'welfare')
     .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+  const isMonthAlreadyPaid = contributions.some(
+    c => c.type === 'tithe' && c.month === newContribution.month
+  );
 
   const downloadQRCode = () => {
     const svg = document.getElementById("MemberQRCode");
@@ -612,6 +675,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                   </FormControl>
                 </Grid>
 
+
                 {/* --- SECTION 3: SPIRITUAL MILESTONES --- */}
                 <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
                     <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>3. SPIRITUAL MILESTONES</Typography>
@@ -746,7 +810,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                             { icon: <Phone size={18}/>, label: 'PHONE', value: member.phone },
                             { icon: <MapPin size={18}/>, label: 'ADDRESS', value: member.address },
                             { icon: <Globe size={18}/>, label: 'COUNTRY', value: member.country },
-                            { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: formatDOB(member.dob) }
+                            { icon: <Cake size={18}/>, label: 'DATE OF BIRTH', value: member.dob ? `${formatDOB(member.dob)} (Age: ${calculateAge(member.dob)})` : null }
                         ].map((item, idx) => (
                             <Grid size={{ xs: 12, sm: idx === 2 ? 12 : 6 }} key={idx}>
                                 <Box sx={{ 
@@ -768,6 +832,8 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         ))}
                     </Grid>
                 </Box>
+
+
 
                 {/* --- SECTION 2: CHURCH LIFE --- */}
                 <Box>
@@ -936,7 +1002,9 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}><DollarSign size={18}/></Avatar>
                     <Box>
                       <Typography variant="caption" color="text.secondary" fontWeight={700}>TOTAL TITHE</Typography>
-                      <Typography variant="h6" fontWeight={800}>GHC{totalTithe.toLocaleString()}</Typography>
+                      <Typography variant="h6" fontWeight={800}>
+                        {contributions.filter(c => c.type === 'tithe').length} {contributions.filter(c => c.type === 'tithe').length === 1 ? 'Month' : 'Months'} Paid
+                      </Typography>
                     </Box>
                   </Stack>
                 </Card>
@@ -958,44 +1026,154 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Plus size={16} /> LOG CONTRIBUTION
                 </Typography>
-                <Card variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <Card 
+                  variant="outlined" 
+                  sx={{ 
+                    p: 3, 
+                    borderRadius: 3, 
+                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                    backdropFilter: 'blur(12px)',
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.primary.main, 0.04)}`,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      boxShadow: `0 12px 40px 0 ${alpha(theme.palette.primary.main, 0.08)}`,
+                      borderColor: alpha(theme.palette.primary.main, 0.3),
+                    }
+                  }}
+                >
                 <Grid container spacing={2} alignItems="center">
-                    <Grid size={{ xs: 12, sm: 4 }}>
+                    <Grid size={{ xs: 12, sm: newContribution.type === 'tithe' ? 3 : 4 }}>
                     <TextField
                         select
                         fullWidth
                         label="Type"
                         value={newContribution.type}
-                        onChange={(e) => setNewContribution({ ...newContribution, type: e.target.value })}
+                        onChange={(e) => setNewContribution({ 
+                          ...newContribution, 
+                          type: e.target.value,
+                          ...(e.target.value === 'tithe' ? {
+                            amount: '',
+                            month: getCurrentMonthString(),
+                            tithePaid: true
+                          } : {
+                            amount: '',
+                            description: ''
+                          })
+                        })}
                         SelectProps={{ native: true }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                     >
                         <option value="tithe">Tithe</option>
                         <option value="welfare">Welfare</option>
                         <option value="other">Other</option>
                     </TextField>
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                    <TextField
-                        fullWidth
-                        label="Amount"
-                        type="number"
-                        value={newContribution.amount}
-                        onChange={(e) => setNewContribution({ ...newContribution, amount: e.target.value })}
-                        InputProps={{ startAdornment: <InputAdornment position="start">GHC</InputAdornment> }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
-                    />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 4 }}>
+                    
+                    {newContribution.type === 'tithe' ? (
+                      <>
+                        <Grid size={{ xs: 12, sm: 3 }}>
+                          <TextField
+                              select
+                              fullWidth
+                              label="Month"
+                              value={newContribution.month}
+                              onChange={(e) => setNewContribution({ ...newContribution, month: e.target.value })}
+                              SelectProps={{ native: true }}
+                              InputProps={{
+                                  startAdornment: (
+                                      <InputAdornment position="start" sx={{ color: theme.palette.text.secondary }}>
+                                          <Calendar size={18} />
+                                      </InputAdornment>
+                                  )
+                              }}
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                          >
+                              {getMonthsList().map((m) => (
+                                  <option key={m} value={m}>{m}</option>
+                              ))}
+                          </TextField>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 3 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FormControlLabel
+                              control={
+                                  <Checkbox 
+                                      checked={!isMonthAlreadyPaid && !!newContribution.tithePaid}
+                                      onChange={(e) => setNewContribution({ ...newContribution, tithePaid: e.target.checked })}
+                                      disabled={isMonthAlreadyPaid}
+                                      color="primary"
+                                  />
+                              }
+                              label="Tithe Paid"
+                              sx={{ '& .MuiFormControlLabel-label': { fontWeight: 700, fontSize: '0.9rem', color: isMonthAlreadyPaid ? theme.palette.text.disabled : theme.palette.text.primary } }}
+                          />
+                        </Grid>
+                      </>
+                    ) : (
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                          fullWidth
+                          label="Amount"
+                          type="number"
+                          value={newContribution.amount}
+                          onChange={(e) => setNewContribution({ ...newContribution, amount: e.target.value })}
+                          InputProps={{ startAdornment: <InputAdornment position="start">GHC</InputAdornment> }}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                      />
+                      </Grid>
+                    )}
+                    
+                    <Grid size={{ xs: 12, sm: newContribution.type === 'tithe' ? 3 : 4 }}>
                     <Button 
                         variant="contained" 
                         fullWidth 
                         onClick={handleAddContribution}
-                        sx={{ height: 56, borderRadius: 1, fontWeight: 700, boxShadow: 'none' }}
+                        disabled={newContribution.type === 'tithe' && (isMonthAlreadyPaid || !newContribution.tithePaid)}
+                        sx={{ height: 56, borderRadius: 1.5, fontWeight: 700, boxShadow: 'none' }}
                     >
                         Save Entry
                     </Button>
                     </Grid>
+
+                    {newContribution.type === 'tithe' && (
+                      <Grid size={{ xs: 12 }} sx={{ mt: 1 }}>
+                        {isMonthAlreadyPaid ? (
+                          <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1.5, 
+                              p: 2, 
+                              borderRadius: 2, 
+                              bgcolor: alpha(theme.palette.warning.main, 0.08), 
+                              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                              color: theme.palette.warning.main,
+                              animation: 'fadeIn 0.3s ease-out'
+                          }}>
+                              <AlertCircle size={20} />
+                              <Typography variant="body2" fontWeight={700}>
+                                  Tithe for {newContribution.month} has already been logged. You cannot log duplicates.
+                              </Typography>
+                          </Box>
+                        ) : (
+                          <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1.5, 
+                              p: 2, 
+                              borderRadius: 2, 
+                              bgcolor: alpha(theme.palette.success.main, 0.08), 
+                              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                              color: theme.palette.success.main,
+                              animation: 'fadeIn 0.3s ease-out'
+                          }}>
+                              <CheckCircle2 size={20} />
+                              <Typography variant="body2" fontWeight={700}>
+                                  No tithing records found for {newContribution.month}. Ready to log payment.
+                              </Typography>
+                          </Box>
+                        )}
+                      </Grid>
+                    )}
                 </Grid>
                 </Card>
             </Box>
@@ -1014,7 +1192,11 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                     <React.Fragment key={c.id || index}>
                         <ListItem sx={{ py: 2, px: 3, '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
                             <ListItemText
-                                primary={<Typography variant="body2" fontWeight={700}>GHC{Number(c.amount).toLocaleString()}</Typography>}
+                                primary={
+                                    <Typography variant="body2" fontWeight={700}>
+                                        {c.type === 'tithe' ? `Paid for ${c.month || 'Month'}` : `GHC${Number(c.amount).toLocaleString()}`}
+                                    </Typography>
+                                }
                                 secondary={format(safeParseDate(c.date || Date.now()), 'MMM dd, yyyy • p')}
                                 secondaryTypographyProps={{ fontWeight: 500 }}
                             />
@@ -1122,16 +1304,16 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
       </DialogContent>
 
       {/* --- ACTIONS --- */}
-      <DialogActions sx={{ px: 4, pb: 4, pt: 2, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+      <DialogActions sx={{ px: { xs: 2, sm: 4 }, pb: { xs: 3, sm: 4 }, pt: 2, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
         {isEditing ? (
-            <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="flex-end">
-                <Button onClick={handleCancelEdit} sx={{ borderRadius: 1.5, fontWeight: 700, color: theme.palette.text.secondary }}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 1.5, fontWeight: 800, px: 4, boxShadow: theme.shadows[4] }}>Update Member</Button>
+            <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={2} sx={{ width: '100%' }} justifyContent="flex-end">
+                <Button onClick={handleCancelEdit} sx={{ borderRadius: 1.5, fontWeight: 700, color: theme.palette.text.secondary, width: { xs: '100%', sm: 'auto' } }}>Cancel</Button>
+                <Button onClick={handleSave} variant="contained" sx={{ borderRadius: 1.5, fontWeight: 800, px: 4, boxShadow: theme.shadows[4], width: { xs: '100%', sm: 'auto' } }}>Update Member</Button>
             </Stack>
         ) : (
-            <Stack direction="row" spacing={2} sx={{ width: '100%' }} justifyContent="space-between">
-                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 1.5 }}>Revoke</Button>
-                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 1.5, px: 4, boxShadow: theme.shadows[4] }}>Modify Profile</Button>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: '100%' }} justifyContent="space-between">
+                <Button onClick={() => onDelete(member.id)} color="error" startIcon={<Trash2 size={18} />} sx={{ fontWeight: 700, borderRadius: 1.5, width: { xs: '100%', sm: 'auto' } }}>Revoke</Button>
+                <Button onClick={() => setIsEditing(true)} variant="contained" startIcon={<Edit size={18} />} sx={{ fontWeight: 800, borderRadius: 1.5, px: 4, boxShadow: theme.shadows[4], width: { xs: '100%', sm: 'auto' } }}>Modify Profile</Button>
             </Stack>
         )}
       </DialogActions>

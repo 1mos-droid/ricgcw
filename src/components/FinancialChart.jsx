@@ -7,10 +7,7 @@ import {
   Legend, 
   ResponsiveContainer,
   AreaChart,
-  Area,
-  defs,
-  linearGradient,
-  stop
+  Area
 } from 'recharts';
 import { 
   Card, 

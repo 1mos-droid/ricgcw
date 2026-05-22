@@ -61,7 +61,7 @@ import DigitalGivingDialog from '../components/DigitalGivingDialog';
 
 // --- SUB-COMPONENTS ---
 
-const ModernStatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => {
+const ModernStatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => { // eslint-disable-line no-unused-vars
   const theme = useTheme();
   
   return (
@@ -137,7 +137,7 @@ const ModernStatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) =
   );
 };
 
-const MemberDashboardView = ({ user, transactions, events, loading }) => {
+const MemberDashboardView = ({ user, transactions, events }) => {
   const theme = useTheme();
   const { showNotification } = useWorkspace();
   const [prayerRequest, setPrayerRequest] = useState('');
@@ -884,7 +884,7 @@ const Dashboard = () => {
             value={`GHC ${totalContributions.toLocaleString()}`} 
             icon={DollarSign} 
             color={theme.palette.success.main} 
-            trend="On target"
+            trend={`${Math.round(budgetProgress)}% of target`}
             delay={0.2}
           />
         </Grid>

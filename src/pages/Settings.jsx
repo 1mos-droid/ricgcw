@@ -44,7 +44,7 @@ const Settings = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { showNotification, showConfirmation } = useWorkspace();
+  const { showNotification } = useWorkspace();
   
   // --- STATE ---
   const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');

@@ -78,7 +78,7 @@ const MONTHS = [
 
 const Reports = () => {
   const theme = useTheme();
-  const { filterData, showNotification, isBranchRestricted, userBranch } = useWorkspace();
+  const { showNotification, isBranchRestricted, userBranch } = useWorkspace();
   
   // --- STATE ---
   const [stats, setStats] = useState({ members: 0, funds: 0, events: 0 });
@@ -403,13 +403,6 @@ const Reports = () => {
       }
 
     doc.save(`${fileName}.pdf`);
-  };
-
-  const generateExcel = (data, type, fileName) => {
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-    XLSX.writeFile(workbook, `${fileName}.xlsx`);
   };
 
   const containerVariants = {

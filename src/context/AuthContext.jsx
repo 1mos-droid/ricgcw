@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }) => {
         if (sessionUser) {
           await syncUserProfile(sessionUser);
         }
-      } catch (err) {
+      } catch {
         // No active session
         if (localStorage.getItem('isAuthenticated') === 'true') {
           clearLocal();
@@ -226,7 +226,9 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       await account.deleteSession('current');
-    } catch (_) {}
+    } catch {
+      // Ignore session deletion errors if session doesn't exist
+    }
     clearLocal();
     setUser(null);
   }, []);

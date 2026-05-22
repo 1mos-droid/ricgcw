@@ -1,5 +1,5 @@
 import { db } from './firebase.js';
-import { doc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 const initialUsers = [
   { email: 'admin@ricgcw.com', role: 'admin', branch: 'all' },

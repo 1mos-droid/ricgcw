@@ -5,18 +5,15 @@ import { Download, Smartphone, Computer, Share } from 'lucide-react';
 export default function InstallButton() {
   const [showDialog, setShowDialog] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
-  const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       // Don't call e.preventDefault() if you want the browser's native prompt to show
       // e.preventDefault();
       setInstallPrompt(e);
-      setIsInstallable(true);
     };
 
     const handleAppInstalled = () => {
-      setIsInstallable(false);
       setInstallPrompt(null);
     };
 
@@ -39,7 +36,6 @@ export default function InstallButton() {
     const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') {
       setInstallPrompt(null);
-      setIsInstallable(false);
     }
   };
 

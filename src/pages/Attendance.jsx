@@ -15,7 +15,6 @@ import {
   Avatar, 
   Divider, 
   useTheme, 
-  useMediaQuery,
   Chip,
   CircularProgress,
   Skeleton,
@@ -61,12 +60,11 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
-import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { safeParseDate } from '../utils/dateUtils';
 
 const Attendance = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { filterData, isBranchRestricted, userBranch, showNotification, showConfirmation } = useWorkspace();
   
   // --- STATE ---
@@ -100,7 +98,7 @@ const Attendance = () => {
   const safeFormat = (dateVal, formatStr) => {
     try {
       return format(safeParseDate(dateVal), formatStr);
-    } catch (e) {
+    } catch {
       return "Invalid Date";
     }
   };
@@ -181,7 +179,7 @@ const Attendance = () => {
             } else {
               showNotification("Unknown Member Code", "warning");
             }
-          }, (err) => {
+          }, () => {
             // Scanning...
           });
         } catch (e) {
@@ -443,7 +441,7 @@ const Attendance = () => {
                 />
             </Box>
           </Grid>
-          <Grid size={{ xs: 6, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <FormControl fullWidth size="medium" disabled={isBranchRestricted}>
                 <Select 
                     value={selectedBranch} 
@@ -459,7 +457,7 @@ const Attendance = () => {
                 </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 6, md: 7 }} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 12, md: 7 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
               <Tooltip title="Self Check-in QR">
                   <Button 
                       onClick={() => setServiceQrOpen(true)}
@@ -467,15 +465,16 @@ const Attendance = () => {
                       sx={{ 
                           borderRadius: 4,
                           height: 56,
-                          px: isMobile ? 2 : 3,
+                          px: { xs: 2, lg: 3 },
                           fontWeight: 800,
                           borderColor: alpha(theme.palette.secondary.main, 0.2),
                           color: theme.palette.secondary.main,
-                          '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05), borderColor: theme.palette.secondary.main }
+                          '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05), borderColor: theme.palette.secondary.main },
+                          flexGrow: { xs: 1, sm: 0 }
                       }}
                   >
                       <QrCode size={22} />
-                      {!isMobile && <Typography variant="button" sx={{ ml: 1 }}>Check-in QR</Typography>}
+                      <Typography variant="button" sx={{ display: { xs: 'none', lg: 'inline' }, ml: 1 }}>Check-in QR</Typography>
                   </Button>
               </Tooltip>
 
@@ -486,13 +485,14 @@ const Attendance = () => {
                   sx={{ 
                       borderRadius: 4,
                       height: 56,
-                      px: isMobile ? 2 : 3,
+                      px: { xs: 2, lg: 3 },
                       fontWeight: 800,
-                      boxShadow: scannerMode ? `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` : 'none'
+                      boxShadow: scannerMode ? `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` : 'none',
+                      flexGrow: { xs: 1, sm: 0 }
                   }}
               >
                   {scannerMode ? <X size={22} /> : <Camera size={22} />}
-                  {!isMobile && <Typography variant="button" sx={{ ml: 1 }}>{scannerMode ? "Close Scanner" : "Scan QR"}</Typography>}
+                  <Typography variant="button" sx={{ display: { xs: 'none', lg: 'inline' }, ml: 1 }}>{scannerMode ? "Close Scanner" : "Scan QR"}</Typography>
               </Button>
 
               <Button 
@@ -503,18 +503,23 @@ const Attendance = () => {
                   sx={{ 
                       borderRadius: 4,
                       height: 56,
-                      px: isMobile ? 2 : 4,
+                      px: { xs: 2, lg: 4 },
                       fontWeight: 800,
                       boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
                       '&:hover': { 
                           boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
                           transform: 'translateY(-2px)'
                       },
-                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      flexGrow: { xs: 2, sm: 0 }
                   }}
               >
-                  {!isMobile && `Submit Record (${selectedAttendees.size})`}
-                  {isMobile && selectedAttendees.size}
+                  <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>
+                      Submit Record ({selectedAttendees.size})
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', lg: 'none' } }}>
+                      Submit ({selectedAttendees.size})
+                  </Box>
               </Button>
           </Grid>
         </Grid>
@@ -836,20 +841,20 @@ const Attendance = () => {
               )}
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.8), backdropFilter: 'blur(10px)', gap: 1.5 }}>
+            <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2.5, sm: 3 }, pt: 2, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.8), backdropFilter: 'blur(10px)' }}>
               {isEditing ? (
-                <>
-                  <Button onClick={() => setIsEditing(false)} sx={{ fontWeight: 800, borderRadius: 2.5, px: 3 }}>Cancel</Button>
-                  <Button variant="contained" onClick={handleUpdate} disabled={submitting} sx={{ borderRadius: 2.5, fontWeight: 900, px: 4, boxShadow: theme.shadows[4] }}>
+                <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1.5} sx={{ width: '100%' }} justifyContent="flex-end">
+                  <Button onClick={() => setIsEditing(false)} sx={{ fontWeight: 800, borderRadius: 2.5, px: 3, width: { xs: '100%', sm: 'auto' } }}>Cancel</Button>
+                  <Button variant="contained" onClick={handleUpdate} disabled={submitting} sx={{ borderRadius: 2.5, fontWeight: 900, px: 4, boxShadow: theme.shadows[4], width: { xs: '100%', sm: 'auto' } }}>
                     {submitting ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
                   </Button>
-                </>
+                </Stack>
               ) : (
-                <>
-                  <Button color="error" startIcon={<Trash2 size={18}/>} onClick={handleDelete} sx={{ mr: 'auto', fontWeight: 800, borderRadius: 2.5 }}>Delete</Button>
-                  <Button variant="outlined" startIcon={<Edit size={18}/>} onClick={() => setIsEditing(true)} sx={{ borderRadius: 2.5, fontWeight: 800, px: 3, borderWidth: 2, '&:hover': { borderWidth: 2 } }}>Edit</Button>
-                  <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint} sx={{ borderRadius: 2.5, fontWeight: 900, px: 3, boxShadow: theme.shadows[4] }}>Print Report</Button>
-                </>
+                <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1.5} sx={{ width: '100%' }} alignItems="center">
+                  <Button color="error" startIcon={<Trash2 size={18}/>} onClick={handleDelete} sx={{ mr: { xs: 0, sm: 'auto' }, fontWeight: 800, borderRadius: 2.5, width: { xs: '100%', sm: 'auto' } }}>Delete</Button>
+                  <Button variant="outlined" startIcon={<Edit size={18}/>} onClick={() => setIsEditing(true)} sx={{ borderRadius: 2.5, fontWeight: 800, px: 3, borderWidth: 2, '&:hover': { borderWidth: 2 }, width: { xs: '100%', sm: 'auto' } }}>Edit</Button>
+                  <Button variant="contained" startIcon={<Printer size={18}/>} onClick={handlePrint} sx={{ borderRadius: 2.5, fontWeight: 900, px: 3, boxShadow: theme.shadows[4], width: { xs: '100%', sm: 'auto' } }}>Print Report</Button>
+                </Stack>
               )}
             </DialogActions>
           </>

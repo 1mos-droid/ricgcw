@@ -43,7 +43,7 @@ import { syncMemberDepartments } from '../utils/syncDepartments';
 
 const Developer = () => {
   const theme = useTheme();
-  const { user: originalUser, isDeveloper } = useAuth();
+  const { user: originalUser } = useAuth();
   const { 
     maintenance, 
     toggleMaintenance, 
@@ -80,11 +80,11 @@ const handleSyncMetadata = async () => {
   try {
     // In a real app, this would iterate all users if we had a server-side SDK.
     // Since we are client-side, we can at least force-sync the CURRENT user's Appwrite data to Firestore.
-    const appwriteUser = await account.get();
+    await account.get();
     // The AuthContext already has a syncUserProfile but it's not exported.
     // For now, we inform the user that their own profile is synced on every login.
     showNotification("Local profile metadata synced with Appwrite.", "success");
-  } catch (err) {
+  } catch {
     showNotification("Failed to sync metadata.", "error");
   } finally {
     setMetadataSyncing(false);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { safeParseDate } from '../utils/dateUtils';
+import { safeParseDate, calculateAge } from '../utils/dateUtils';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
@@ -265,7 +265,7 @@ const Members = () => {
     try {
       await setDoc(doc(db, "members", id), updatedMember, { merge: true });
       await fetchMembers(true);
-      setSelectedMember(null);
+      setSelectedMember(prev => prev && prev.id === id ? { ...prev, ...updatedMember } : prev);
       showNotification("Profile updated.", "success");
     } catch {
       showNotification("Update failed.", "error");
@@ -380,6 +380,14 @@ const Members = () => {
                     <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {member.branch || 'Main'}
                     </Typography>
+                    {member.dob && (
+                      <>
+                        <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+                        <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          {calculateAge(member.dob)} yrs
+                        </Typography>
+                      </>
+                    )}
                 </Stack>
             </Box>
             {getStatusChip(member.status)}
@@ -554,7 +562,7 @@ const Members = () => {
                 </Select>
              </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5 }}>
+          <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
               <ToggleButtonGroup
                 value={viewMode}
                 exclusive
@@ -564,11 +572,14 @@ const Members = () => {
                     borderRadius: 4, 
                     p: 0.5,
                     height: 56,
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    flexGrow: { xs: 1, sm: 0 },
+                    display: 'flex',
+                    justifyContent: 'center'
                 }}
               >
-                <ToggleButton value="grid" sx={{ px: 2, border: 'none', borderRadius: '12px !important' }}><LayoutGrid size={18} /></ToggleButton>
-                <ToggleButton value="table" sx={{ px: 2, border: 'none', borderRadius: '12px !important' }}><TableIcon size={18} /></ToggleButton>
+                <ToggleButton value="grid" sx={{ px: 2, border: 'none', borderRadius: '12px !important', flexGrow: 1 }}><LayoutGrid size={18} /></ToggleButton>
+                <ToggleButton value="table" sx={{ px: 2, border: 'none', borderRadius: '12px !important', flexGrow: 1 }}><TableIcon size={18} /></ToggleButton>
               </ToggleButtonGroup>
 
               <Button 
@@ -577,7 +588,7 @@ const Members = () => {
                 onClick={(e) => setExportAnchorEl(e.currentTarget)}
                 sx={{ 
                     borderRadius: 4, 
-                    px: isMobile ? 2 : 3, 
+                    px: { xs: 2, lg: 3 }, 
                     height: 56,
                     fontWeight: 800, 
                     borderWidth: 2, 
@@ -587,10 +598,11 @@ const Members = () => {
                         borderWidth: 2, 
                         bgcolor: alpha(theme.palette.primary.main, 0.05),
                         borderColor: theme.palette.primary.main
-                    } 
+                    },
+                    flexGrow: { xs: 1, sm: 0 }
                 }}
               >
-                {!isMobile && "Export"}
+                <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Export</Box>
               </Button>
               <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
                   <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1.5, fontWeight: 600 }}><FileText size={18} /> Export as PDF</MenuItem>
@@ -603,7 +615,7 @@ const Members = () => {
                 sx={{ 
                     borderRadius: 4, 
                     height: 56,
-                    px: isMobile ? 2 : 3,
+                    px: { xs: 2, lg: 3 },
                     fontWeight: 800,
                     bgcolor: alpha(theme.palette.secondary.main, 0.08), 
                     color: theme.palette.secondary.main,
@@ -613,10 +625,11 @@ const Members = () => {
                         transform: 'translateY(-2px)',
                         boxShadow: `0 8px 16px -4px ${alpha(theme.palette.secondary.main, 0.2)}`
                     },
-                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    flexGrow: { xs: 1, sm: 0 }
                 }}
               >
-                {!isMobile && "Join QR"}
+                <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Join QR</Box>
               </Button>
 
               <Button 
@@ -626,17 +639,19 @@ const Members = () => {
                   sx={{ 
                       borderRadius: 4, 
                       height: 56, 
-                      px: isMobile ? 2 : 4,
+                      px: { xs: 2, lg: 4 },
                       fontWeight: 800,
                       boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
                       '&:hover': { 
                           boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
                           transform: 'translateY(-2px)'
                       },
-                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      flexGrow: { xs: 2, sm: 0 }
                   }}
               >
-                  {!isMobile && "Add Member"}
+                <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Add Member</Box>
+                <Box component="span" sx={{ display: { xs: 'inline', lg: 'none' } }}>Add</Box>
               </Button>
           </Grid>
         </Grid>
@@ -687,7 +702,10 @@ const Members = () => {
                           <Avatar sx={{ width: 40, height: 40, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800 }}>{member.name?.charAt(0)}</Avatar>
                           <Box>
                             <Typography variant="subtitle2" fontWeight={800}>{member.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">#{member.id?.toString().slice(-4)}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              #{member.id?.toString().slice(-4)}
+                              {member.dob && ` • ${calculateAge(member.dob)} yrs old`}
+                            </Typography>
                           </Box>
                         </Stack>
                       </TableCell>

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useMemo, useContext } from 'react';
-import { createTheme, ThemeProvider, responsiveFontSizes, alpha } from '@mui/material/styles';
+import { createTheme, ThemeProvider, responsiveFontSizes } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 
 // 1. Context to manage the toggle state
@@ -129,10 +129,24 @@ const getDesignTokens = (mode) => {
         styleOverrides: {
           root: { 
             borderRadius: 8,
-            padding: '14px 30px',
             boxShadow: 'none',
             '&:hover': { boxShadow: '0 8px 20px rgba(0,0,0,0.1)', transform: 'translateY(-1px)' },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          },
+          sizeSmall: {
+            padding: '6px 14px',
+            fontSize: '0.8125rem',
+            borderRadius: 6,
+          },
+          sizeMedium: {
+            padding: '10px 20px',
+            fontSize: '0.875rem',
+            borderRadius: 8,
+          },
+          sizeLarge: {
+            padding: '14px 28px',
+            fontSize: '0.9375rem',
+            borderRadius: 10,
           },
           containedPrimary: {
             background: `linear-gradient(135deg, ${primaryMain} 0%, ${isLight ? '#1E3A8A' : '#8B6508'} 100%)`,

@@ -132,7 +132,7 @@ const BibleStudies = () => {
           await deleteDoc(doc(db, "bible-studies", id));
           setStudySeries(prev => prev.filter(s => s.id !== id));
           showNotification("Module deleted.");
-        } catch (err) {
+        } catch {
           showNotification("Deletion failed.", "error");
         }
       }
@@ -148,7 +148,7 @@ const BibleStudies = () => {
           await deleteDoc(doc(db, "resources", id));
           setResources(prev => prev.filter(r => r.id !== id));
           showNotification("Resource removed.");
-        } catch (err) {
+        } catch {
           showNotification("Deletion failed.", "error");
         }
       }

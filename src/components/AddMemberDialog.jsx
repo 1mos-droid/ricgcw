@@ -612,11 +612,11 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
       </DialogContent>
 
       {/* --- ACTIONS --- */}
-      <DialogActions sx={{ px: 4, pb: 4, pt: 1, gap: 1 }}>
+      <DialogActions sx={{ px: { xs: 2, sm: 4 }, pb: { xs: 3, sm: 4 }, pt: 1, gap: 1.5, flexDirection: { xs: 'column-reverse', sm: 'row' }, alignItems: 'stretch' }}>
         <Button 
           onClick={onClose} 
           disabled={submitting}
-          sx={{ borderRadius: 1.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary }}
+          sx={{ borderRadius: 1.5, fontWeight: 700, px: 3, color: theme.palette.text.secondary, width: { xs: '100%', sm: 'auto' } }}
         >
           Cancel
         </Button>
@@ -630,7 +630,8 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
             px: 4, 
             py: 1.2, 
             boxShadow: theme.shadows[4],
-            minWidth: 150
+            minWidth: 150,
+            width: { xs: '100%', sm: 'auto' }
           }}
         >
           {submitting ? <CircularProgress size={24} color="inherit" /> : 'Create Member'}

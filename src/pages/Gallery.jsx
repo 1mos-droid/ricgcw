@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Box, 
@@ -40,7 +40,7 @@ import { uploadToHuggingFace } from '../utils/huggingFaceApi';
 
 const Gallery = () => {
   const theme = useTheme();
-  const { showNotification, showConfirmation, filterData } = useWorkspace();
+  const { showNotification, showConfirmation } = useWorkspace();
   
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,24 +53,23 @@ const Gallery = () => {
   const [newImageTitle, setNewImageTitle] = useState('');
   const [newImageFile, setNewImageFile] = useState(null);
 
-  useEffect(() => {
-    fetchImages();
-  }, []);
-
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     try {
       setLoading(true);
       const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
       const imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setImages(imageData);
-    } catch (err) {
-      console.error("Gallery Fetch Error:", err);
-      showNotification("Failed to load gallery.", "error");
+      setImages(imageData || []);
+    } catch {
+      showNotification("Failed to fetch gallery.", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -139,7 +138,7 @@ const Gallery = () => {
           await deleteDoc(doc(db, "gallery", id));
           setImages(images.filter(img => img.id !== id));
           showNotification("Image removed from gallery.");
-        } catch (err) {
+        } catch {
           showNotification("Failed to delete.", "error");
         }
       }
