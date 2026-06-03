@@ -511,7 +511,10 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 '& .MuiTab-root': { fontWeight: 700, minHeight: 64 }
             }}
         >
-          <Tab label="Profile Details" />
+          <Tab label="Bio" />
+          <Tab label="Timeline" />
+          <Tab label="Engagement" />
+          <Tab label="Family" />
           <Tab label="Contributions" />
           <Tab label="Message" />
           <Tab label="QR ID" />
@@ -977,7 +980,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         variant="contained" 
                         fullWidth 
                         startIcon={<Send size={18} />}
-                        onClick={() => setTabValue(2)}
+                        onClick={() => setTabValue(5)}
                         sx={{ 
                             borderRadius: 1.5, 
                             py: 1.5, 
@@ -989,11 +992,134 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         Send a Message
                     </Button>
                 </Box>
+                
+                {/* --- Salvation Story --- */}
+                {!isEditing && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1, display: 'block' }}>Salvation Story</Typography>
+                    <Paper variant="outlined" sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.02), borderRadius: 1.5 }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={700}>Bio Details</Typography>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
+                        {member.salvationStory || 'No salvation story notes recorded.'}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                )}
+
+                {/* --- Custom Fields --- */}
+                {!isEditing && member.customFields && Object.keys(member.customFields).length > 0 && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1.5, display: 'block' }}>Custom Fields</Typography>
+                    <Grid container spacing={2}>
+                      {Object.entries(member.customFields).map(([key, val]) => (
+                        <Grid size={{ xs: 6 }} key={key}>
+                          <Box sx={{ p: 1.5, borderRadius: 1.5, border: `1px dashed ${theme.palette.divider}` }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight={800}>{key.toUpperCase()}</Typography>
+                            <Typography variant="body2" fontWeight={700}>{val}</Typography>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                )}
             </Stack>
           )}
         </Box>
 
         ) : tabValue === 1 ? (
+          <Box sx={{ p: 4 }}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Church Journey Timeline</Typography>
+            <List>
+              {(member.timeline || [{ date: member.createdAt || new Date().toISOString(), event: 'Profile Created' }]).map((item, idx) => (
+                <ListItem key={idx} sx={{ py: 1.5, px: 2, borderLeft: `2px solid ${theme.palette.primary.main}`, ml: 1, position: 'relative' }}>
+                  <Box sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    bgcolor: theme.palette.primary.main,
+                    position: 'absolute',
+                    left: -6,
+                    top: 24
+                  }} />
+                  <ListItemText
+                    primary={<Typography variant="body2" fontWeight={700}>{item.event}</Typography>}
+                    secondary={item.date ? format(new Date(item.date), 'MMMM dd, yyyy') : ''}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        ) : tabValue === 2 ? (
+          <Box sx={{ p: 4 }}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Spiritual Growth & Engagement</Typography>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ display: 'block', mb: 1 }}>COMPLETED CLASSES</Typography>
+                {(member.completedClasses || []).length === 0 ? (
+                  <Typography variant="body2" color="text.disabled">None recorded</Typography>
+                ) : (
+                  (member.completedClasses || []).map((cls, idx) => <Chip key={idx} label={cls} size="small" sx={{ mr: 0.5, mb: 0.5 }} color="primary" />)
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ display: 'block', mb: 1 }}>VOLUNTEER ROLES</Typography>
+                {(member.volunteerRoles || []).length === 0 ? (
+                  <Typography variant="body2" color="text.disabled">None recorded</Typography>
+                ) : (
+                  (member.volunteerRoles || []).map((role, idx) => <Chip key={idx} label={role} size="small" sx={{ mr: 0.5, mb: 0.5 }} color="secondary" />)
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ display: 'block', mb: 1 }}>SPIRITUAL GIFTS</Typography>
+                {(member.spiritualGifts || []).length === 0 ? (
+                  <Typography variant="body2" color="text.disabled">None recorded</Typography>
+                ) : (
+                  (member.spiritualGifts || []).map((gift, idx) => <Chip key={idx} label={gift} size="small" sx={{ mr: 0.5, mb: 0.5 }} color="info" />)
+                )}
+              </Grid>
+            </Grid>
+          </Box>
+        ) : tabValue === 3 ? (
+          <Box sx={{ p: 4 }}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Household / Family unit</Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ p: 2, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}` }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={800}>PRIMARY CONTACT</Typography>
+                  <Typography variant="body2" fontWeight={700} color="primary">{member.family?.primaryContact || member.name}</Typography>
+                </Box>
+              </Grid>
+              {(member.family?.spouse || member.spouseName) && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ p: 2, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}` }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={800}>SPOUSE CONNECTION</Typography>
+                    <Typography variant="body2" fontWeight={700}>{member.family?.spouse || member.spouseName}</Typography>
+                  </Box>
+                </Grid>
+              )}
+              {((member.family?.children && member.family?.children.length > 0) || member.childrenNames) && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ p: 2, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}` }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={800}>CHILD DEPENDENCIES</Typography>
+                    {member.family?.children ? member.family.children.map((child, idx) => (
+                      <Typography key={idx} variant="body2" fontWeight={700}>{child}</Typography>
+                    )) : <Typography variant="body2" fontWeight={700}>{member.childrenNames}</Typography>}
+                  </Box>
+                </Grid>
+              )}
+              {member.family?.emergencyPickups && member.family.emergencyPickups.length > 0 && (
+                <Grid size={{ xs: 12 }}>
+                  <Box sx={{ p: 2, borderRadius: 1.5, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.error.main, 0.02) }}>
+                    <Typography variant="caption" color="error" fontWeight={800}>EMERGENCY PICK-UP PERMISSIONS</Typography>
+                    {member.family.emergencyPickups.map((person, idx) => (
+                      <Typography key={idx} variant="body2" fontWeight={700}>{person}</Typography>
+                    ))}
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+        ) : tabValue === 4 ? (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid size={{ xs: 6 }}>
@@ -1219,7 +1345,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 </List>
             </Card>
           </Box>
-        ) : tabValue === 2 ? (
+        ) : tabValue === 5 ? (
           <Box sx={{ p: 4 }}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Mail size={16} /> COMPOSE MESSAGE

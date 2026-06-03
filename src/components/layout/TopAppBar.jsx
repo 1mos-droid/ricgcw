@@ -1,0 +1,308 @@
+import React, { useState, useEffect } from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Box,
+  Typography,
+  Stack,
+  alpha,
+  styled,
+  useTheme,
+  InputBase,
+  Badge,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import UserAvatar from '../atoms/UserAvatar';
+import CommandPalette from '../CommandPalette';
+import { useWorkspace } from '../../context/WorkspaceContext';
+import { useAuth } from '../../context/AuthContext';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { useNavigate } from 'react-router-dom';
+
+const drawerWidth = 280;
+
+const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'open' })(
+  ({ theme, open }) => ({
+    zIndex: theme.zIndex.drawer + 1,
+    boxShadow: 'none',
+    borderBottom: 'none',
+    backgroundColor: alpha(theme.palette.background.default, 0.7),
+    backdropFilter: 'blur(24px)',
+    transition: theme.transitions.create(['width', 'margin'], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    [theme.breakpoints.up('md')]: {
+      width: `calc(100% - ${open ? drawerWidth : 0}px)`,
+      marginLeft: open ? drawerWidth : 0,
+    },
+  }),
+);
+
+const Search = styled('div')(({ theme }) => ({
+  position: 'relative',
+  borderRadius: 40,
+  backgroundColor: theme.palette.mode === 'light' 
+    ? alpha(theme.palette.common.black, 0.03) 
+    : alpha(theme.palette.common.white, 0.03),
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&:hover': {
+    backgroundColor: theme.palette.mode === 'light' 
+      ? alpha(theme.palette.common.black, 0.05) 
+      : alpha(theme.palette.common.white, 0.05),
+    transform: 'translateY(-1px)',
+  },
+  marginRight: theme.spacing(2),
+  marginLeft: 0,
+  width: '100%',
+  [theme.breakpoints.up('sm')]: {
+    marginLeft: theme.spacing(3),
+    width: 'auto',
+  },
+}));
+
+const SearchIconWrapper = styled('div')(({ theme }) => ({
+  padding: theme.spacing(0, 2.5),
+  height: '100%',
+  position: 'absolute',
+  pointerEvents: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: theme.palette.text.secondary,
+}));
+
+const StyledInputBase = styled(InputBase)(({ theme }) => ({
+  color: 'inherit',
+  width: '100%',
+  '& .MuiInputBase-input': {
+    padding: theme.spacing(1.5, 1.5, 1.5, 0),
+    paddingLeft: `calc(1em + ${theme.spacing(5)})`,
+    transition: theme.transitions.create('width'),
+    width: '100%',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    [theme.breakpoints.up('md')]: {
+      width: '28ch',
+      '&:focus': {
+        width: '32ch',
+      },
+    },
+  },
+}));
+
+const TopAppBar = ({ 
+  open, 
+  isMobile, 
+  workspace, 
+  currentDepartment, 
+  user: propUser, 
+  onProfileClick,
+  notificationCount = 0
+}) => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { 
+    userBranch, 
+    userRole, 
+    startMimicking, 
+    stopMimicking 
+  } = useWorkspace();
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [members, setMembers] = useState([]);
+
+  // Listen for global shortcut Cmd+K/Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Fetch members to feed search palette in real-time
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "members"));
+        const membersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMembers(membersData);
+      } catch (err) {
+        console.error("TopAppBar members fetch error:", err);
+      }
+    };
+    if (user) {
+      fetchMembers();
+    }
+  }, [user]);
+
+  const handleCampusChange = (e) => {
+    const val = e.target.value;
+    if (val === 'all') {
+      stopMimicking();
+    } else {
+      startMimicking({
+        role: userRole,
+        branch: val,
+        name: user?.name || 'Administrator',
+        email: user?.email
+      });
+    }
+  };
+
+  const handleNavigate = (path) => {
+    navigate(path);
+  };
+
+  const handleSelectMember = (member) => {
+    navigate('/members', { state: { selectedMemberId: member.id } });
+  };
+
+  return (
+    <>
+      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" sx={{ top: 0 }}>
+        <Toolbar sx={{ height: { xs: 70, md: 90 }, justifyContent: 'space-between' }}>
+            
+          {/* Logo/Title */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {isMobile && (
+              <Box
+                component="img"
+                src="/ricgcw.png"
+                alt="RICGCW Logo"
+                sx={{
+                  width: 36,
+                  height: 36,
+                  objectFit: 'contain',
+                  filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.4)})`
+                }}
+              />
+            )}
+
+            <Typography variant="h5" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontFamily: '"Playfair Display", serif' }}>
+              {workspace === 'main' ? 'Sanctuary' : currentDepartment}
+            </Typography>
+            
+            {isMobile && (
+              <Typography variant="h6" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' }, fontFamily: 'Playfair Display' }}>
+                RICGCW
+              </Typography>
+            )}
+
+            {/* System Health Operational Indicator */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 1.5,
+                py: 0.5,
+                borderRadius: 4,
+                bgcolor: alpha(theme.palette.success.main, 0.1),
+                color: theme.palette.success.main,
+                fontWeight: 800,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                animation: 'pulse 2s infinite ease-in-out',
+                '@keyframes pulse': {
+                  '0%': { opacity: 0.7 },
+                  '50%': { opacity: 1 },
+                  '100%': { opacity: 0.7 },
+                }
+              }}
+            >
+              <CheckCircleIcon sx={{ fontSize: 12 }} />
+              System: Healthy
+            </Box>
+          </Box>
+
+          {/* Search Trigger box */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+            <Search onClick={() => setPaletteOpen(true)} sx={{ cursor: 'pointer' }}>
+              <SearchIconWrapper>
+                <SearchIcon fontSize="small" />
+              </SearchIconWrapper>
+              <StyledInputBase
+                placeholder="Search anything... (Ctrl+K)"
+                inputProps={{ 'aria-label': 'search' }}
+                readOnly
+              />
+            </Search>
+          </Box>
+
+          <Stack direction="row" spacing={2} alignItems="center">
+            {/* Campus / Site Switcher for Admin & Developer */}
+            {(userRole === 'admin' || userRole === 'developer') && (
+              <FormControl size="small" variant="outlined" sx={{ minWidth: 150 }}>
+                <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Select Campus</InputLabel>
+                <Select
+                  labelId="campus-select-label"
+                  id="campus-select"
+                  value={userBranch || 'all'}
+                  onChange={handleCampusChange}
+                  label="Select Campus"
+                  inputProps={{ 'aria-label': 'Select Campus' }}
+                  sx={{
+                    borderRadius: 2,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    '.MuiSelect-select': { py: 1 }
+                  }}
+                >
+                  <MenuItem value="all">All Campuses</MenuItem>
+                  <MenuItem value="Mallam">Mallam</MenuItem>
+                  <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
+                  <MenuItem value="Langma">Langma</MenuItem>
+                  <MenuItem value="Diaspora">Diaspora</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
+            <IconButton sx={{ color: 'text.secondary' }}>
+              <Badge badgeContent={notificationCount} color="error">
+                <NotificationsNoneIcon />
+              </Badge>
+            </IconButton>
+            
+            <Box 
+              sx={{ 
+                ml: 1,
+                cursor: 'pointer',
+                display: 'flex', 
+                alignItems: 'center',
+              }}
+              onClick={onProfileClick}
+            >
+              <UserAvatar name={user?.name || user?.email || 'User'} size={36} />
+            </Box>
+          </Stack>
+        </Toolbar>
+      </AppBarStyled>
+
+      {/* Global Universal Search Palette */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        members={members}
+        onNavigate={handleNavigate}
+        onSelectMember={handleSelectMember}
+      />
+    </>
+  );
+};
+
+export default TopAppBar;

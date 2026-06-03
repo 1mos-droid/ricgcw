@@ -72,6 +72,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+// New Components
+import StatusBadge from '../components/atoms/StatusBadge';
+import UserAvatar from '../components/atoms/UserAvatar';
+import MasterDataGrid from '../components/molecules/MasterDataGrid';
+import DetailDrawer from '../components/molecules/DetailDrawer';
+
 const Members = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -89,6 +95,26 @@ const Members = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
   const [registrationQrOpen, setRegistrationQrOpen] = useState(false);
+
+  const downloadRegistrationQRCode = () => {
+    const svg = document.getElementById("RegistrationQRCode");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = "Onboarding_QR.png";
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
 
   // --- HANDLERS ---
   const handleOpenDetails = (member, tab = 0) => {
@@ -422,25 +448,81 @@ const Members = () => {
     </Grid>
   );
 
-  const downloadRegistrationQRCode = () => {
-    const svg = document.getElementById("RegistrationQRCode");
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const pngFile = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.download = "Onboarding_QR.png";
-      downloadLink.href = pngFile;
-      downloadLink.click();
-    };
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
-  };
+  // --- COLUMNS ---
+  const columns = [
+    { 
+      id: 'memberId', 
+      label: 'ID',
+      render: (val) => (
+        <Typography variant="caption" fontWeight={800} color="primary">
+          {val || '—'}
+        </Typography>
+      )
+    },
+    { 
+      id: 'name', 
+      label: 'Member',
+      render: (val, row) => (
+        <Stack direction="row" spacing={2} alignItems="center">
+          <UserAvatar name={val} size={40} />
+          <Box>
+            <Typography variant="subtitle2" fontWeight={800}>{val}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              #{row.id?.toString().slice(-4)}
+              {row.dob && ` • ${calculateAge(row.dob)} yrs old`}
+            </Typography>
+          </Box>
+        </Stack>
+      )
+    },
+    { 
+      id: 'contact', 
+      label: 'Contact',
+      render: (_, row) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box>
+            <Typography variant="body2" fontWeight={600}>{row.email || '—'}</Typography>
+            <Typography variant="caption" color="text.secondary">{row.phone}</Typography>
+          </Box>
+          {row.email && (
+            <IconButton 
+              size="small" 
+              color="primary" 
+              onClick={(e) => { e.stopPropagation(); handleOpenDetails(row, 2); }}
+              sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}
+            >
+              <Mail size={14} />
+            </IconButton>
+          )}
+        </Stack>
+      )
+    },
+    { 
+      id: 'branch', 
+      label: 'Location',
+      render: (val) => <Chip label={val || 'Main'} size="small" sx={{ borderRadius: 1, fontWeight: 700, height: 20, fontSize: '0.65rem' }} />
+    },
+    { 
+      id: 'createdAt', 
+      label: 'Joined',
+      render: (val) => (
+        <Typography variant="body2" fontWeight={500}>
+          {val ? format(safeParseDate(val), 'MMM yyyy') : '—'}
+        </Typography>
+      )
+    },
+    { 
+      id: 'status', 
+      label: 'Status',
+      render: (val) => <StatusBadge label={val || 'Active'} status={val || 'active'} />
+    },
+    {
+      id: 'actions',
+      label: '',
+      align: 'right',
+      render: () => <IconButton size="small"><MoreVertical size={16} /></IconButton>
+    }
+  ];
 
   return (
     <Box sx={{ pb: 8 }}>
@@ -680,83 +762,36 @@ const Members = () => {
           </Grid>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 6, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
-              <Table>
-                <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                  <TableRow>
-                    {['ID', 'Member', 'Contact', 'Location', 'Joined', 'Status', ''].map((h, i) => (
-                        <TableCell key={i} sx={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: theme.palette.text.secondary }}>{h}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.id} hover onClick={() => handleOpenDetails(member)} sx={{ cursor: 'pointer', transition: 'background 0.1s' }}>
-                      <TableCell>
-                        <Typography variant="caption" fontWeight={800} color="primary">
-                          {member.memberId || '—'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Avatar sx={{ width: 40, height: 40, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800 }}>{member.name?.charAt(0)}</Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" fontWeight={800}>{member.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              #{member.id?.toString().slice(-4)}
-                              {member.dob && ` • ${calculateAge(member.dob)} yrs old`}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                         <Stack direction="row" spacing={1} alignItems="center">
-                            <Box>
-                                <Typography variant="body2" fontWeight={600}>{member.email || '—'}</Typography>
-                                <Typography variant="caption" color="text.secondary">{member.phone}</Typography>
-                            </Box>
-                            {member.email && (
-                                <IconButton 
-                                    size="small" 
-                                    color="primary" 
-                                    onClick={(e) => { e.stopPropagation(); handleOpenDetails(member, 2); }}
-                                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}
-                                >
-                                    <Mail size={14} />
-                                </IconButton>
-                            )}
-                         </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={member.branch || 'Main'} size="small" sx={{ borderRadius: 1, fontWeight: 700, height: 20, fontSize: '0.65rem' }} />
-                      </TableCell>
-                      <TableCell>
-                         <Typography variant="body2" fontWeight={500}>
-                            {member.createdAt ? format(safeParseDate(member.createdAt), 'MMM yyyy') : '—'}
-                         </Typography>
-                      </TableCell>
-                      <TableCell>{getStatusChip(member.status)}</TableCell>
-                      <TableCell align="right">
-                        <IconButton size="small"><MoreVertical size={16} /></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <MasterDataGrid 
+              columns={columns}
+              rows={filteredMembers}
+              onRowClick={(id) => handleOpenDetails(filteredMembers.find(m => m.id === id))}
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
       <AddMemberDialog open={openAddMemberDialog} onClose={() => setOpenAddMemberDialog(false)} onAddMember={handleAddMember} />
-      <MemberDetailsDialog 
-        open={selectedMember !== null} 
-        onClose={() => setSelectedMember(null)} 
-        member={selectedMember} 
-        onEdit={handleEdit} 
-        onDelete={handleDelete}
-        initialTab={dialogTab}
-      />
+      
+      <DetailDrawer
+        open={selectedMember !== null}
+        onClose={() => setSelectedMember(null)}
+        title={selectedMember?.name || 'Member Details'}
+        subtitle={selectedMember?.memberId}
+        width={500}
+      >
+        {selectedMember && (
+          <MemberDetailsDialog 
+            open={true} 
+            onClose={() => setSelectedMember(null)} 
+            member={selectedMember} 
+            onEdit={handleEdit} 
+            onDelete={handleDelete}
+            initialTab={dialogTab}
+            isEmbedded={true} // We'll need to update MemberDetailsDialog to handle this
+          />
+        )}
+      </DetailDrawer>
 
       {/* --- ONBOARDING QR DIALOG --- */}
       <Dialog 

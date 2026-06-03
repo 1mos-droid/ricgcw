@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
+import RBACMatrix from '../components/RBACMatrix';
 import { 
   Box, 
   Typography, 
@@ -52,6 +53,19 @@ const Settings = () => {
   const [adminName, setAdminName] = useState("Kumesi Moses");
   const [email, setEmail] = useState("admin@ricgcw.com");
   const [loading, setLoading] = useState(false);
+
+  const [permissions, setPermissions] = useState({
+    'view_phone': { admin: true, branch_admin: true, youth_leader: true, guest: false },
+    'view_financials': { admin: true, branch_admin: true, youth_leader: false, guest: false },
+    'edit_members': { admin: true, branch_admin: true, youth_leader: false, guest: false },
+    'delete_members': { admin: true, branch_admin: false, youth_leader: false, guest: false },
+  });
+  const roles = ['admin', 'branch_admin', 'youth_leader', 'guest'];
+
+  const handleSavePermissions = (newPerms) => {
+    setPermissions(newPerms);
+    showNotification("Role-Based Access Control matrix updated.", "success");
+  };
 
   const handleThemeToggle = () => {
     const newMode = !darkMode;
@@ -189,6 +203,13 @@ const Settings = () => {
                         </Box>
                     </Stack>
                 </Card>
+
+                {/* RBAC Matrix Card */}
+                <RBACMatrix 
+                  roles={roles} 
+                  initialPermissions={permissions} 
+                  onSave={handleSavePermissions} 
+                />
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Button 

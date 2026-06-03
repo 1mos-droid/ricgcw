@@ -46,6 +46,22 @@ A bespoke, high-performance digital headquarters for the **Redeemed Christian Ch
 
 ---
 
+## 📸 Screenshots
+
+### 1. Intelligent Admin Dashboard
+Comparative analytics across campuses, child safety check-in statuses, pending dual-custody ledger deposits audit status, and active volunteer schedule assignments.
+![Intelligent Admin Dashboard](screenshots/2026-06-03_13-05.png)
+
+### 2. General Member Portal
+Confidential pastoral prayer request submissions, giving overview records, and fast digital offerings integration.
+![General Member Portal](screenshots/2026-06-03_13-08.png)
+
+### 3. Member Onboarding QR
+On-demand QR code rendering for rapid database entry for new members.
+![Member Onboarding QR](screenshots/2026-06-03_13-08_1.png)
+
+---
+
 ## 🚀 Deployment & Setup
 
 ### 1. Requirements
