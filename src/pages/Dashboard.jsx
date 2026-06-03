@@ -567,41 +567,64 @@ const Dashboard = () => {
 
   // --- SAFETY CHECK-IN ROSTERS ---
   const safetyStatus = useMemo(() => {
-    const checkedInCount = data.members.filter(m => {
+    const checkedInMemberIds = new Set();
+    filteredData.attendance.forEach(record => {
+      if (Array.isArray(record.attendees)) {
+        record.attendees.forEach(att => {
+          if (att && att.id) checkedInMemberIds.add(String(att.id));
+        });
+      }
+    });
+
+    const checkedInChildren = data.members.filter(m => {
+      if (!checkedInMemberIds.has(String(m.id))) return false;
       if (!m.dob) return false;
-      // Calculate age
       const age = new Date().getFullYear() - safeParseDate(m.dob).getFullYear();
       return age < 13;
-    }).length;
+    });
+
+    const checkedInCount = checkedInChildren.length;
 
     return {
-      checkedInCount: checkedInCount > 0 ? checkedInCount : 14,
-      activeTokenCount: checkedInCount > 0 ? checkedInCount : 14,
-      allergyAlerts: 3
+      checkedInCount,
+      activeTokenCount: checkedInCount,
+      allergyAlerts: checkedInChildren.filter(m => m.allergies || m.medicalNotes).length
     };
-  }, [data.members]);
+  }, [data.members, filteredData.attendance]);
 
   // --- VOLUNTEER ASSIGNMENT MATRICES ---
   const volunteerSlots = useMemo(() => {
-    const mockSlots = [
-      { id: 's1', role: 'Usher', serviceDate: '2026-06-07', dayOfWeek: 'Sunday' },
-      { id: 's2', role: 'AV Sound Board', serviceDate: '2026-06-07', dayOfWeek: 'Sunday' },
-      { id: 's3', role: 'Children Teacher', serviceDate: '2026-06-07', dayOfWeek: 'Sunday' },
-      { id: 's4', role: 'Musician', serviceDate: '2026-06-14', dayOfWeek: 'Sunday' }
-    ];
+    const slots = [];
+    filteredData.events.slice(0, 3).forEach(event => {
+      if (event.date) {
+        const eventDateStr = getISOStringDate(event.date);
+        slots.push({
+          id: `slot-${event.id}-usher`,
+          role: 'Usher',
+          serviceDate: eventDateStr,
+          dayOfWeek: format(safeParseDate(event.date), 'EEEE')
+        });
+        slots.push({
+          id: `slot-${event.id}-av`,
+          role: 'AV Sound Board',
+          serviceDate: eventDateStr,
+          dayOfWeek: format(safeParseDate(event.date), 'EEEE')
+        });
+      }
+    });
 
     const potentialVolunteers = data.members.map(m => ({
       id: m.id || Math.random().toString(),
       name: m.name || 'Anonymous',
       roles: m.volunteerRoles || ['Usher', 'AV Sound Board', 'Children Teacher', 'Musician'],
-      availability: ['Sunday'],
+      availability: ['Sunday', 'Saturday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
       lastServed: m.lastServed || '2026-05-24',
       gapWeeks: 1
     }));
 
-    const assignments = autoAssignVolunteers(mockSlots, potentialVolunteers);
+    const assignments = autoAssignVolunteers(slots, potentialVolunteers);
 
-    return mockSlots.map(slot => {
+    return slots.map(slot => {
       const match = assignments.find(a => a.slotId === slot.id);
       return {
         ...slot,
@@ -609,28 +632,38 @@ const Dashboard = () => {
         status: match ? 'Assigned' : 'Vacant'
       };
     });
-  }, [data.members]);
+  }, [filteredData.events, data.members]);
 
   // --- DUAL CUSTODY AUDIT CUES ---
   const pendingAudits = useMemo(() => {
     const mallamTx = data.transactions.filter(t => t.type === 'contribution' && t.branch === 'Mallam');
+    if (mallamTx.length === 0) {
+      return {
+        batchId: null,
+        total: 0,
+        signatures: [],
+        isValid: true,
+        reason: 'No pending batches requiring audit.'
+      };
+    }
+
     const batchTotal = mallamTx.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const countUsers = ['admin@ricgcw.org']; // Signature from first counting team member
+    const countUsers = [user?.email || 'admin@ricgcw.org'];
 
     const auditCheck = validateBatchDeposit(
-      batchTotal > 0 ? batchTotal : 2000,
-      mallamTx.length > 0 ? mallamTx : [{ amount: 2000 }],
+      batchTotal,
+      mallamTx,
       countUsers
     );
 
     return {
-      batchId: 'B-2026-06-A',
-      total: batchTotal > 0 ? batchTotal : 2000,
+      batchId: `B-${format(new Date(), 'yyyy-MM')}`,
+      total: batchTotal,
       signatures: countUsers,
       isValid: auditCheck.success,
       reason: auditCheck.reason
     };
-  }, [data.transactions]);
+  }, [data.transactions, user]);
 
   const aggregatedData = useMemo(() => {
     const incomeByDate = filteredData.transactions
@@ -1083,32 +1116,39 @@ const Dashboard = () => {
                   <Typography variant="caption" color="text.secondary" fontWeight={700}>DYNAMIC MINISTRY ASSIGNMENTS</Typography>
                 </Box>
               </Box>
-              <Box sx={{ p: 0 }}>
-                {volunteerSlots.map((slot, idx) => (
-                  <Box 
-                    key={slot.id} 
-                    sx={{ 
-                      p: 2.5, 
-                      borderBottom: idx < volunteerSlots.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={800}>{slot.role}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                        <Clock size={12} /> {format(safeParseDate(slot.serviceDate), 'MMM dd, yyyy')} ({slot.dayOfWeek})
-                      </Typography>
-                    </Box>
-                    <Chip 
-                      size="small" 
-                      label={slot.assignedName} 
-                      color={slot.status === 'Assigned' ? 'success' : 'default'} 
-                      sx={{ fontWeight: 800 }} 
-                    />
+              <Box sx={{ p: volunteerSlots.length === 0 ? 3 : 0 }}>
+                {volunteerSlots.length === 0 ? (
+                  <Box sx={{ py: 3, textAlign: 'center', opacity: 0.6 }}>
+                    <Calendar size={36} style={{ margin: '0 auto 12px' }} />
+                    <Typography variant="body2" fontWeight={700}>No upcoming event slots to roster.</Typography>
                   </Box>
-                ))}
+                ) : (
+                  volunteerSlots.map((slot, idx) => (
+                    <Box 
+                      key={slot.id} 
+                      sx={{ 
+                        p: 2.5, 
+                        borderBottom: idx < volunteerSlots.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={800}>{slot.role}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                          <Clock size={12} /> {format(safeParseDate(slot.serviceDate), 'MMM dd, yyyy')} ({slot.dayOfWeek})
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        size="small" 
+                        label={slot.assignedName} 
+                        color={slot.status === 'Assigned' ? 'success' : 'default'} 
+                        sx={{ fontWeight: 800 }} 
+                      />
+                    </Box>
+                  ))
+                )}
               </Box>
             </Card>
           </motion.div>
