@@ -25,7 +25,10 @@ import {
   List,
   ListItem,
   ListItemAvatar,
-  ListItemText
+  ListItemText,
+  Tabs,
+  Tab,
+  Badge
 } from '@mui/material';
 import {
   Users,
@@ -63,11 +66,8 @@ import emailjs from '@emailjs/browser';
 import DigitalGivingDialog from '../components/DigitalGivingDialog';
 
 // Import newly created enterprise engine models
-import { resolveResourceConflict } from '../utils/conflictChecker';
-import { generateSecurityTokens, verifySecurityToken } from '../utils/safetyTokens';
 import { validateBatchDeposit } from '../utils/dualCustody';
 import { autoAssignVolunteers } from '../utils/autoRoster';
-import { segmentAudienceDynamically } from '../utils/audienceSegmenter';
 
 // New Components
 import MetricCard from '../components/organisms/MetricCard';
@@ -399,6 +399,11 @@ const Dashboard = () => {
     attendance: []
   });
   const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
 
   const isMember = useMemo(() => {
     return userRole !== 'admin' && userRole !== 'branch_admin' && userRole !== 'developer';
@@ -910,292 +915,362 @@ const Dashboard = () => {
         </Paper>
       </motion.div>
 
-      {/* 2. STATS GRID */}
-      <Grid container spacing={4} sx={{ mb: 6 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <MetricCard 
-            title="Active Membership" 
-            value={filteredData.members.length.toLocaleString()} 
-            icon={Users} 
-            trend="up"
-            trendValue="12"
-            trendLabel="growth from last month"
+      {/* 2. TABBED CONTENT CHUNKING (HCI PRINCIPLE) */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 5 }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          centered
+          aria-label="admin portal tabs"
+          sx={{
+            '& .MuiTabs-indicator': {
+              height: 4,
+              borderRadius: '4px 4px 0 0',
+              bgcolor: theme.palette.primary.main
+            },
+            '& .MuiTab-root': {
+              fontWeight: 800,
+              fontSize: '0.95rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              px: { xs: 2, sm: 4 },
+              py: 2,
+              color: theme.palette.text.secondary,
+              transition: 'all 0.3s ease',
+              '&.Mui-selected': {
+                color: theme.palette.primary.main,
+                fontWeight: 900
+              }
+            }
+          }}
+        >
+          <Tab label="Overview" id="admin-tab-0" aria-controls="admin-tabpanel-0" />
+          <Tab 
+            label={
+              <Badge 
+                color="error" 
+                variant="dot" 
+                invisible={pendingAudits.isValid && safetyStatus.allergyAlerts === 0}
+                sx={{ '& .MuiBadge-badge': { right: -8, top: -2 } }}
+              >
+                Operations
+              </Badge>
+            } 
+            id="admin-tab-1" 
+            aria-controls="admin-tabpanel-1" 
           />
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <MetricCard 
-            title="Total Revenue" 
-            value={`GHC ${totalContributions.toLocaleString()}`} 
-            icon={DollarSign} 
-            trend="up"
-            trendValue={Math.round(budgetProgress).toString()}
-            trendLabel="of monthly target"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <MetricCard 
-            title="Total Expenses" 
-            value={`GHC ${totalExpenses.toLocaleString()}`} 
-            icon={CreditCard} 
-            trend="down"
-            trendValue="5"
-            trendLabel="managed effectively"
-          />
-        </Grid>
-      </Grid>
+          <Tab label="Analytics" id="admin-tab-2" aria-controls="admin-tabpanel-2" />
+        </Tabs>
+      </Box>
 
-      {/* 3. DUAL-CUSTODY & SAFETY OPERATIONS SECTION */}
-      <Grid container spacing={4} sx={{ mb: 6 }}>
-        {/* PENDING DUAL CUSTODY AUDITS */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-              <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.warning.main, 0.03), display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.main }}>
-                  <CreditCard size={20} />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" fontWeight={800}>Pending Dual-Custody Deposit Audits</Typography>
-                  <Typography variant="caption" color="text.secondary" fontWeight={700}>FINANCIAL LEDGER SECURITY QUEUE</Typography>
-                </Box>
-              </Box>
-              <Box sx={{ p: 3 }}>
-                {!pendingAudits.isValid ? (
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 2.5, 
-                      borderRadius: 3, 
-                      bgcolor: alpha(theme.palette.warning.main, 0.02),
-                      borderColor: alpha(theme.palette.warning.main, 0.3)
-                    }}
-                  >
-                    <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                      <AlertTriangle color={theme.palette.warning.main} size={22} style={{ flexShrink: 0 }} />
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight={800} color="warning.main">
-                          Action Required: Missing Auditing Signature
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.4 }}>
-                          {pendingAudits.reason}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>BATCH ID</Typography>
-                        <Typography variant="body2" fontWeight={900}>{pendingAudits.batchId}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>TOTAL AMOUNT</Typography>
-                        <Typography variant="body2" fontWeight={900} color="primary.main">GHC {pendingAudits.total.toLocaleString()}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>SIGNATURES</Typography>
-                        <Chip size="small" label={`${pendingAudits.signatures.length}/2 Signed`} color="warning" sx={{ fontWeight: 800 }} />
-                      </Box>
-                    </Stack>
-                  </Paper>
-                ) : (
-                  <Box sx={{ py: 3, textAlign: 'center', opacity: 0.6 }}>
-                    <CheckCircle2 color={theme.palette.success.main} size={36} style={{ margin: '0 auto 12px' }} />
-                    <Typography variant="body2" fontWeight={700}>All batches reconciled & dual-signed.</Typography>
+      {/* TAB PANEL 0: OVERVIEW */}
+      {tabValue === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          {/* STATS GRID */}
+          <Grid container spacing={4} sx={{ mb: 6 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <MetricCard 
+                title="Active Membership" 
+                value={filteredData.members.length.toLocaleString()} 
+                icon={Users} 
+                trend="up"
+                trendValue="12"
+                trendLabel="growth from last month"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <MetricCard 
+                title="Total Revenue" 
+                value={`GHC ${totalContributions.toLocaleString()}`} 
+                icon={DollarSign} 
+                trend="up"
+                trendValue={Math.round(budgetProgress).toString()}
+                trendLabel="of monthly target"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <MetricCard 
+                title="Total Expenses" 
+                value={`GHC ${totalExpenses.toLocaleString()}`} 
+                icon={CreditCard} 
+                trend="down"
+                trendValue="5"
+                trendLabel="managed effectively"
+              />
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={5}>
+            {/* LEFT: ACTIVITY FEED */}
+            <Grid size={{ xs: 12, lg: 8 }}>
+              <RecentActivityFeed 
+                activities={aggregatedData.activities.map(a => ({
+                  id: a.id,
+                  userName: a.type === 'member' ? a.description : 'System',
+                  userImage: '',
+                  action: a.type === 'member' ? 'joined' : a.type === 'transaction' ? 'received' : 'scheduled',
+                  target: a.title,
+                  timestamp: format(a.date, 'h:mm a')
+                }))}
+              />
+            </Grid>
+
+            {/* RIGHT: UPCOMING EVENTS */}
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <UpcomingEventsWidget 
+                events={filteredData.events.slice(0, 5).map(e => ({
+                  id: e.id,
+                  month: format(safeParseDate(e.date), 'MMM'),
+                  day: format(safeParseDate(e.date), 'dd'),
+                  title: e.name,
+                  time: e.time,
+                  location: e.location || 'Main Sanctuary'
+                }))}
+              />
+            </Grid>
+          </Grid>
+        </motion.div>
+      )}
+
+      {/* TAB PANEL 1: OPERATIONS */}
+      {tabValue === 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Grid container spacing={4} sx={{ mb: 6 }}>
+            {/* PENDING DUAL CUSTODY AUDITS */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <motion.div variants={itemVariants}>
+                <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
+                  <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.warning.main, 0.03), display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.main }}>
+                      <CreditCard size={20} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight={800}>Pending Dual-Custody Deposit Audits</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>FINANCIAL LEDGER SECURITY QUEUE</Typography>
+                    </Box>
                   </Box>
-                )}
-              </Box>
-            </Card>
-          </motion.div>
-        </Grid>
-
-        {/* CHILD SAFETY CHECK-INS */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-              <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.primary.main, 0.03), display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
-                  <ShieldCheck size={20} />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" fontWeight={800}>Child Safety Check-Ins</Typography>
-                  <Typography variant="caption" color="text.secondary" fontWeight={700}>LIVE ROSTER & SAFETY MONITORS</Typography>
-                </Box>
-              </Box>
-              <Box sx={{ p: 3 }}>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid size={{ xs: 4 }}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderRadius: 2 }}>
-                      <Typography variant="h5" fontWeight={900} color="primary.main">{safetyStatus.checkedInCount}</Typography>
-                      <Typography variant="caption" color="text.secondary" fontWeight={700}>CHECKED-IN</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid size={{ xs: 4 }}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.success.main, 0.03), borderRadius: 2 }}>
-                      <Typography variant="h5" fontWeight={900} color="success.main">{safetyStatus.activeTokenCount}</Typography>
-                      <Typography variant="caption" color="text.secondary" fontWeight={700}>ACTIVE TOKENS</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid size={{ xs: 4 }}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.error.main, 0.03), borderRadius: 2 }}>
-                      <Typography variant="h5" fontWeight={900} color="error.main">{safetyStatus.allergyAlerts}</Typography>
-                      <Typography variant="caption" color="text.secondary" fontWeight={700}>ALERTS</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-
-                <List disablePadding>
-                  <ListItem sx={{ py: 1, px: 0 }}>
-                    <ListItemText 
-                      primary={<Typography variant="body2" fontWeight={800}>Parent-Child Token Status</Typography>} 
-                      secondary="Verifying guardian matching tickets" 
-                    />
-                    <Chip size="small" label="SECURE" color="success" variant="outlined" sx={{ fontWeight: 800 }} />
-                  </ListItem>
-                  <Divider component="li" />
-                  <ListItem sx={{ py: 1, px: 0 }}>
-                    <ListItemText 
-                      primary={<Typography variant="body2" fontWeight={800}>Emergency Contact Readiness</Typography>} 
-                      secondary="Guardian SMS broadcast enabled" 
-                    />
-                    <Chip size="small" label="READY" color="primary" variant="outlined" sx={{ fontWeight: 800 }} />
-                  </ListItem>
-                </List>
-              </Box>
-            </Card>
-          </motion.div>
-        </Grid>
-      </Grid>
-
-      {/* 4. COMPARATIVE LOGISTICS & VOLUNTEER ROSTER */}
-      <Grid container spacing={4} sx={{ mb: 6 }}>
-        {/* CAMPUS COMPARATIVE LOGISTICS */}
-        <Grid size={{ xs: 12, lg: 7 }}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, p: 3, height: '100%' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
-                    <MapPin size={20} />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h6" fontWeight={800}>Campus Comparative Logistics</Typography>
-                    <Typography variant="caption" color="text.secondary" fontWeight={700}>SITE-SPECIFIC PERFORMANCE COMPARISON</Typography>
-                  </Box>
-                </Box>
-              </Box>
-              
-              <Box sx={{ height: 260, width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={campusAnalytics} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12, fontWeight: 700 }} />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12, fontWeight: 700 }} />
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${theme.palette.divider}`, fontWeight: 800 }} />
-                    <Legend />
-                    <Bar dataKey="Members" name="Members Count" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Giving" name="Total Giving (GHC)" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </Card>
-          </motion.div>
-        </Grid>
-
-        {/* VOLUNTEER ROSTER SLOTS */}
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <motion.div variants={itemVariants}>
-            <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-              <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.secondary.main, 0.03), display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main }}>
-                  <Calendar size={20} />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" fontWeight={800}>Volunteer Roster Slots</Typography>
-                  <Typography variant="caption" color="text.secondary" fontWeight={700}>DYNAMIC MINISTRY ASSIGNMENTS</Typography>
-                </Box>
-              </Box>
-              <Box sx={{ p: volunteerSlots.length === 0 ? 3 : 0 }}>
-                {volunteerSlots.length === 0 ? (
-                  <Box sx={{ py: 3, textAlign: 'center', opacity: 0.6 }}>
-                    <Calendar size={36} style={{ margin: '0 auto 12px' }} />
-                    <Typography variant="body2" fontWeight={700}>No upcoming event slots to roster.</Typography>
-                  </Box>
-                ) : (
-                  volunteerSlots.map((slot, idx) => (
-                    <Box 
-                      key={slot.id} 
-                      sx={{ 
-                        p: 2.5, 
-                        borderBottom: idx < volunteerSlots.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight={800}>{slot.role}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                          <Clock size={12} /> {format(safeParseDate(slot.serviceDate), 'MMM dd, yyyy')} ({slot.dayOfWeek})
-                        </Typography>
+                  <Box sx={{ p: 3 }}>
+                    {!pendingAudits.isValid ? (
+                      <Paper 
+                        variant="outlined" 
+                        sx={{ 
+                          p: 2.5, 
+                          borderRadius: 3, 
+                          bgcolor: alpha(theme.palette.warning.main, 0.02),
+                          borderColor: alpha(theme.palette.warning.main, 0.3)
+                        }}
+                      >
+                        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                          <AlertTriangle color={theme.palette.warning.main} size={22} style={{ flexShrink: 0 }} />
+                          <Box>
+                            <Typography variant="subtitle2" fontWeight={800} color="warning.main">
+                              Action Required: Missing Auditing Signature
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.4 }}>
+                              {pendingAudits.reason}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                        
+                        <Divider sx={{ my: 2 }} />
+                        
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>BATCH ID</Typography>
+                            <Typography variant="body2" fontWeight={900}>{pendingAudits.batchId}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>TOTAL AMOUNT</Typography>
+                            <Typography variant="body2" fontWeight={900} color="primary.main">GHC {pendingAudits.total.toLocaleString()}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>SIGNATURES</Typography>
+                            <Chip size="small" label={`${pendingAudits.signatures.length}/2 Signed`} color="warning" sx={{ fontWeight: 800 }} />
+                          </Box>
+                        </Stack>
+                      </Paper>
+                    ) : (
+                      <Box sx={{ py: 3, textAlign: 'center', opacity: 0.6 }}>
+                        <CheckCircle2 color={theme.palette.success.main} size={36} style={{ margin: '0 auto 12px' }} />
+                        <Typography variant="body2" fontWeight={700}>All batches reconciled & dual-signed.</Typography>
                       </Box>
-                      <Chip 
-                        size="small" 
-                        label={slot.assignedName} 
-                        color={slot.status === 'Assigned' ? 'success' : 'default'} 
-                        sx={{ fontWeight: 800 }} 
-                      />
+                    )}
+                  </Box>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* CHILD SAFETY CHECK-INS */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <motion.div variants={itemVariants}>
+                <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
+                  <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.primary.main, 0.03), display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+                      <ShieldCheck size={20} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight={800}>Child Safety Check-Ins</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>LIVE ROSTER & SAFETY MONITORS</Typography>
                     </Box>
-                  ))
-                )}
-              </Box>
-            </Card>
-          </motion.div>
-        </Grid>
-      </Grid>
+                  </Box>
+                  <Box sx={{ p: 3 }}>
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid size={{ xs: 4 }}>
+                        <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderRadius: 2 }}>
+                          <Typography variant="h5" fontWeight={900} color="primary.main">{safetyStatus.checkedInCount}</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={700}>CHECKED-IN</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid size={{ xs: 4 }}>
+                        <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.success.main, 0.03), borderRadius: 2 }}>
+                          <Typography variant="h5" fontWeight={900} color="success.main">{safetyStatus.activeTokenCount}</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={700}>ACTIVE TOKENS</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid size={{ xs: 4 }}>
+                        <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.error.main, 0.03), borderRadius: 2 }}>
+                          <Typography variant="h5" fontWeight={900} color="error.main">{safetyStatus.allergyAlerts}</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={700}>ALERTS</Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
 
-      {/* 5. MAIN CHART & ACTIVITIES SECTION */}
-      <Grid container spacing={5}>
-        {/* LEFT: ACTIVITY FEED & TREND CHART */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Stack spacing={5}>
-            <TrendChartCard 
-              title="Revenue Overview"
-              data={aggregatedData.financial}
-              dataKey="value"
-              xKey="date"
-            />
-            
-            <RecentActivityFeed 
-              activities={aggregatedData.activities.map(a => ({
-                id: a.id,
-                userName: a.type === 'member' ? a.description : 'System',
-                userImage: '',
-                action: a.type === 'member' ? 'joined' : a.type === 'transaction' ? 'received' : 'scheduled',
-                target: a.title,
-                timestamp: format(a.date, 'h:mm a')
-              }))}
-            />
-          </Stack>
-        </Grid>
+                    <List disablePadding>
+                      <ListItem sx={{ py: 1, px: 0 }}>
+                        <ListItemText 
+                          primary={<Typography variant="body2" fontWeight={800}>Parent-Child Token Status</Typography>} 
+                          secondary="Verifying guardian matching tickets" 
+                        />
+                        <Chip size="small" label="SECURE" color="success" variant="outlined" sx={{ fontWeight: 800 }} />
+                      </ListItem>
+                      <Divider component="li" />
+                      <ListItem sx={{ py: 1, px: 0 }}>
+                        <ListItemText 
+                          primary={<Typography variant="body2" fontWeight={800}>Emergency Contact Readiness</Typography>} 
+                          secondary="Guardian SMS broadcast enabled" 
+                        />
+                        <Chip size="small" label="READY" color="primary" variant="outlined" sx={{ fontWeight: 800 }} />
+                      </ListItem>
+                    </List>
+                  </Box>
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
 
-        {/* RIGHT: UPCOMING EVENTS */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Stack spacing={4}>
-            <UpcomingEventsWidget 
-              events={filteredData.events.slice(0, 5).map(e => ({
-                id: e.id,
-                month: format(safeParseDate(e.date), 'MMM'),
-                day: format(safeParseDate(e.date), 'dd'),
-                title: e.name,
-                time: e.time,
-                location: e.location || 'Main Sanctuary'
-              }))}
-            />
-          </Stack>
-        </Grid>
-      </Grid>
+          <Grid container spacing={4}>
+            {/* VOLUNTEER ROSTER SLOTS */}
+            <Grid size={{ xs: 12 }}>
+              <motion.div variants={itemVariants}>
+                <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}` }}>
+                  <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.secondary.main, 0.03), display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main }}>
+                      <Calendar size={20} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight={800}>Volunteer Roster Slots</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>DYNAMIC MINISTRY ASSIGNMENTS</Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ p: volunteerSlots.length === 0 ? 3 : 0 }}>
+                    {volunteerSlots.length === 0 ? (
+                      <Box sx={{ py: 3, textAlign: 'center', opacity: 0.6 }}>
+                        <Calendar size={36} style={{ margin: '0 auto 12px' }} />
+                        <Typography variant="body2" fontWeight={700}>No upcoming event slots to roster.</Typography>
+                      </Box>
+                    ) : (
+                      <Grid container>
+                        {volunteerSlots.map((slot, idx) => (
+                          <Grid size={{ xs: 12, md: 6 }} key={slot.id} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, borderRight: { md: idx % 2 === 0 ? `1px solid ${theme.palette.divider}` : 'none' } }}>
+                            <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyBehavior: 'space-between' }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                <Typography variant="subtitle2" fontWeight={800}>{slot.role}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                  <Clock size={12} /> {format(safeParseDate(slot.serviceDate), 'MMM dd, yyyy')} ({slot.dayOfWeek})
+                                </Typography>
+                              </Box>
+                              <Chip 
+                                size="small" 
+                                label={slot.assignedName} 
+                                color={slot.status === 'Assigned' ? 'success' : 'default'} 
+                                sx={{ fontWeight: 800 }} 
+                              />
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    )}
+                  </Box>
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </motion.div>
+      )}
+
+      {/* TAB PANEL 2: ANALYTICS */}
+      {tabValue === 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Grid container spacing={4} sx={{ mb: 6 }}>
+            {/* REVENUE OVERVIEW TREND */}
+            <Grid size={{ xs: 12 }}>
+              <TrendChartCard 
+                title="Revenue Overview"
+                data={aggregatedData.financial}
+                dataKey="value"
+                xKey="date"
+              />
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={4}>
+            {/* CAMPUS COMPARATIVE LOGISTICS */}
+            <Grid size={{ xs: 12 }}>
+              <motion.div variants={itemVariants}>
+                <Card sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, p: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+                        <MapPin size={20} />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" fontWeight={800}>Campus Comparative Logistics</Typography>
+                        <Typography variant="caption" color="text.secondary" fontWeight={700}>SITE-SPECIFIC PERFORMANCE COMPARISON</Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                  
+                  <Box sx={{ height: 350, width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={campusAnalytics} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
+                        <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12, fontWeight: 700 }} />
+                        <YAxis tickLine={false} axisLine={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12, fontWeight: 700 }} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: `1px solid ${theme.palette.divider}`, fontWeight: 800 }} />
+                        <Legend />
+                        <Bar dataKey="Members" name="Members Count" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Giving" name="Total Giving (GHC)" fill={theme.palette.secondary.main} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

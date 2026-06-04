@@ -104,7 +104,6 @@ const TopAppBar = ({
   isMobile, 
   workspace, 
   currentDepartment, 
-  user: propUser, 
   onProfileClick,
   notificationCount = 0
 }) => {
@@ -182,7 +181,7 @@ const TopAppBar = ({
               <Box
                 component="img"
                 src="/ricgcw.png"
-                alt="RICGCW Logo"
+                alt="Rhema Inner Court Gospel Church Worldwide (RICGCW) Logo"
                 sx={{
                   width: 36,
                   height: 36,
@@ -192,12 +191,12 @@ const TopAppBar = ({
               />
             )}
 
-            <Typography variant="h5" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontFamily: '"Playfair Display", serif' }}>
+            <Typography variant="h5" component="h1" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontFamily: '"Playfair Display", serif' }}>
               {workspace === 'main' ? 'Sanctuary' : currentDepartment}
             </Typography>
             
             {isMobile && (
-              <Typography variant="h6" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' }, fontFamily: 'Playfair Display' }}>
+              <Typography variant="h6" component="h1" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' }, fontFamily: 'Playfair Display' }}>
                 RICGCW
               </Typography>
             )}
@@ -208,7 +207,7 @@ const TopAppBar = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0.5,
-                px: 1.5,
+                px: isMobile ? 0.75 : 1.5,
                 py: 0.5,
                 borderRadius: 4,
                 bgcolor: alpha(theme.palette.success.main, 0.1),
@@ -226,7 +225,7 @@ const TopAppBar = ({
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 12 }} />
-              System: Healthy
+              {!isMobile && 'System: Healthy'}
             </Box>
           </Box>
 
@@ -244,10 +243,10 @@ const TopAppBar = ({
             </Search>
           </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={isMobile ? 1 : 2} alignItems="center">
             {/* Campus / Site Switcher for Admin & Developer */}
             {(userRole === 'admin' || userRole === 'developer') && (
-              <FormControl size="small" variant="outlined" sx={{ minWidth: 150 }}>
+              <FormControl size="small" variant="outlined" sx={{ minWidth: { xs: 90, sm: 150 } }}>
                 <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Select Campus</InputLabel>
                 <Select
                   labelId="campus-select-label"
@@ -270,6 +269,16 @@ const TopAppBar = ({
                   <MenuItem value="Diaspora">Diaspora</MenuItem>
                 </Select>
               </FormControl>
+            )}
+
+            {isMobile && (
+              <IconButton 
+                onClick={() => setPaletteOpen(true)} 
+                sx={{ color: 'text.secondary' }}
+                aria-label="Open Search"
+              >
+                <SearchIcon />
+              </IconButton>
             )}
 
             <IconButton sx={{ color: 'text.secondary' }}>

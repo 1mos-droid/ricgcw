@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /developer
+Disallow: /settings
+Disallow: /user-management
+
+Sitemap: https://ricgcw.web.app/sitemap.xml

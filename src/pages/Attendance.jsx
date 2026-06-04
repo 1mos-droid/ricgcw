@@ -867,15 +867,15 @@ const Attendance = () => {
           {/* Plain HTML structure for printing */}
           <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid black' }}>
               <h1>Attendance Report</h1>
-              <h3>{safeFormat(selectedRecord.date, 'EEEE, MMMM do, yyyy')}</h3>
+              <h2>{safeFormat(selectedRecord.date, 'EEEE, MMMM do, yyyy')}</h2>
           </div>
           <div style={{ display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1 }}>
-                  <h4>Present ({selectedRecord.attendees?.length || 0})</h4>
+                  <h3>Present ({selectedRecord.attendees?.length || 0})</h3>
                   <ul>{selectedRecord.attendees?.map((m, i) => <li key={i}>{m.name}</li>)}</ul>
               </div>
               <div style={{ flex: 1 }}>
-                  <h4>Absent ({getAbsentMembers(selectedRecord).length})</h4>
+                  <h3>Absent ({getAbsentMembers(selectedRecord).length})</h3>
                   <ul>{getAbsentMembers(selectedRecord).map((m, i) => <li key={i}>{m.name}</li>)}</ul>
               </div>
           </div>

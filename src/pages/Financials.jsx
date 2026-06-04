@@ -91,8 +91,8 @@ const StatCard = ({ title, value, subValue, icon: Icon, color, delay }) => { // 
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
-            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>{title}</Typography>
-            <Typography variant="h4" fontWeight={800} sx={{ my: 1, color: theme.palette.text.primary }}>{value}</Typography>
+            <Typography variant="caption" component="span" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>{title}</Typography>
+            <Typography variant="h4" component="h3" fontWeight={800} sx={{ my: 1, color: theme.palette.text.primary }}>{value}</Typography>
           </Box>
           <Box sx={{ 
             p: 1.5, borderRadius: 6, 

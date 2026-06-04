@@ -88,7 +88,7 @@ const SidebarNav = ({
           <Box
             component="img"
             src="/ricgcw.png"
-            alt="RICGCW Logo"
+            alt="Rhema Inner Court Gospel Church Worldwide (RICGCW) Logo"
             sx={{
               width: 56,
               height: 56,
@@ -101,7 +101,7 @@ const SidebarNav = ({
               RICGCW
             </Typography>
             <Typography variant="caption" color="primary" fontWeight={900} sx={{ letterSpacing: '0.05em', fontSize: '0.6rem', textTransform: 'uppercase', display: 'block' }}>
-              Rhema Inner Court
+              Rhema Inner Court Gospel Church Worldwide
             </Typography>
           </Box>
         </Stack>

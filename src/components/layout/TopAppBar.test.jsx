@@ -70,4 +70,27 @@ describe('TopAppBar Upgrades', () => {
     expect(screen.getByText('Mallam')).toBeInTheDocument();
     expect(screen.getByText('Langma')).toBeInTheDocument();
   });
+
+  it('renders search icon button on mobile screen', () => {
+    renderTopAppBar({ isMobile: true });
+    const searchButton = screen.getByRole('button', { name: /open search/i });
+    expect(searchButton).toBeInTheDocument();
+  });
+
+  it('does not render search icon button on desktop screen', () => {
+    renderTopAppBar({ isMobile: false });
+    const searchButton = screen.queryByRole('button', { name: /open search/i });
+    expect(searchButton).not.toBeInTheDocument();
+  });
+
+  it('does not render system health text on mobile screen', () => {
+    renderTopAppBar({ isMobile: true });
+    expect(screen.queryByText(/System: Healthy/i)).not.toBeInTheDocument();
+  });
+
+  it('opens search command palette on Cmd+K keyboard shortcut', () => {
+    renderTopAppBar();
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    expect(screen.getByPlaceholderText(/Type a command or search.../i)).toBeInTheDocument();
+  });
 });

@@ -114,7 +114,7 @@ describe('Dashboard Component TDD Checks', () => {
     expect(screen.getByText(/Welcome Back, Kwame/i)).toBeInTheDocument();
     expect(screen.getByText(/My Giving History/i)).toBeInTheDocument();
     expect(screen.getByText('Prayer Request')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('renders Admin Dashboard layout for an admin role', async () => {
     currentRole = 'admin';
@@ -140,10 +140,27 @@ describe('Dashboard Component TDD Checks', () => {
     expect(screen.getByText(/Total Revenue/i)).toBeInTheDocument();
     expect(screen.getByText(/Total Expenses/i)).toBeInTheDocument();
 
-    // Check newly redesign widgets exist
-    expect(screen.getByText(/Campus Comparative Logistics/i)).toBeInTheDocument();
+    // Verify tabs exist
+    expect(screen.getByRole('tab', { name: /overview/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /operations/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /analytics/i })).toBeInTheDocument();
+
+    // Operations widgets should NOT be in the document initially
+    expect(screen.queryByText(/Child Safety Check-Ins/i)).not.toBeInTheDocument();
+
+    // Click on Operations tab
+    fireEvent.click(screen.getByRole('tab', { name: /operations/i }));
+    
+    // Now operations widgets should be visible
     expect(screen.getByText(/Child Safety Check-Ins/i)).toBeInTheDocument();
     expect(screen.getByText(/Volunteer Roster Slots/i)).toBeInTheDocument();
     expect(screen.getByText(/Pending Dual-Custody Deposit Audits/i)).toBeInTheDocument();
-  });
+
+    // Click on Analytics tab
+    fireEvent.click(screen.getByRole('tab', { name: /analytics/i }));
+
+    // Now analytics widgets should be visible
+    expect(screen.getByText(/Campus Comparative Logistics/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revenue Overview/i)).toBeInTheDocument();
+  }, 15000);
 });

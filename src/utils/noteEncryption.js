@@ -48,7 +48,7 @@ export function decryptSensitiveNotes(cipherText, secretKey) {
     }
     
     return decrypted;
-  } catch (err) {
+  } catch {
     return 'Decryption failed: invalid key or corrupted payload.';
   }
 }

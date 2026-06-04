@@ -12,7 +12,6 @@ import {
   Divider,
   InputAdornment,
   useTheme,
-  alpha,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DashboardIcon from '@mui/icons-material/Dashboard';

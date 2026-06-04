@@ -1,9 +1,8 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, useTheme, Divider } from '@mui/material';
+import { Card, CardContent, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Divider } from '@mui/material';
 import UserAvatar from '../atoms/UserAvatar';
 
 const RecentActivityFeed = ({ activities = [] }) => {
-  const theme = useTheme();
 
   return (
     <Card sx={{ height: '100%' }}>

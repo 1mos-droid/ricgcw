@@ -1,11 +1,9 @@
 /**
  * Generates pairing security tokens for child check-in labels and guardian apps.
  * 
- * @param {string} childId - ID of checked-in child
- * @param {string} parentId - ID of parent/guardian checking them in
  * @returns {Object} - Matching child and parent security tokens
  */
-export function generateSecurityTokens(childId, parentId) {
+export function generateSecurityTokens() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let token = '';
   // Generate a random 8-character token

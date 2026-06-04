@@ -315,6 +315,31 @@ const AppLayout = ({ children }) => {
                         navigate(newValue);
                     }
                 }}
+                sx={{
+                  bgcolor: alpha(theme.palette.background.paper, 0.8),
+                  backdropFilter: 'blur(20px)',
+                  borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                  boxShadow: `0 -8px 24px ${alpha(theme.palette.common.black, 0.04)}`,
+                  height: 64,
+                  '& .MuiBottomNavigationAction-root': {
+                    color: theme.palette.text.secondary,
+                    transition: 'all 0.2s',
+                    minWidth: 'auto',
+                    padding: '6px 0',
+                    '&.Mui-selected': {
+                      color: theme.palette.primary.main,
+                      fontWeight: 800,
+                      '& .MuiSvgIcon-root': {
+                        transform: 'translateY(-2px) scale(1.15)',
+                        filter: `drop-shadow(0 4px 10px ${alpha(theme.palette.primary.main, 0.3)})`,
+                      }
+                    }
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.4rem',
+                    transition: 'transform 0.2s ease-in-out',
+                  }
+                }}
              >
                 {filteredBottomNavItems.map((item) => (
                     <BottomNavigationAction 
