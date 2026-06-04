@@ -34,9 +34,9 @@ import {
   Maximize2
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { uploadToHuggingFace } from '../utils/huggingFaceApi';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const Gallery = () => {
   const theme = useTheme();
@@ -92,12 +92,12 @@ const Gallery = () => {
     }
 
     setUploading(true);
-    // 1. Create a local preview URL for instant UI feedback
-    const localPreviewUrl = URL.createObjectURL(newImageFile);
     
     try {
-      // 2. Start the upload in the background
-      const imageUrl = await uploadToHuggingFace(newImageFile);
+      // 1. Upload to Firebase Storage (Production-grade CDN)
+      const fileRef = ref(storage, `gallery/${Date.now()}_${newImageFile.name}`);
+      const uploadResult = await uploadBytes(fileRef, newImageFile);
+      const imageUrl = await getDownloadURL(uploadResult.ref);
       
       const imageData = {
         title: newImageTitle,
@@ -106,18 +106,17 @@ const Gallery = () => {
         createdAt: new Date().toISOString(),
       };
       
-      // 3. Save to Firestore
+      // 2. Save metadata to Firestore
       const docRef = await addDoc(collection(db, "gallery"), imageData);
       
-      // 4. Update local state using the localPreviewUrl for immediate display
-      // This bypasses the Hugging Face 404 race condition.
-      const newImageWithPreview = { id: docRef.id, ...imageData, url: localPreviewUrl };
-      setImages([newImageWithPreview, ...images]);
+      // 3. Update local state
+      setImages([{ id: docRef.id, ...imageData }, ...images]);
       
       showNotification("Image uploaded successfully!", "success");
       handleCloseUpload();
     } catch (err) {
-      showNotification(err.message, "error");
+      console.error("Upload Error:", err);
+      showNotification("Failed to upload image. Please try again.", "error");
     } finally {
       setUploading(false);
     }

@@ -66,7 +66,11 @@ import {
   Baby,
   Calendar,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Milestone,
+  ShieldCheck,
+  Zap,
+  Star
 } from 'lucide-react';
 import { getDepartmentByAge, calculateAge } from '../utils/dateUtils';
 import QRCode from 'react-qr-code';
@@ -140,7 +144,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
     spouseId: null,
     childrenIds: [],
     spouseName: '',
-    childrenNames: ''
+    childrenNames: '',
+    growthPath: {
+      newConvert: false,
+      waterBaptized: false,
+      foundationSchool: false,
+      leader: false
+    }
   });
 
   const getStatusChip = (status) => {
@@ -202,7 +212,13 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
         spouseId: member.spouseId || null,
         childrenIds: member.childrenIds || [],
         spouseName: member.spouseName || '',
-        childrenNames: member.childrenNames || ''
+        childrenNames: member.childrenNames || '',
+        growthPath: member.growthPath || {
+          newConvert: false,
+          waterBaptized: false,
+          foundationSchool: false,
+          leader: false
+        }
       });
       setErrors({});
       setIsEditing(false);
@@ -512,6 +528,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
             }}
         >
           <Tab label="Bio" />
+          <Tab label="Growth Path" />
           <Tab label="Timeline" />
           <Tab label="Engagement" />
           <Tab label="Family" />
@@ -980,7 +997,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                         variant="contained" 
                         fullWidth 
                         startIcon={<Send size={18} />}
-                        onClick={() => setTabValue(5)}
+                        onClick={() => setTabValue(6)}
                         sx={{ 
                             borderRadius: 1.5, 
                             py: 1.5, 
@@ -1028,6 +1045,81 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
 
         ) : tabValue === 1 ? (
           <Box sx={{ p: 4 }}>
+            <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, mb: 1, display: 'block' }}>SPIRITUAL GROWTH PATH</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4, fontWeight: 500 }}>
+                Track the progress of <strong>{member.name}</strong> through the church's core spiritual milestones.
+            </Typography>
+
+            <Grid container spacing={3}>
+                {[
+                    { key: 'newConvert', label: 'New Convert', icon: <Zap size={22} />, color: '#F59E0B', description: 'Has accepted Christ and joined the community.' },
+                    { key: 'waterBaptized', label: 'Water Baptized', icon: <Waves size={22} />, color: '#3B82F6', description: 'Has undergone public immersion baptism.' },
+                    { key: 'foundationSchool', label: 'Foundation School', icon: <ShieldCheck size={22} />, color: '#10B981', description: 'Has completed the basic discipleship course.' },
+                    { key: 'leader', label: 'Leader / Worker', icon: <Star size={22} />, color: '#8B5CF6', description: 'Serving in a ministry leadership capacity.' }
+                ].map((m) => (
+                    <Grid size={{ xs: 12, sm: 6 }} key={m.key}>
+                        <Card 
+                            variant="outlined" 
+                            sx={{ 
+                                p: 3, 
+                                borderRadius: 4, 
+                                position: 'relative',
+                                overflow: 'hidden',
+                                border: `1px solid ${formData.growthPath[m.key] ? alpha(m.color, 0.4) : theme.palette.divider}`,
+                                bgcolor: formData.growthPath[m.key] ? alpha(m.color, 0.05) : 'transparent',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: isEditing ? 'pointer' : 'default',
+                                '&:hover': isEditing ? { borderColor: m.color, bgcolor: alpha(m.color, 0.08) } : {}
+                            }}
+                            onClick={() => {
+                                if (isEditing) {
+                                    setFormData({
+                                        ...formData,
+                                        growthPath: { ...formData.growthPath, [m.key]: !formData.growthPath[m.key] }
+                                    });
+                                }
+                            }}
+                        >
+                            <Stack direction="row" spacing={2.5} alignItems="center">
+                                <Box sx={{ 
+                                    p: 1.5, 
+                                    borderRadius: 3, 
+                                    bgcolor: formData.growthPath[m.key] ? m.color : alpha(theme.palette.text.disabled, 0.1),
+                                    color: formData.growthPath[m.key] ? '#fff' : theme.palette.text.disabled,
+                                    display: 'flex'
+                                }}>
+                                    {m.icon}
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle1" fontWeight={800} sx={{ color: formData.growthPath[m.key] ? theme.palette.text.primary : theme.palette.text.disabled }}>
+                                        {m.label}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500, display: 'block', mt: 0.5 }}>
+                                        {m.description}
+                                    </Typography>
+                                </Box>
+                                {formData.growthPath[m.key] && (
+                                    <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
+                                        <CheckCircle2 size={18} color={m.color} />
+                                    </Box>
+                                )}
+                            </Stack>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
+
+            {isEditing && (
+                <Box sx={{ mt: 4, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.05), border: `1px dashed ${theme.palette.info.main}` }}>
+                    <Typography variant="caption" color="info.main" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Milestone size={14} /> Tap cards above to toggle spiritual milestones for this member.
+                    </Typography>
+                </Box>
+            )}
+          </Box>
+
+        ) : tabValue === 2 ? (
+          <Box sx={{ p: 4 }}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Church Journey Timeline</Typography>
             <List>
               {(member.timeline || [{ date: member.createdAt || new Date().toISOString(), event: 'Profile Created' }]).map((item, idx) => (
@@ -1049,7 +1141,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
               ))}
             </List>
           </Box>
-        ) : tabValue === 2 ? (
+        ) : tabValue === 3 ? (
           <Box sx={{ p: 4 }}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Spiritual Growth & Engagement</Typography>
             <Grid container spacing={3}>
@@ -1079,7 +1171,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
               </Grid>
             </Grid>
           </Box>
-        ) : tabValue === 3 ? (
+        ) : tabValue === 4 ? (
           <Box sx={{ p: 4 }}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2 }}>Household / Family unit</Typography>
             <Grid container spacing={2}>
@@ -1119,7 +1211,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
               )}
             </Grid>
           </Box>
-        ) : tabValue === 4 ? (
+        ) : tabValue === 5 ? (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={2} sx={{ mb: 4 }}>
               <Grid size={{ xs: 6 }}>
@@ -1345,7 +1437,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                 </List>
             </Card>
           </Box>
-        ) : tabValue === 5 ? (
+        ) : tabValue === 6 ? (
           <Box sx={{ p: 4 }}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Mail size={16} /> COMPOSE MESSAGE

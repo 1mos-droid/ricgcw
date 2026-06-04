@@ -151,7 +151,7 @@ const Login = () => {
                 <Box
                   component="img"
                   src="/ricgcw.png"
-                  alt="RICGCW Logo"
+                  alt="Rhema Inner Court Gospel Church Worldwide (RICGCW) Logo"
                   sx={{
                     width: 120,
                     height: 'auto',
@@ -161,7 +161,7 @@ const Login = () => {
                 />
               </motion.div>
               
-              <Typography variant="h3" sx={{ 
+              <Typography variant="h3" component="h1" sx={{ 
                 fontFamily: '"Playfair Display", serif', 
                 fontWeight: 900, 
                 color: theme.palette.text.primary,

@@ -30,7 +30,7 @@ import {
   Tab,
   Badge
 } from '@mui/material';
-import {
+import { 
   Users,
   DollarSign,
   Calendar,
@@ -48,26 +48,31 @@ import {
   Loader2,
   HeartHandshake,
   History,
-  ShieldCheck,
+  MessageCircle,
   AlertTriangle,
+  CheckCircle,
+  BarChart2,
+  Zap,
+  Star,
+  Milestone,
+  ShieldCheck,
   Sparkles
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ResponsiveContainer, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis,
-  PieChart, Pie, Cell, Legend, BarChart, Bar
+  PieChart, Pie, Cell, Legend, BarChart, Bar 
 } from 'recharts';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 import { syncMemberDepartments } from '../utils/syncDepartments';
-import emailjs from '@emailjs/browser';
-import DigitalGivingDialog from '../components/DigitalGivingDialog';
-
-// Import newly created enterprise engine models
-import { validateBatchDeposit } from '../utils/dualCustody';
 import { autoAssignVolunteers } from '../utils/autoRoster';
+import { validateBatchDeposit } from '../utils/dualCustody';
+import emailjs from '@emailjs/browser';
+import { sendSMS } from '../utils/communicationApi';
+import DigitalGivingDialog from '../components/DigitalGivingDialog';
 
 // New Components
 import MetricCard from '../components/organisms/MetricCard';
@@ -141,6 +146,13 @@ const MemberDashboardView = ({ user, transactions, events }) => {
 
     try {
       await emailjs.send(serviceId, templateId, templateParams, publicKey);
+      
+      // Also send an SMS alert to the head pastor/admin if configured
+      const adminPhone = import.meta.env.VITE_ADMIN_PHONE;
+      if (adminPhone) {
+        await sendSMS(adminPhone, `🙏 New Prayer Request from ${user?.name || user?.email} (${user?.branch || 'Main'}). Check the portal for details.`);
+      }
+
       showNotification("Your prayer request has been sent to the pastoral team.", "success");
       setPrayerRequest('');
     } catch (error) {
@@ -848,9 +860,9 @@ const Dashboard = () => {
               </Typography>
             </Stack>
             
-            <Typography variant="h2" sx={{ 
-                fontWeight: 900, 
-                mb: 2.5, 
+            <Typography variant="h3" component="h2" sx={{
+                fontWeight: 900,
+                mb: 2.5,
                 letterSpacing: '-0.03em',
                 fontSize: { xs: '2.5rem', md: '3.8rem' },
                 lineHeight: 1,

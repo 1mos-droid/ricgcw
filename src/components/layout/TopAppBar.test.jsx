@@ -24,6 +24,14 @@ vi.mock('../../context/AuthContext', () => ({
   }),
 }));
 
+const mockToggleColorMode = vi.fn();
+vi.mock('../../theme', () => ({
+  useColorMode: () => ({
+    mode: 'light',
+    toggleColorMode: mockToggleColorMode,
+  }),
+}));
+
 describe('TopAppBar Upgrades', () => {
   const theme = createTheme();
 
@@ -92,5 +100,14 @@ describe('TopAppBar Upgrades', () => {
     renderTopAppBar();
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
     expect(screen.getByPlaceholderText(/Type a command or search.../i)).toBeInTheDocument();
+  });
+
+  it('renders theme mode icon button and handles click to toggle', () => {
+    renderTopAppBar();
+    const toggleButton = screen.getByRole('button', { name: /toggle theme mode/i });
+    expect(toggleButton).toBeInTheDocument();
+
+    fireEvent.click(toggleButton);
+    expect(mockToggleColorMode).toHaveBeenCalled();
   });
 });

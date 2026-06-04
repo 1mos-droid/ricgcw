@@ -52,14 +52,19 @@ import {
   Filter,
   MoreHorizontal,
   FileSpreadsheet,
-  Edit2
+  Edit2,
+  Upload,
+  Link as LinkIcon,
+  X,
+  FileCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -141,6 +146,8 @@ const Financials = () => {
   const [type, setType] = useState('contribution');
   const [category, setCategory] = useState(isBranchRestricted ? userBranch : 'Mallam');
   const [date, setDate] = useState(getISOStringDate(new Date()));
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptUrl, setReceiptUrl] = useState('');
 
   // --- FETCH DATA ---
   const fetchData = useCallback(async () => {
@@ -176,19 +183,30 @@ const Financials = () => {
     }
     setSubmitting(true);
     try {
+      let finalReceiptUrl = receiptUrl;
+
+      // Handle File Upload if new file selected
+      if (receiptFile) {
+        const fileRef = ref(storage, `receipts/${Date.now()}_${receiptFile.name}`);
+        const uploadResult = await uploadBytes(fileRef, receiptFile);
+        finalReceiptUrl = await getDownloadURL(uploadResult.ref);
+      }
+
       const txData = {
         amount: Number(amount),
         description,
         type,
         category,
-        date: new Date(date).toISOString()
+        date: new Date(date).toISOString(),
+        receiptUrl: finalReceiptUrl || null,
+        updatedAt: new Date().toISOString()
       };
       
       if (editingTransaction) {
         await setDoc(doc(db, "transactions", editingTransaction.id), txData, { merge: true });
         showNotification("Transaction updated successfully.", "success");
       } else {
-        await addDoc(collection(db, "transactions"), txData);
+        await addDoc(collection(db, "transactions"), { ...txData, createdAt: new Date().toISOString() });
         showNotification("Transaction recorded successfully.", "success");
       }
       
@@ -210,6 +228,8 @@ const Financials = () => {
     setCategory(isBranchRestricted ? userBranch : 'Mallam');
     setDate(getISOStringDate(new Date()));
     setEditingTransaction(null);
+    setReceiptFile(null);
+    setReceiptUrl('');
   };
 
   const handleEditClick = (tx) => {
@@ -219,6 +239,7 @@ const Financials = () => {
     setType(tx.type);
     setCategory(tx.category);
     setDate(getISOStringDate(tx.date));
+    setReceiptUrl(tx.receiptUrl || '');
     setOpenLogDialog(true);
   };
 
@@ -582,7 +603,7 @@ const Financials = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                {['Date', 'Description', 'Category', 'Location', 'Amount', 'Actions'].map(h => (
+                                {['Date', 'Description', 'Category', 'Location', 'Amount', 'Evidence', 'Actions'].map(h => (
                                     <TableCell key={h} sx={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
                                 ))}
                             </TableRow>
@@ -609,6 +630,17 @@ const Financials = () => {
                                         <TableCell>{tx.category}</TableCell>
                                         <TableCell sx={{ fontWeight: 800, fontFamily: 'monospace' }}>GHC {Number(tx.amount).toLocaleString()}</TableCell>
                                         <TableCell>
+                                            {tx.receiptUrl ? (
+                                                <Tooltip title="View Digital Receipt">
+                                                    <IconButton size="small" component="a" href={tx.receiptUrl} target="_blank" color="primary">
+                                                        <FileCheck size={20} />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            ) : (
+                                                <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 700 }}>No Receipt</Typography>
+                                            )}
+                                        </TableCell>
+                                        <TableCell align="right">
                                             <IconButton size="small" color="primary" onClick={() => handleEditClick(tx)} sx={{ mr: 1 }}>
                                                 <Edit2 size={18} />
                                             </IconButton>
@@ -680,6 +712,55 @@ const Financials = () => {
                     <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
                     <MenuItem value="Diaspora">Diaspora</MenuItem>
                     </TextField>
+
+                 {/* Receipt Upload Section */}
+                 <Box>
+                    <Typography variant="caption" fontWeight={800} color="text.secondary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase' }}>
+                        Digital Receipt / Evidence
+                    </Typography>
+                    <input
+                        accept="image/*,application/pdf"
+                        style={{ display: 'none' }}
+                        id="receipt-upload"
+                        type="file"
+                        onChange={(e) => setReceiptFile(e.target.files[0])}
+                    />
+                    <label htmlFor="receipt-upload">
+                        <Paper 
+                            variant="outlined" 
+                            sx={{ 
+                                p: 2, 
+                                borderRadius: 4, 
+                                borderStyle: 'dashed', 
+                                textAlign: 'center', 
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                bgcolor: receiptFile || receiptUrl ? alpha(theme.palette.success.main, 0.05) : 'transparent',
+                                borderColor: receiptFile || receiptUrl ? theme.palette.success.main : theme.palette.divider,
+                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05), borderColor: theme.palette.primary.main }
+                            }}
+                        >
+                            {receiptFile ? (
+                                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                                    <FileCheck size={20} color={theme.palette.success.main} />
+                                    <Typography variant="body2" fontWeight={700}>{receiptFile.name}</Typography>
+                                    <IconButton size="small" onClick={(e) => { e.preventDefault(); setReceiptFile(null); }}><X size={14}/></IconButton>
+                                </Stack>
+                            ) : receiptUrl ? (
+                                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                                    <LinkIcon size={20} color={theme.palette.success.main} />
+                                    <Typography variant="body2" fontWeight={700}>Receipt Attached</Typography>
+                                    <IconButton size="small" onClick={(e) => { e.preventDefault(); setReceiptUrl(''); }}><X size={14}/></IconButton>
+                                </Stack>
+                            ) : (
+                                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                                    <Upload size={20} color={theme.palette.text.secondary} />
+                                    <Typography variant="body2" fontWeight={600} color="text.secondary">Upload PDF or Image</Typography>
+                                </Stack>
+                            )}
+                        </Paper>
+                    </label>
+                 </Box>
 
             </Stack>
         </DialogContent>

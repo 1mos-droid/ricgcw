@@ -1,32 +1,28 @@
+import CryptoJS from 'crypto-js';
+
 /**
- * Encrypts sensitive pastoral counseling notes using a key-based rotation cipher
- * and encodes the result in Base64 for database safety.
+ * Encrypts sensitive pastoral counseling notes using AES-256 encryption.
  * 
  * @param {string} noteContent - Plaintext pastoral notes
  * @param {string} secretKey - Encryption secret key
- * @returns {string} - Encrypted cipher text encoded in Base64
+ * @returns {string} - Encrypted cipher text (AES-256)
  */
 export function encryptSensitiveNotes(noteContent, secretKey) {
   if (!noteContent) return '';
   if (!secretKey) return noteContent;
 
-  let cipherText = '';
-  for (let i = 0; i < noteContent.length; i++) {
-    const charCode = noteContent.charCodeAt(i);
-    const keyChar = secretKey.charCodeAt(i % secretKey.length);
-    // Shift character code by key character code
-    const encryptedChar = String.fromCharCode(charCode + keyChar);
-    cipherText += encryptedChar;
+  try {
+    return CryptoJS.AES.encrypt(noteContent, secretKey).toString();
+  } catch (error) {
+    console.error('Encryption failed:', error);
+    return noteContent; // Fallback to plain text if encryption fails
   }
-
-  // Convert binary character string to Base64 safely
-  return btoa(unescape(encodeURIComponent(cipherText)));
 }
 
 /**
- * Decrypts Base64 cipher text using key-based rotation cipher.
+ * Decrypts AES-256 cipher text.
  * 
- * @param {string} cipherText - Base64 encoded cipher text
+ * @param {string} cipherText - AES-256 encrypted cipher text
  * @param {string} secretKey - Decryption secret key
  * @returns {string} - Decrypted plaintext notes or error message
  */
@@ -35,20 +31,16 @@ export function decryptSensitiveNotes(cipherText, secretKey) {
   if (!secretKey) return cipherText;
 
   try {
-    // Decode Base64 string safely
-    const rawCipherText = decodeURIComponent(escape(atob(cipherText)));
-    let decrypted = '';
+    const bytes = CryptoJS.AES.decrypt(cipherText, secretKey);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     
-    for (let i = 0; i < rawCipherText.length; i++) {
-      const charCode = rawCipherText.charCodeAt(i);
-      const keyChar = secretKey.charCodeAt(i % secretKey.length);
-      // Shift back by key character code
-      const decryptedChar = String.fromCharCode(charCode - keyChar);
-      decrypted += decryptedChar;
+    if (!decrypted) {
+        throw new Error('Invalid key or corrupted payload');
     }
     
     return decrypted;
-  } catch {
+  } catch (error) {
+    console.error('Decryption failed:', error);
     return 'Decryption failed: invalid key or corrupted payload.';
   }
 }

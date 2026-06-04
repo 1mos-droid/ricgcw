@@ -19,10 +19,13 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import UserAvatar from '../atoms/UserAvatar';
 import CommandPalette from '../CommandPalette';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useAuth } from '../../context/AuthContext';
+import { useColorMode } from '../../theme';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
@@ -109,6 +112,7 @@ const TopAppBar = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { mode, toggleColorMode } = useColorMode();
   const { user } = useAuth();
   const { 
     userBranch, 
@@ -280,6 +284,14 @@ const TopAppBar = ({
                 <SearchIcon />
               </IconButton>
             )}
+
+            <IconButton 
+              onClick={toggleColorMode} 
+              sx={{ color: 'text.secondary' }}
+              aria-label="Toggle theme mode"
+            >
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
 
             <IconButton sx={{ color: 'text.secondary' }}>
               <Badge badgeContent={notificationCount} color="error">

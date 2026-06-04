@@ -180,7 +180,7 @@ const Join = () => {
                 }}
             />
             <Typography variant="overline" color="primary" fontWeight={800} letterSpacing={3}>NEW MEMBER REGISTRATION</Typography>
-            <Typography variant="h2" fontWeight={900} sx={{ letterSpacing: '-0.03em', mt: 1, mb: 2 }}>Join the Congregation</Typography>
+            <Typography variant="h2" component="h1" fontWeight={900} sx={{ letterSpacing: '-0.03em', mt: 1, mb: 2 }}>Join the Congregation</Typography>
             <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', fontWeight: 500 }}>
                 Welcome home! Please take a moment to provide your details so we can connect with you and serve you better.
             </Typography>
