@@ -447,42 +447,58 @@ const Dashboard = () => {
     if (userRole !== 'admin' && userRole !== 'branch_admin') return;
 
     const today = new Date();
-    const targetDate = new Date();
-    targetDate.setDate(today.getDate() + 7);
-    const targetMonth = targetDate.getMonth() + 1;
-    const targetDay = targetDate.getDate();
     
-    const targetDateISO = targetDate.toISOString().split('T')[0];
-    const targetDateStr = targetDateISO + "T00:00:00.000Z";
+    // Scan range from today (0 days) to 7 days from now
+    for (let d = 0; d <= 7; d++) {
+      const targetDate = new Date();
+      targetDate.setDate(today.getDate() + d);
+      
+      const targetMonth = targetDate.getMonth() + 1;
+      const targetDay = targetDate.getDate();
+      
+      // Timezone-safe local ISO string (YYYY-MM-DD)
+      const year = targetDate.getFullYear();
+      const month = String(targetMonth).padStart(2, '0');
+      const day = String(targetDay).padStart(2, '0');
+      const targetDateISO = `${year}-${month}-${day}`;
+      const targetDateStr = `${targetDateISO}T00:00:00.000Z`;
 
-    const upcomingBirthdays = members.filter(member => {
-      if (!member.dob) return false;
-      const dob = safeParseDate(member.dob);
-      return (dob.getMonth() + 1) === targetMonth && dob.getDate() === targetDay;
-    });
+      const upcomingBirthdays = members.filter(member => {
+        if (!member.dob) return false;
+        const dob = safeParseDate(member.dob);
+        return (dob.getMonth() + 1) === targetMonth && dob.getDate() === targetDay;
+      });
 
-    for (const member of upcomingBirthdays) {
-      const eventName = `🎂 Birthday: ${member.name}`;
-      const exists = allEvents.some(e => 
-        e.name === eventName && 
-        getISOStringDate(e.date) === targetDateISO
-      );
+      for (const member of upcomingBirthdays) {
+        const eventName = `🎂 Birthday: ${member.name}`;
+        const exists = allEvents.some(e => 
+          e.name === eventName && 
+          getISOStringDate(e.date) === targetDateISO
+        );
 
-      if (!exists) {
-        try {
-          await addDoc(collection(db, "events"), {
-            name: eventName,
-            date: targetDateStr,
-            time: "00:00",
-            location: "Main Auditorium",
-            isOnline: false,
-            description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
-            branch: member.branch || 'Main',
-            createdAt: new Date().toISOString()
-          });
-          console.log(`Automatic event created: ${eventName}`);
-        } catch (err) {
-          console.error("Error creating birthday event:", err);
+        if (!exists) {
+          try {
+            await addDoc(collection(db, "events"), {
+              name: eventName,
+              date: targetDateStr,
+              time: "00:00",
+              location: "Main Auditorium",
+              isOnline: false,
+              description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
+              branch: member.branch || 'Main',
+              createdAt: new Date().toISOString()
+            });
+            console.log(`Automatic event created: ${eventName} for ${targetDateISO}`);
+            
+            // Push to allEvents so that we don't recreate it if checking again in this loop
+            allEvents.push({
+              name: eventName,
+              date: targetDateStr,
+              branch: member.branch || 'Main'
+            });
+          } catch (err) {
+            console.error("Error creating birthday event:", err);
+          }
         }
       }
     }

@@ -95,6 +95,20 @@ const Members = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
   const [registrationQrOpen, setRegistrationQrOpen] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [rowMenuAnchor, setRowMenuAnchor] = useState(null);
+  const [rowMenuMember, setRowMenuMember] = useState(null);
+
+  const handleRowMenuOpen = (event, member) => {
+    event.stopPropagation();
+    setRowMenuAnchor(event.currentTarget);
+    setRowMenuMember(member);
+  };
+
+  const handleRowMenuClose = () => {
+    setRowMenuAnchor(null);
+    setRowMenuMember(null);
+  };
 
   const downloadRegistrationQRCode = () => {
     const svg = document.getElementById("RegistrationQRCode");
@@ -307,9 +321,32 @@ const Members = () => {
           await deleteDoc(doc(db, "members", id));
           await fetchMembers(true);
           setSelectedMember(null);
+          setSelectedMemberIds(prev => prev.filter(mId => mId !== id));
           showNotification("Member removed.", "info");
         } catch {
           showNotification("Delete failed.", "error");
+        }
+      }
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedMemberIds.length === 0) return;
+    
+    showConfirmation({
+      title: "Remove Selected Members",
+      message: `Permanently remove these ${selectedMemberIds.length} members?`,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await Promise.all(selectedMemberIds.map(id => deleteDoc(doc(db, "members", id))));
+          await fetchMembers(true);
+          setSelectedMemberIds([]);
+          showNotification("Selected members removed.", "info");
+        } catch {
+          showNotification("Delete failed.", "error");
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -520,7 +557,14 @@ const Members = () => {
       id: 'actions',
       label: '',
       align: 'right',
-      render: () => <IconButton size="small"><MoreVertical size={16} /></IconButton>
+      render: (_, row) => (
+        <IconButton 
+          size="small"
+          onClick={(e) => handleRowMenuOpen(e, row)}
+        >
+          <MoreVertical size={16} />
+        </IconButton>
+      )
     }
   ];
 
@@ -714,6 +758,30 @@ const Members = () => {
                 <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Join QR</Box>
               </Button>
 
+              {selectedMemberIds.length > 0 && (
+                <Button 
+                  variant="contained" 
+                  color="error"
+                  startIcon={<UserX size={20} />}
+                  onClick={handleDeleteSelected}
+                  sx={{ 
+                      borderRadius: 4, 
+                      height: 56,
+                      px: { xs: 2, lg: 3 },
+                      fontWeight: 800,
+                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.error.main, 0.4)}`,
+                      '&:hover': { 
+                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.error.main, 0.5)}`,
+                          transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      flexGrow: { xs: 1, sm: 0 }
+                  }}
+                >
+                  Delete ({selectedMemberIds.length})
+                </Button>
+              )}
+
               <Button 
                   variant="contained" 
                   startIcon={<UserPlus size={22} />}
@@ -765,6 +833,8 @@ const Members = () => {
             <MasterDataGrid 
               columns={columns}
               rows={filteredMembers}
+              selected={selectedMemberIds}
+              onSelectionChange={setSelectedMemberIds}
               onRowClick={(id) => handleOpenDetails(filteredMembers.find(m => m.id === id))}
             />
           </motion.div>
@@ -831,6 +901,31 @@ const Members = () => {
             </Button>
         </DialogActions>
       </Dialog>
+
+      <Menu
+        anchorEl={rowMenuAnchor}
+        open={Boolean(rowMenuAnchor)}
+        onClose={handleRowMenuClose}
+      >
+        <MenuItem 
+          onClick={() => {
+            if (rowMenuMember) handleOpenDetails(rowMenuMember);
+            handleRowMenuClose();
+          }}
+          sx={{ fontWeight: 600, gap: 1 }}
+        >
+          View Details
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            if (rowMenuMember) handleDelete(rowMenuMember.id);
+            handleRowMenuClose();
+          }}
+          sx={{ color: 'error.main', fontWeight: 600, gap: 1 }}
+        >
+          Delete
+        </MenuItem>
+      </Menu>
 
     </Box>
   );

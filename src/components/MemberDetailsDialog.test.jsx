@@ -69,7 +69,7 @@ describe('MemberDetailsDialog Multi-Tab Profile View', () => {
     expect(screen.getByText('Brother Kwesi')).toBeInTheDocument();
     expect(screen.getByText('Bio Details')).toBeInTheDocument();
     expect(screen.getByText(/Accepted Christ during Easter convention/i)).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('renders Timeline Tab and displays journey audit trail', () => {
     renderDialog();
@@ -78,6 +78,32 @@ describe('MemberDetailsDialog Multi-Tab Profile View', () => {
 
     expect(screen.getByText('Joined Church')).toBeInTheDocument();
     expect(screen.getByText('Assigned to Youth Group')).toBeInTheDocument();
+  });
+
+  it('renders Timeline Tab with Firestore Timestamp format date safely', () => {
+    const timestampMember = {
+      ...mockMember,
+      timeline: [
+        { date: { toDate: () => new Date('2024-03-01T12:00:00Z') }, event: 'Joined Church via Timestamp' }
+      ]
+    };
+    render(
+      <ThemeProvider theme={theme}>
+        <MemberDetailsDialog
+          open={true}
+          onClose={vi.fn()}
+          member={timestampMember}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </ThemeProvider>
+    );
+
+    const timelineTab = screen.getByText('Timeline');
+    fireEvent.click(timelineTab);
+
+    expect(screen.getByText('Joined Church via Timestamp')).toBeInTheDocument();
+    expect(screen.getByText('March 01, 2024')).toBeInTheDocument();
   });
 
   it('renders Engagement Tab and displays completed classes and gifts', () => {

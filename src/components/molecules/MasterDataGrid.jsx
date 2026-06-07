@@ -23,9 +23,13 @@ const MasterDataGrid = ({
   actions,
   onRowClick,
   selectable = true,
+  selected = [],
+  onSelectionChange,
 }) => {
   const theme = useTheme();
-  const [selected, setSelected] = useState([]);
+  const [localSelected, setLocalSelected] = useState([]);
+  const activeSelected = onSelectionChange ? selected : localSelected;
+  const setActiveSelected = onSelectionChange ? onSelectionChange : setLocalSelected;
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState('');
@@ -34,35 +38,30 @@ const MasterDataGrid = ({
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
       const newSelected = rows.map((n) => n.id);
-      setSelected(newSelected);
+      setActiveSelected(newSelected);
       return;
     }
-    setSelected([]);
+    setActiveSelected([]);
   };
 
-  const handleClick = (event, id) => {
-    if (!selectable) {
-      if (onRowClick) onRowClick(id);
-      return;
-    }
-    
-    const selectedIndex = selected.indexOf(id);
+  const handleCheckboxClick = (id) => {
+    const selectedIndex = activeSelected.indexOf(id);
     let newSelected = [];
 
     if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
+      newSelected = newSelected.concat(activeSelected, id);
     } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
+      newSelected = newSelected.concat(activeSelected.slice(1));
+    } else if (selectedIndex === activeSelected.length - 1) {
+      newSelected = newSelected.concat(activeSelected.slice(0, -1));
     } else if (selectedIndex > 0) {
       newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1)
+        activeSelected.slice(0, selectedIndex),
+        activeSelected.slice(selectedIndex + 1)
       );
     }
 
-    setSelected(newSelected);
+    setActiveSelected(newSelected);
   };
 
   const handleChangePage = (event, newPage) => {
@@ -80,7 +79,7 @@ const MasterDataGrid = ({
     setOrderBy(property);
   };
 
-  const isSelected = (id) => selected.indexOf(id) !== -1;
+  const isSelected = (id) => activeSelected.indexOf(id) !== -1;
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -101,8 +100,8 @@ const MasterDataGrid = ({
                   <TableCell padding="checkbox">
                     <Checkbox
                       color="primary"
-                      indeterminate={selected.length > 0 && selected.length < rows.length}
-                      checked={rows.length > 0 && selected.length === rows.length}
+                      indeterminate={activeSelected.length > 0 && activeSelected.length < rows.length}
+                      checked={rows.length > 0 && activeSelected.length === rows.length}
                       onChange={handleSelectAllClick}
                       inputProps={{ 'aria-label': 'select all items' }}
                     />
@@ -137,7 +136,9 @@ const MasterDataGrid = ({
                   return (
                     <TableRow
                       hover
-                      onClick={(event) => handleClick(event, row.id)}
+                      onClick={() => {
+                        if (onRowClick) onRowClick(row.id);
+                      }}
                       role="checkbox"
                       aria-checked={isItemSelected}
                       tabIndex={-1}
@@ -154,10 +155,17 @@ const MasterDataGrid = ({
                       }}
                     >
                       {selectable && (
-                        <TableCell padding="checkbox">
+                        <TableCell 
+                          padding="checkbox"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckboxClick(row.id);
+                          }}
+                        >
                           <Checkbox
                             color="primary"
                             checked={isItemSelected}
+                            onChange={() => {}}
                             inputProps={{ 'aria-labelledby': labelId }}
                           />
                         </TableCell>

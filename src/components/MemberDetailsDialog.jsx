@@ -1135,7 +1135,7 @@ const MemberDetailsDialog = ({ open, onClose, member, onEdit, onDelete, initialT
                   }} />
                   <ListItemText
                     primary={<Typography variant="body2" fontWeight={700}>{item.event}</Typography>}
-                    secondary={item.date ? format(new Date(item.date), 'MMMM dd, yyyy') : ''}
+                    secondary={item.date ? format(safeParseDate(item.date), 'MMMM dd, yyyy') : ''}
                   />
                 </ListItem>
               ))}
