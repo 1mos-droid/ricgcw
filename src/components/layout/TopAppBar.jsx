@@ -35,10 +35,6 @@ const drawerWidth = 280;
 const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
     zIndex: theme.zIndex.drawer + 1,
-    boxShadow: 'none',
-    borderBottom: 'none',
-    backgroundColor: alpha(theme.palette.background.default, 0.7),
-    backdropFilter: 'blur(24px)',
     transition: theme.transitions.create(['width', 'margin'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -53,14 +49,12 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
   borderRadius: 40,
-  backgroundColor: theme.palette.mode === 'light' 
-    ? alpha(theme.palette.common.black, 0.03) 
-    : alpha(theme.palette.common.white, 0.03),
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  background: 'rgba(0, 0, 0, 0.02)',
+  boxShadow: 'var(--neo-shadow-in)',
+  border: '1px solid var(--border-color-darker)',
+  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
   '&:hover': {
-    backgroundColor: theme.palette.mode === 'light' 
-      ? alpha(theme.palette.common.black, 0.05) 
-      : alpha(theme.palette.common.white, 0.05),
+    background: 'rgba(0, 0, 0, 0.04)',
     transform: 'translateY(-1px)',
   },
   marginRight: theme.spacing(2),
@@ -176,7 +170,7 @@ const TopAppBar = ({
 
   return (
     <>
-      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" sx={{ top: 0 }}>
+      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" className="neo-glass-navbar" sx={{ top: 0, border: 'none', boxShadow: 'none' }}>
         <Toolbar sx={{ height: { xs: 70, md: 90 }, justifyContent: 'space-between' }}>
             
           {/* Logo/Title */}
@@ -195,12 +189,12 @@ const TopAppBar = ({
               />
             )}
 
-            <Typography variant="h5" component="h1" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontFamily: '"Playfair Display", serif' }}>
+            <Typography variant="h5" component="h1" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 1 }}>
               {workspace === 'main' ? 'Sanctuary' : currentDepartment}
             </Typography>
             
             {isMobile && (
-              <Typography variant="h6" component="h1" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' }, fontFamily: 'Playfair Display' }}>
+              <Typography variant="h6" component="h1" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' } }}>
                 RICGCW
               </Typography>
             )}
@@ -214,8 +208,8 @@ const TopAppBar = ({
                 px: isMobile ? 0.75 : 1.5,
                 py: 0.5,
                 borderRadius: 4,
-                bgcolor: alpha(theme.palette.success.main, 0.1),
-                color: theme.palette.success.main,
+                bgcolor: 'rgba(52, 199, 89, 0.08)',
+                color: 'var(--system-green)',
                 fontWeight: 800,
                 fontSize: '0.7rem',
                 textTransform: 'uppercase',
@@ -251,7 +245,7 @@ const TopAppBar = ({
             {/* Campus / Site Switcher for Admin & Developer */}
             {(userRole === 'admin' || userRole === 'developer') && (
               <FormControl size="small" variant="outlined" sx={{ minWidth: { xs: 90, sm: 150 } }}>
-                <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Select Campus</InputLabel>
+                <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 800 }}>Select Campus</InputLabel>
                 <Select
                   labelId="campus-select-label"
                   id="campus-select"
@@ -260,9 +254,13 @@ const TopAppBar = ({
                   label="Select Campus"
                   inputProps={{ 'aria-label': 'Select Campus' }}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: '10px',
                     fontSize: '0.8rem',
                     fontWeight: 700,
+                    bgcolor: 'rgba(0, 0, 0, 0.02)',
+                    border: '1px solid var(--border-color-darker)',
+                    boxShadow: 'var(--neo-shadow-in)',
+                    '& fieldset': { border: 'none' },
                     '.MuiSelect-select': { py: 1 }
                   }}
                 >

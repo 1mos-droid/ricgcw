@@ -1,87 +1,412 @@
-/* --- 1. Import Fonts (Clean Sans-Serif) --- */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+/* --- Neomorphic-Glassmorphic Cupertino Design System --- */
 
-/* --- 2. Base Reset --- */
+/* 1. Global Imports & Font Stack */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* System Brand Colors */
+  --system-blue: #007AFF;
+  --system-blue-rgb: 0, 122, 255;
+  --system-purple: #5856D6;
+  --system-green: #34C759;
+  --system-red: #FF3B30;
+  --system-orange: #FF9500;
+
+  /* Fonts */
+  --font-stack: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+
+  /* Theme Tokens: Light Mode (Soft neutral-grey base) */
+  --bg-default: #F2F2F7;
+  --bg-paper: rgba(255, 255, 255, 0.45);
+  --bg-paper-flat: #FFFFFF;
+  --border-color: rgba(255, 255, 255, 0.5);
+  --border-color-darker: rgba(0, 0, 0, 0.06);
+  --text-primary: #1C1C1E;
+  --text-secondary: #8E8E93;
+
+  /* Neomorphic Shadows */
+  --neo-shadow-out: 
+    -8px -8px 20px rgba(255, 255, 255, 0.85),
+    8px 8px 20px rgba(165, 175, 190, 0.35);
+  --neo-shadow-in: 
+    inset -4px -4px 10px rgba(255, 255, 255, 0.85),
+    inset 4px 4px 10px rgba(165, 175, 190, 0.25);
+  --neo-button-shadow: 
+    -4px -4px 12px rgba(255, 255, 255, 0.9),
+    4px 4px 12px rgba(165, 175, 190, 0.3);
+  --glass-glow: 
+    inset 1px 1px 0px rgba(255, 255, 255, 0.6);
 }
 
-/* Remove hardcoded backgrounds so the Theme Toggle works */
+/* Dark Mode Tokens override */
+.dark-theme {
+  --bg-default: #0C0C0E;
+  --bg-paper: rgba(26, 26, 29, 0.45);
+  --bg-paper-flat: #1C1C1E;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-darker: rgba(255, 255, 255, 0.05);
+  --text-primary: #FFFFFF;
+  --text-secondary: #8E8E93;
+
+  --neo-shadow-out: 
+    -8px -8px 20px rgba(255, 255, 255, 0.02),
+    8px 8px 20px rgba(0, 0, 0, 0.65);
+  --neo-shadow-in: 
+    inset -4px -4px 10px rgba(255, 255, 255, 0.02),
+    inset 4px 4px 10px rgba(0, 0, 0, 0.55);
+  --neo-button-shadow: 
+    -4px -4px 12px rgba(255, 255, 255, 0.02),
+    4px 4px 12px rgba(0, 0, 0, 0.5);
+  --glass-glow: 
+    inset 1px 1px 0px rgba(255, 255, 255, 0.1);
+}
+
+/* 2. Base Reset */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-  /* Background color is handled by MUI CssBaseline in App.js */
+  font-family: var(--font-stack);
+  background-color: var(--bg-default) !important;
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ensure React Root fills the viewport */
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* --- 3. Global Utilities --- */
-a {
-  text-decoration: none;
-  color: inherit;
-  transition: opacity 0.2s ease;
+/* Scrollbars resembling iOS */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(142, 142, 147, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(142, 142, 147, 0.5);
 }
 
-a:hover {
+/* 3. Reusable Neomorphic-Glassmorphic Utility Classes */
+
+/* Extruded card */
+.neo-glass-card {
+  background: var(--bg-paper);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--neo-shadow-out), var(--glass-glow);
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Inset card / panel */
+.neo-glass-card-inset {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border-color-darker);
+  border-radius: 14px;
+  box-shadow: var(--neo-shadow-in);
+  padding: 20px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dark-theme .neo-glass-card-inset {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Extruded standard button */
+.neo-glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  outline: none;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 24px;
+  background: var(--bg-paper);
+  color: var(--text-primary);
+  font-family: var(--font-stack);
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: var(--neo-button-shadow), var(--glass-glow);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+.neo-glass-button:hover {
+  opacity: 0.9;
+}
+.neo-glass-button:active {
+  box-shadow: var(--neo-shadow-in);
+  transform: translateY(1px);
+}
+.neo-glass-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Extruded Primary (Tinted) Button */
+.neo-glass-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--system-blue) 0%, var(--system-purple) 100%);
+  color: #ffffff;
+  font-family: var(--font-stack);
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 
+    0px 8px 24px rgba(0, 122, 255, 0.25),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+.neo-glass-button-primary:hover {
+  box-shadow: 
+    0px 10px 30px rgba(0, 122, 255, 0.35),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.4);
+}
+.neo-glass-button-primary:active {
+  box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.3);
+  transform: translateY(1px);
+}
+.neo-glass-button-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Destructive Button */
+.neo-glass-button-destructive {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: var(--system-red);
+  color: #ffffff;
+  box-shadow: 
+    0px 8px 24px rgba(255, 59, 48, 0.25),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.3);
+}
+.neo-glass-button-destructive:hover {
+  box-shadow: 
+    0px 10px 30px rgba(255, 59, 48, 0.35),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.4);
+}
+
+/* Inset Input Field */
+.neo-glass-input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border-color-darker);
+  box-shadow: var(--neo-shadow-in);
+  transition: all 0.2s ease-in-out;
+}
+.dark-theme .neo-glass-input {
+  background: rgba(255, 255, 255, 0.02);
+}
+.neo-glass-input:focus-within {
+  background: var(--bg-paper-flat);
+  border-color: var(--system-blue);
+  box-shadow: 
+    0px 0px 0px 4px rgba(0, 122, 255, 0.15),
+    var(--neo-shadow-in);
+}
+
+.neo-glass-input input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-stack);
+  font-size: 0.95rem;
+  width: 100%;
+}
+.neo-glass-input input::placeholder {
+  color: var(--text-secondary);
   opacity: 0.8;
 }
 
-/* --- 4. Adaptive Scrollbar --- */
-/* Works for both Light and Dark modes */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent; 
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5); /* Neutral Gray */
+/* Sliding tab segmented control container */
+.neo-glass-segmented {
+  display: flex;
+  padding: 4px;
   border-radius: 10px;
-  transition: background-color 0.2s;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-color-darker);
+  box-shadow: var(--neo-shadow-in);
+}
+.dark-theme .neo-glass-segmented {
+  background: rgba(255, 255, 255, 0.03);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.8);
+.neo-glass-segmented-item {
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 7px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+.neo-glass-segmented-item.active {
+  background: var(--bg-paper-flat);
+  color: var(--text-primary);
+  box-shadow: 
+    -2px -2px 6px rgba(255,255,255,0.7),
+    2px 2px 6px rgba(165,175,190,0.15),
+    0px 1px 3px rgba(0, 0, 0, 0.08);
+}
+.dark-theme .neo-glass-segmented-item.active {
+  box-shadow: 
+    -2px -2px 6px rgba(255,255,255,0.01),
+    2px 2px 6px rgba(0,0,0,0.4),
+    0px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* --- 5. Print Layout Optimization --- */
-/* This ensures reports look professional on paper */
+/* Tactical sliding switch */
+.neo-glass-switch {
+  width: 51px;
+  height: 31px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color-darker);
+  box-shadow: var(--neo-shadow-in);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+.dark-theme .neo-glass-switch {
+  background: rgba(255, 255, 255, 0.04);
+}
+.neo-glass-switch.active {
+  background: var(--system-green);
+  border-color: transparent;
+  box-shadow: 
+    0px 4px 10px rgba(52, 199, 89, 0.2),
+    var(--neo-shadow-in);
+}
+.neo-glass-switch-handle {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #ffffff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0px 3px 8px rgba(0,0,0,0.15);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.neo-glass-switch.active .neo-glass-switch-handle {
+  transform: translateX(20px);
+}
+
+/* Translucent frosted glass top app bar */
+.neo-glass-navbar {
+  background: rgba(242, 242, 247, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border-color-darker);
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.02);
+}
+.dark-theme .neo-glass-navbar {
+  background: rgba(12, 12, 14, 0.7);
+}
+
+/* Extruded custom dialog */
+.neo-glass-dialog {
+  background: var(--bg-paper);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  box-shadow: var(--neo-shadow-out), var(--glass-glow);
+}
+
+/* 4. Mobile Layout & Spacing Enhancements */
+@media (max-width: 600px) {
+  .neo-glass-card {
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+  .neo-glass-card-inset {
+    padding: 12px !important;
+    border-radius: 10px !important;
+  }
+  .neo-glass-button {
+    padding: 10px 18px !important;
+    font-size: 0.88rem !important;
+    border-radius: 10px !important;
+  }
+  .neo-glass-button-primary {
+    padding: 10px 18px !important;
+    font-size: 0.88rem !important;
+    border-radius: 10px !important;
+  }
+  .neo-glass-input {
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+  }
+  /* Typography overrides for compact screens */
+  h1, .MuiTypography-h1 {
+    font-size: 2rem !important;
+  }
+  h2, .MuiTypography-h2 {
+    font-size: 1.7rem !important;
+  }
+  h3, .MuiTypography-h3 {
+    font-size: 1.5rem !important;
+  }
+  h4, .MuiTypography-h4 {
+    font-size: 1.3rem !important;
+  }
+  h5, .MuiTypography-h5 {
+    font-size: 1.15rem !important;
+  }
+  h6, .MuiTypography-h6 {
+    font-size: 1.05rem !important;
+  }
+}
+
+/* 5. Printing layouts */
 @media print {
-  /* Hide non-essential UI elements */
   body * {
     visibility: hidden;
   }
-
-  /* Hide Scrollbars when printing */
   html, body {
     height: auto;
     overflow: visible;
   }
-
-  /* Show only the targeted printable area */
   .printable-area, .printable-area * {
     visibility: visible;
   }
-
-  /* Position content correctly */
   .printable-area {
     position: absolute;
     left: 0;
@@ -89,13 +414,7 @@ a:hover {
     width: 100%;
     margin: 0;
     padding: 20px;
-    background: white; /* Always print on white background */
-    color: black;      /* Always print black text */
-  }
-
-  /* Remove shadows and borders to save ink */
-  .MuiPaper-root {
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
+    background: white;
+    color: black;
   }
 }

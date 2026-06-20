@@ -10,6 +10,7 @@ import {
   TextField, 
   InputAdornment, 
   CircularProgress, 
+  Skeleton,
   alpha, 
   useTheme, 
   Container, 
@@ -237,7 +238,13 @@ const Gallery = () => {
 
       {/* --- GALLERY GRID --- */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}><CircularProgress /></Box>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <Grid key={i} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+              <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 4 }} />
+            </Grid>
+          ))}
+        </Grid>
       ) : filteredImages.length === 0 ? (
         <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 8 }}>
           <ImageIcon size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />

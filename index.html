@@ -1,6 +1,23 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Automatically unregister service workers in local development to prevent stale caches
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (let registration of registrations) {
+              registration.unregister().then(function(success) {
+                if (success) {
+                  console.log('[Dev SW Cleanup] Unregistered service worker:', registration.scope);
+                  location.reload();
+                }
+              });
+            }
+          });
+        }
+      }
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/ricgcw.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

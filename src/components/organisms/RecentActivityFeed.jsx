@@ -1,11 +1,12 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Divider } from '@mui/material';
+import { CardContent, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Divider } from '@mui/material';
 import UserAvatar from '../atoms/UserAvatar';
+import { CupertinoCard } from '../Cupertino';
 
 const RecentActivityFeed = ({ activities = [] }) => {
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <CupertinoCard sx={{ height: '100%' }}>
       <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
         <Box sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>
@@ -55,7 +56,7 @@ const RecentActivityFeed = ({ activities = [] }) => {
           )}
         </List>
       </CardContent>
-    </Card>
+    </CupertinoCard>
   );
 };
 

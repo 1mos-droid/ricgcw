@@ -19,7 +19,8 @@ import {
   useTheme,
   Stack,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Skeleton
 } from '@mui/material';
 import { 
   Terminal, 
@@ -259,7 +260,11 @@ const filteredUsers = users.filter(u =>
             <Paper variant="outlined" sx={{ flexGrow: 1, borderRadius: 4, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}>
               <List disablePadding>
                 {loading ? (
-                  <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={32} /></Box>
+                  <Box sx={{ p: 2 }}>
+                    {[1, 2, 3, 4].map(i => (
+                      <Skeleton key={i} variant="text" height={48} sx={{ mb: 1, borderRadius: 1.5 }} />
+                    ))}
+                  </Box>
                 ) : filteredUsers.length === 0 ? (
                   <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>No users found</Box>
                 ) : (

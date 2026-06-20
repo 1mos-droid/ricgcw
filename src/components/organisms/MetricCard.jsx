@@ -1,6 +1,7 @@
 import React from 'react';
-import { Card, CardContent, Box, Typography, useTheme } from '@mui/material';
+import { CardContent, Box, Typography, useTheme } from '@mui/material';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { CupertinoCard } from '../Cupertino';
 
 const MetricCard = ({ 
   title, 
@@ -14,7 +15,7 @@ const MetricCard = ({
   const isPositive = trend === 'up';
 
   return (
-    <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
+    <CupertinoCard sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
       <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box
@@ -66,7 +67,7 @@ const MetricCard = ({
           </Typography>
         )}
       </CardContent>
-    </Card>
+    </CupertinoCard>
   );
 };
 

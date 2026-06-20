@@ -22,24 +22,61 @@ export const VERSION_MAP = {
   'GENZ': 'de4e12af7f28f599-01'  // KJV base for GenZ
 };
 
+// Session Storage Caching Helpers to support concurrent users & prevent API rate limiting
+const getFromSessionStorage = (key) => {
+  try {
+    const data = sessionStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveToSessionStorage = (key, val) => {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    // Ignore storage quota limits
+  }
+};
+
 export const fetchBibles = async () => {
+  const cacheKey = 'bible_bibles';
+  const cached = getFromSessionStorage(cacheKey);
+  if (cached) return cached;
+
   const response = await bibleApi.get('/bibles');
+  saveToSessionStorage(cacheKey, response.data.data);
   return response.data.data;
 };
 
 export const fetchBooks = async (bibleId = VERSION_MAP.KJV) => {
+  const cacheKey = `bible_books_${bibleId}`;
+  const cached = getFromSessionStorage(cacheKey);
+  if (cached) return cached;
+
   const response = await bibleApi.get(`/bibles/${bibleId}/books`);
+  saveToSessionStorage(cacheKey, response.data.data);
   return response.data.data;
 };
 
 export const fetchChapters = async (bibleId, bookId) => {
+  const cacheKey = `bible_chapters_${bibleId}_${bookId}`;
+  const cached = getFromSessionStorage(cacheKey);
+  if (cached) return cached;
+
   const response = await bibleApi.get(`/bibles/${bibleId}/books/${bookId}/chapters`);
+  saveToSessionStorage(cacheKey, response.data.data);
   return response.data.data;
 };
 
 export const fetchChapterContent = async (bibleId, chapterId) => {
-  // chapterId is usually like 'GEN.1'
+  const cacheKey = `bible_content_${bibleId}_${chapterId}`;
+  const cached = getFromSessionStorage(cacheKey);
+  if (cached) return cached;
+
   const response = await bibleApi.get(`/bibles/${bibleId}/chapters/${chapterId}?content-type=json&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true`);
+  saveToSessionStorage(cacheKey, response.data.data);
   return response.data.data;
 };
 

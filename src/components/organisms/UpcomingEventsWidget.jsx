@@ -1,13 +1,14 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Avatar, useTheme, Divider } from '@mui/material';
+import { CardContent, Typography, Box, List, ListItem, ListItemText, ListItemAvatar, Avatar, useTheme, Divider } from '@mui/material';
 import { Calendar, ChevronRight } from 'lucide-react';
 import ActionButton from '../atoms/ActionButton';
+import { CupertinoCard } from '../Cupertino';
 
 const UpcomingEventsWidget = ({ events = [] }) => {
   const theme = useTheme();
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <CupertinoCard sx={{ height: '100%' }}>
       <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>
@@ -79,7 +80,7 @@ const UpcomingEventsWidget = ({ events = [] }) => {
           )}
         </List>
       </CardContent>
-    </Card>
+    </CupertinoCard>
   );
 };
 

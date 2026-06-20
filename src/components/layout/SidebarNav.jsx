@@ -81,7 +81,7 @@ const SidebarNav = ({
   }, [navItems]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.paper }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'transparent' }}>
       {/* Header Logo */}
       <Box sx={{ display: 'flex', alignItems: 'center', padding: theme.spacing(0, 4), height: 100, justifyContent: 'space-between' }}>
         <Stack direction="row" alignItems="center" spacing={2.5}>
@@ -149,17 +149,20 @@ const SidebarNav = ({
                         sx={{
                           py: 1.2,
                           borderRadius: 3,
+                          transition: 'all 0.2s',
                           '&.Mui-selected': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            color: theme.palette.primary.main,
-                            '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
+                            bgcolor: 'rgba(0, 0, 0, 0.02)',
+                            color: 'var(--system-blue)',
+                            boxShadow: 'var(--neo-shadow-in)',
+                            '& .MuiListItemIcon-root': { color: 'var(--system-blue)' }
                           },
                           '&:hover': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.05)
+                            bgcolor: 'rgba(0,0,0,0.01)',
+                            color: 'var(--system-blue)'
                           }
                         }}
                       >
-                        <ListItemIcon sx={{ minWidth: 36, color: isActive ? theme.palette.primary.main : theme.palette.text.secondary }}>
+                        <ListItemIcon sx={{ minWidth: 36, color: isActive ? 'var(--system-blue)' : 'var(--text-secondary)' }}>
                           {React.cloneElement(item.icon, { sx: { fontSize: 20 } })}
                         </ListItemIcon>
                         <ListItemText 
@@ -181,21 +184,19 @@ const SidebarNav = ({
       </Box>
 
       {/* User Profile in Sidebar Footer */}
-      <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}` }}>
+      <Box sx={{ p: 3, borderTop: '1px solid var(--border-color-darker)' }}>
         {(userRole === 'admin' || userRole === 'developer') && (
           <Box 
             component={motion.div}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            className="neo-glass-card-inset"
             sx={{ 
               mb: 3, p: 2, borderRadius: 2.5, 
-              background: userRole === 'developer' 
-                ? `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`
-                : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
-              border: `1px solid ${alpha(userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, 0.1)}`,
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5
+              gap: 1.5,
+              borderColor: alpha(userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, 0.15)
             }}
           >
             <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, color: '#fff' }}>
@@ -205,13 +206,14 @@ const SidebarNav = ({
               <Typography variant="caption" fontWeight={900} color={userRole === 'developer' ? "secondary" : "primary"} sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {localStorage.getItem('mimicData') ? 'Mimicking Mode' : 'Developer Console'}
               </Typography>
-              <Typography variant="body2" fontWeight={800} sx={{ color: theme.palette.text.primary }}>
+              <Typography variant="body2" fontWeight={800} sx={{ color: 'var(--text-primary)' }}>
                 {userRole === 'developer' ? 'Master Access' : 'Authorized'}
               </Typography>
             </Box>
           </Box>
         )}
         <Box 
+          className="neo-glass-card"
           sx={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -219,12 +221,11 @@ const SidebarNav = ({
             p: 2, 
             borderRadius: 3, 
             cursor: 'pointer',
-            border: `1px solid ${theme.palette.divider}`,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            border: '1px solid var(--border-color)',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             '&:hover': { 
-              bgcolor: alpha(theme.palette.text.primary, 0.04),
-              borderColor: theme.palette.primary.main,
-              transform: 'translateY(-2px)'
+              boxShadow: 'var(--neo-shadow-in)',
+              transform: 'translateY(1px)'
             }
           }}
           onClick={onProfileClick}
@@ -234,12 +235,12 @@ const SidebarNav = ({
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             variant="dot"
             color={localStorage.getItem('mimicData') ? "warning" : "success"}
-            sx={{ '& .MuiBadge-badge': { width: 14, height: 14, borderRadius: '50%', border: `3px solid ${theme.palette.background.paper}` } }}
+            sx={{ '& .MuiBadge-badge': { width: 14, height: 14, borderRadius: '50%', border: `3px solid var(--bg-paper-flat)` } }}
           >
             <UserAvatar name={user?.name || user?.email || 'User'} size={48} />
           </Badge>
           <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <Typography variant="subtitle2" fontWeight={900} noWrap sx={{ color: theme.palette.text.primary }}>{user?.name || 'User'}</Typography>
+            <Typography variant="subtitle2" fontWeight={900} noWrap sx={{ color: 'var(--text-primary)' }}>{user?.name || 'User'}</Typography>
             <Typography variant="caption" color="primary" noWrap sx={{ display: 'block', fontWeight: 900, textTransform: 'uppercase', fontSize: '0.6rem' }}>{userRole}</Typography>
           </Box>
         </Box>

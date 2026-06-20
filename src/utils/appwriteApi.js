@@ -1,4 +1,5 @@
 import { storage, ID } from '../appwrite';
+import { getAppwriteEndpoint } from './appwriteConfig';
 
 const BUCKET_ID = 'gallery'; // You will need to create this bucket in Appwrite Console
 
@@ -18,7 +19,7 @@ export const uploadToAppwrite = async (file) => {
 
     // 2. Construct the view URL
     // Format: [endpoint]/storage/buckets/[bucketId]/files/[fileId]/view?project=[projectId]
-    const endpoint = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1';
+    const endpoint = getAppwriteEndpoint(import.meta.env);
     const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID || '69bd9a9000090f983d70';
     
     return `${endpoint}/storage/buckets/${BUCKET_ID}/files/${response.$id}/view?project=${projectId}`;

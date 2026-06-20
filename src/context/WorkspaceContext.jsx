@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { Snackbar, Alert } from '@mui/material';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
@@ -173,12 +174,89 @@ export const WorkspaceProvider = ({ children }) => {
         autoHideDuration={5000} 
         onClose={() => setNotification({ ...notification, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{
+          zIndex: 99999,
+          '&.MuiSnackbar-root': {
+            bottom: { xs: 96, sm: 24 },
+            right: { xs: 16, sm: 24 },
+            left: { xs: 16, sm: 'auto' }
+          }
+        }}
       >
         <Alert 
           onClose={() => setNotification({ ...notification, open: false })} 
           severity={notification.severity} 
-          variant="filled"
-          sx={{ width: '100%', borderRadius: 3, boxShadow: 6, fontWeight: 600 }}
+          iconMapping={{
+            error: <AlertCircle size={20} color="var(--system-red)" />,
+            warning: <AlertTriangle size={20} color="var(--system-orange)" />,
+            success: <CheckCircle2 size={20} color="var(--system-green)" />,
+            info: <Info size={20} color="var(--system-blue)" />,
+          }}
+          sx={{
+            width: '100%',
+            maxWidth: { xs: '100%', sm: 420 },
+            borderRadius: '20px',
+            background: 'var(--bg-paper)',
+            backdropFilter: 'blur(30px) saturate(180%)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--neo-shadow-out), var(--glass-glow)',
+            color: 'var(--text-primary)',
+            fontSize: '0.9rem',
+            fontWeight: 700,
+            alignItems: 'center',
+            py: 1.5,
+            px: 2.5,
+            position: 'relative',
+            overflow: 'hidden',
+            fontFamily: 'var(--font-stack)',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: '6px',
+              backgroundColor: 
+                notification.severity === 'error' ? 'var(--system-red)' :
+                notification.severity === 'warning' ? 'var(--system-orange)' :
+                notification.severity === 'success' ? 'var(--system-green)' :
+                'var(--system-blue)',
+              boxShadow: 
+                notification.severity === 'error' ? '0 0 12px var(--system-red)' :
+                notification.severity === 'warning' ? '0 0 12px var(--system-orange)' :
+                notification.severity === 'success' ? '0 0 12px var(--system-green)' :
+                '0 0 12px var(--system-blue)',
+            },
+            '& .MuiAlert-icon': {
+              marginRight: 2,
+              fontSize: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 
+                notification.severity === 'error' ? 'rgba(255, 59, 48, 0.12)' :
+                notification.severity === 'warning' ? 'rgba(255, 149, 0, 0.12)' :
+                notification.severity === 'success' ? 'rgba(52, 199, 89, 0.12)' :
+                'rgba(0, 122, 255, 0.12)',
+              borderRadius: '50%',
+              p: 0.75,
+            },
+            '& .MuiAlert-message': {
+              padding: '6px 0',
+              lineHeight: 1.4,
+            },
+            '& .MuiAlert-action': {
+              paddingLeft: 2,
+              '& .MuiIconButton-root': {
+                color: 'var(--text-secondary)',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                }
+              }
+            }
+          }}
         >
           {notification.message}
         </Alert>

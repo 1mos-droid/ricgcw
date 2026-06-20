@@ -47,10 +47,10 @@ const StatusBadge = ({ label, status = 'default', size = 'small', ...props }) =>
       variant="outlined"
       sx={{
         fontWeight: 700,
-        borderRadius: '6px',
+        borderRadius: '100px',
         ...styles,
         '& .MuiChip-label': {
-          px: 1,
+          px: 1.5,
         },
         ...props.sx,
       }}

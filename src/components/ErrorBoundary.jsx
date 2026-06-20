@@ -102,7 +102,7 @@ const ErrorFallback = ({ onReset, onHome }) => {
               <AlertCircle size={40} />
             </Box>
 
-            <Typography variant="h3" fontWeight={900} sx={{ mb: 2, fontFamily: '"Playfair Display", serif', letterSpacing: '-0.02em' }}>
+            <Typography variant="h3" fontWeight={900} sx={{ mb: 2, letterSpacing: '-0.02em' }}>
               Something went wrong
             </Typography>
             

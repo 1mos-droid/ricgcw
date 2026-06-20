@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Box, Typography, MenuItem, Select, useTheme } from '@mui/material';
+import { CardContent, Box, Typography, MenuItem, Select, useTheme } from '@mui/material';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
+import { CupertinoCard } from '../Cupertino';
 
 const TrendChartCard = ({ 
   title, 
@@ -26,7 +27,7 @@ const TrendChartCard = ({
   const theme = useTheme();
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <CupertinoCard sx={{ height: '100%' }}>
       <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>
@@ -98,7 +99,7 @@ const TrendChartCard = ({
           </ResponsiveContainer>
         </Box>
       </CardContent>
-    </Card>
+    </CupertinoCard>
   );
 };
 

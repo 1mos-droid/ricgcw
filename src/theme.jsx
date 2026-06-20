@@ -1,4 +1,4 @@
-import React, { createContext, useState, useMemo, useContext } from 'react';
+import React, { createContext, useState, useMemo, useContext, useEffect } from 'react';
 import { createTheme, ThemeProvider, responsiveFontSizes } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 
@@ -8,176 +8,89 @@ const ColorModeContext = createContext({ toggleColorMode: () => {}, mode: 'light
 // 2. Custom hook to use the theme switch anywhere
 export const useColorMode = () => useContext(ColorModeContext);
 
-// 3. The Design System ("Exquisite" Look)
+// 3. The Cupertino Design System (iOS/macOS Style)
 const getDesignTokens = (mode) => {
   const isLight = mode === 'light';
   
-  // Premium RICGCW Palette (Hybrid: Logo Accuracy + High Contrast)
-  const primaryMain = isLight ? '#1034A6' : '#D4AF37'; // Regal Blue vs Logo Gold
-  const goldAccent = '#D4AF37'; 
-  const globeBlue = '#00A2E8';
+  const systemBlue = '#007AFF';
+  const systemPurple = '#5856D6';
   
-  const backgroundDefault = isLight ? '#F8FAFC' : '#020617';
-  const backgroundPaper = isLight ? '#FFFFFF' : '#0B1222';
+  const backgroundDefault = isLight ? '#F2F2F7' : '#000000'; // Grouped backgrounds
+  const backgroundPaper = isLight ? '#FFFFFF' : '#1C1C1E'; // Translucent iOS materials
   
   return {
     palette: {
       mode,
-      primary: { main: primaryMain, light: '#6366F1', dark: '#1E3A8A', contrastText: '#FFFFFF' },
-      secondary: { main: globeBlue, light: '#48CAE4', dark: '#023E8A', contrastText: '#FFFFFF' },
-      accent: { main: goldAccent },
-      success: { main: '#10B981' },
+      primary: { main: systemBlue, light: '#64D2FF', dark: '#0059B3', contrastText: '#FFFFFF' },
+      secondary: { main: systemPurple, light: '#BF5AF2', dark: '#401A80', contrastText: '#FFFFFF' },
+      accent: { main: '#D4AF37' },
+      success: { main: '#34C759' }, // iOS Green
+      error: { main: '#FF3B30' }, // iOS Red
+      warning: { main: '#FF9500' }, // iOS Orange
       background: {
         default: backgroundDefault,
         paper: backgroundPaper,
-        glass: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(11, 18, 34, 0.92)',
-        glassBorder: isLight ? 'rgba(16, 52, 166, 0.1)' : 'rgba(212, 175, 55, 0.15)',
+        glass: isLight ? 'rgba(255, 255, 255, 0.7)' : 'rgba(28, 28, 30, 0.7)',
+        glassBorder: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)',
       },
       text: {
-        primary: isLight ? '#0F172A' : '#FFFFFF',
-        secondary: isLight ? '#475569' : '#94A3B8',
+        primary: isLight ? '#000000' : '#FFFFFF',
+        secondary: '#8E8E93',
       },
-      divider: isLight ? 'rgba(16, 52, 166, 0.08)' : 'rgba(212, 175, 55, 0.1)',
+      divider: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
     },
+    // Soft, deep, premium iOS-style floating shadows
+    shadows: [
+      'none',
+      isLight ? '0px 2px 8px rgba(0, 0, 0, 0.01)' : '0px 2px 8px rgba(0, 0, 0, 0.1)',
+      isLight ? '0px 4px 12px rgba(0, 0, 0, 0.02)' : '0px 4px 12px rgba(0, 0, 0, 0.15)',
+      isLight ? '0px 8px 24px rgba(0, 0, 0, 0.02)' : '0px 8px 24px rgba(0, 0, 0, 0.2)',
+      isLight ? '0px 12px 32px rgba(0, 0, 0, 0.03)' : '0px 12px 32px rgba(0, 0, 0, 0.25)',
+      ...Array(20).fill(isLight ? '0px 20px 48px rgba(0, 0, 0, 0.04)' : '0px 20px 48px rgba(0, 0, 0, 0.3)'),
+    ],
     typography: {
-      fontFamily: '"Plus Jakarta Sans", "Inter", system-ui, sans-serif',
-      h1: { fontWeight: 900, letterSpacing: '-0.04em', fontFamily: '"Playfair Display", serif' },
-      h2: { fontWeight: 900, letterSpacing: '-0.04em', fontFamily: '"Playfair Display", serif' },
-      h3: { fontWeight: 800, letterSpacing: '-0.03em', fontFamily: '"Playfair Display", serif' },
-      h4: { fontWeight: 800, letterSpacing: '-0.02em', fontFamily: '"Playfair Display", serif' },
-      h5: { fontWeight: 800, letterSpacing: '-0.01em' },
-      h6: { fontWeight: 800 },
-      subtitle1: { fontWeight: 700, letterSpacing: '0.01em' },
-      subtitle2: { fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: '0.65rem' },
-      body1: { lineHeight: 1.75, fontSize: '1rem', fontWeight: 500 },
-      body2: { lineHeight: 1.75, fontSize: '0.875rem', fontWeight: 500 },
-      button: { textTransform: 'none', fontWeight: 900, letterSpacing: '0.05em' },
+      fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Compact", "Helvetica Neue", sans-serif',
+      h1: { fontWeight: 800, letterSpacing: '-0.03em' },
+      h2: { fontWeight: 800, letterSpacing: '-0.03em' },
+      h3: { fontWeight: 800, letterSpacing: '-0.02em' },
+      h4: { fontWeight: 700, letterSpacing: '-0.02em' },
+      h5: { fontWeight: 650, letterSpacing: '-0.01em' },
+      h6: { fontWeight: 650, letterSpacing: '-0.01em' },
+      subtitle1: { fontWeight: 600, letterSpacing: '0em' },
+      subtitle2: { fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.72rem' },
+      body1: { fontSize: '0.96rem', fontWeight: 450, letterSpacing: '-0.01em' },
+      body2: { fontSize: '0.86rem', fontWeight: 450, letterSpacing: '-0.01em' },
+      button: { textTransform: 'none', fontWeight: 600, fontSize: '0.95rem' },
     },
     shape: {
-      borderRadius: 8,
+      borderRadius: 12, // iOS rounded standard
     },
     components: {
       MuiCssBaseline: {
         styleOverrides: `
           body {
-            background-color: ${backgroundDefault};
-            background-image: ${isLight 
-              ? 'radial-gradient(at 0% 0%, rgba(16, 52, 166, 0.04) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(255, 255, 255, 0.8) 0px, transparent 50%)' 
-              : 'radial-gradient(at 50% 0%, rgba(212, 175, 55, 0.08) 0px, transparent 70%), url("data:image/svg+xml,%3Csvg width=\\"24\\" height=\\"24\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Ccircle cx=\\"2\\" cy=\\"2\\" r=\\"0.8\\" fill=\\"rgba(212,175,55,0.08)\\"/%3E%3C/svg%3E")'};
-            background-attachment: fixed;
+            background-color: ${backgroundDefault} !important;
+            background-image: ${isLight
+              ? 'radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.03) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(88, 86, 214, 0.03) 0px, transparent 50%)'
+              : 'radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.08) 0px, transparent 60%), radial-gradient(at 100% 100%, rgba(88, 86, 214, 0.08) 0px, transparent 60%)'} !important;
+            background-attachment: fixed !important;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
           }
-          /* Custom Scrollbar */
+          /* Custom Scrollbar resembling iOS */
           ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
           }
           ::-webkit-scrollbar-track {
             background: transparent;
           }
           ::-webkit-scrollbar-thumb {
-            background: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
-            border-radius: 4px;
-          }
-          ::-webkit-scrollbar-thumb:hover {
-            background: ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'};
+            background: ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'};
+            border-radius: 10px;
           }
         `,
-      },
-      MuiPaper: {
-        styleOverrides: {
-          root: {
-            backgroundImage: 'none',
-            borderRadius: 12,
-            border: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.05)' : 'rgba(212, 175, 55, 0.1)'}`,
-          },
-          elevation1: {
-            boxShadow: isLight 
-              ? '0px 20px 40px rgba(15, 23, 42, 0.06)' 
-              : '0px 20px 40px rgba(0, 0, 0, 0.4)',
-          },
-        },
-      },
-      MuiBottomNavigation: {
-        styleOverrides: {
-          root: {
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(11, 18, 34, 0.95)',
-            backdropFilter: 'blur(20px)',
-            borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(212, 175, 55, 0.1)'}`,
-            height: 70,
-          },
-        },
-      },
-      MuiBottomNavigationAction: {
-        styleOverrides: {
-          root: {
-            '&.Mui-selected': {
-              color: primaryMain,
-            },
-          },
-          label: {
-            fontWeight: 800,
-            fontSize: '0.65rem',
-            '&.Mui-selected': {
-              fontSize: '0.7rem',
-            },
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: { 
-            borderRadius: 8,
-            boxShadow: 'none',
-            '&:hover': { boxShadow: '0 8px 20px rgba(0,0,0,0.1)', transform: 'translateY(-1px)' },
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          },
-          sizeSmall: {
-            padding: '6px 14px',
-            fontSize: '0.8125rem',
-            borderRadius: 6,
-          },
-          sizeMedium: {
-            padding: '10px 20px',
-            fontSize: '0.875rem',
-            borderRadius: 8,
-          },
-          sizeLarge: {
-            padding: '14px 28px',
-            fontSize: '0.9375rem',
-            borderRadius: 10,
-          },
-          containedPrimary: {
-            background: `linear-gradient(135deg, ${primaryMain} 0%, ${isLight ? '#1E3A8A' : '#8B6508'} 100%)`,
-            '&:hover': {
-              background: `linear-gradient(135deg, ${isLight ? '#1E3A8A' : '#8B6508'} 0%, ${primaryMain} 100%)`,
-            },
-          },
-        },
-      },
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            borderRadius: 16,
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(11, 18, 34, 0.92)',
-            backdropFilter: 'blur(40px)',
-            border: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.08)' : 'rgba(212, 175, 55, 0.12)'}`,
-            boxShadow: isLight 
-              ? '0px 24px 48px -12px rgba(15, 23, 42, 0.06)' 
-              : '0px 24px 48px -12px rgba(0, 0, 0, 0.4)',
-          },
-        },
-      },
-      MuiAppBar: {
-        styleOverrides: {
-          root: {
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(2, 6, 23, 0.85)',
-            backdropFilter: 'blur(24px)',
-            borderBottom: `1px solid ${isLight ? 'rgba(16, 52, 166, 0.05)' : 'rgba(212, 175, 55, 0.08)'}`,
-          },
-        },
-      },
+      }
     },
   };
 };
@@ -198,6 +111,11 @@ export default function ThemeConfig({ children }) {
     }),
     [mode]
   );
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.className = mode === 'light' ? 'light-theme' : 'dark-theme';
+  }, [mode]);
 
   const theme = useMemo(() => {
     let theme = createTheme(getDesignTokens(mode));

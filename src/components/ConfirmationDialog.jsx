@@ -1,75 +1,109 @@
 import React from 'react';
 import {
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Typography,
   Box,
-  alpha,
   useTheme
 } from '@mui/material';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, HelpCircle } from 'lucide-react';
+import { CupertinoButton } from './Cupertino';
 
-const ConfirmationDialog = ({ open, title, message, onConfirm, onClose, confirmText = "Confirm", cancelText = "Cancel", severity = "error" }) => {
+const ConfirmationDialog = ({ 
+  open, 
+  title, 
+  message, 
+  onConfirm, 
+  onClose, 
+  confirmText = "Confirm", 
+  cancelText = "Cancel", 
+  severity = "error" 
+}) => {
   const theme = useTheme();
-  
-  const color = severity === 'error' ? theme.palette.error.main : theme.palette.primary.main;
+  const color = severity === 'error' ? 'var(--system-red)' : 'var(--system-blue)';
 
   return (
     <Dialog 
       open={open} 
       onClose={onClose}
+      slotProps={{
+        backdrop: {
+          sx: {
+            backdropFilter: 'blur(12px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          }
+        }
+      }}
       PaperProps={{
-        sx: { borderRadius: 2, width: '100%', maxWidth: 400 }
+        className: 'neo-glass-card',
+        sx: { 
+          borderRadius: '24px', 
+          width: '100%', 
+          maxWidth: 400,
+          background: 'var(--bg-paper)',
+          backdropFilter: 'blur(30px) saturate(180%)',
+          border: '1px solid var(--border-color)',
+          boxShadow: 'var(--neo-shadow-out), var(--glass-glow)',
+          backgroundImage: 'none',
+          overflow: 'hidden'
+        }
       }}
     >
-      <Box sx={{ p: 3, textAlign: 'center' }}>
+      <Box sx={{ p: 4, textAlign: 'center' }}>
         <Box sx={{ 
           width: 64, 
           height: 64, 
-          borderRadius: '12px', 
-          bgcolor: alpha(color, 0.1), 
+          borderRadius: '20px', 
+          bgcolor: severity === 'error' ? 'rgba(255, 59, 48, 0.12)' : 'rgba(0, 122, 255, 0.12)', 
           color: color,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           mx: 'auto',
-          mb: 2
+          mb: 3,
+          boxShadow: 'var(--neo-shadow-in)'
         }}>
-          <AlertTriangle size={32} />
+          {severity === 'error' ? (
+            <AlertTriangle size={32} color={color} />
+          ) : (
+            <HelpCircle size={32} color={color} />
+          )}
         </Box>
         
-        <Typography variant="h6" fontWeight={800} gutterBottom>
+        <Typography 
+          variant="h6" 
+          fontWeight={900} 
+          gutterBottom
+          sx={{ color: 'var(--text-primary)', fontFamily: 'var(--font-stack)', fontSize: '1.25rem' }}
+        >
           {title}
         </Typography>
         
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography 
+          variant="body2" 
+          sx={{ mb: 4, color: 'var(--text-secondary)', fontFamily: 'var(--font-stack)', lineHeight: 1.5 }}
+        >
           {message}
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button 
-            fullWidth 
-            variant="outlined" 
+          <CupertinoButton 
+            variant="plain" 
             onClick={onClose}
-            sx={{ borderRadius: 1.5, fontWeight: 700, color: theme.palette.text.secondary, border: `1px solid ${theme.palette.divider}` }}
+            sx={{ flex: 1, py: 1.75, borderRadius: '14px', fontWeight: 700 }}
           >
             {cancelText}
-          </Button>
-          <Button 
-            fullWidth 
-            variant="contained" 
-            color={severity === 'error' ? 'error' : 'primary'}
+          </CupertinoButton>
+          <CupertinoButton 
+            variant="filled" 
+            color={severity === 'error' ? 'destructive' : 'primary'}
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            sx={{ borderRadius: 1.5, fontWeight: 800, boxShadow: severity === 'error' ? theme.shadows[4] : 'none' }}
+            sx={{ flex: 1, py: 1.75, borderRadius: '14px', fontWeight: 800 }}
           >
             {confirmText}
-          </Button>
+          </CupertinoButton>
         </Box>
       </Box>
     </Dialog>

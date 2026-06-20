@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Skeleton } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
 
@@ -53,8 +53,28 @@ const MotionWrap = ({ children }) => (
 );
 
 const PageLoader = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-    <CircularProgress size={40} />
+  <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
+    {/* Welcome Banner Skeleton */}
+    <Skeleton variant="rectangular" height={140} sx={{ borderRadius: '12px', width: '100%' }} />
+
+    {/* Cards Row Skeleton */}
+    <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <Box key={idx} sx={{ flex: 1 }}>
+          <Skeleton variant="rectangular" height={160} sx={{ borderRadius: '12px', width: '100%' }} />
+        </Box>
+      ))}
+    </Box>
+
+    {/* Activity/Feed Row Skeleton */}
+    <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box sx={{ flex: { xs: 1, md: 2 } }}>
+        <Skeleton variant="rectangular" height={260} sx={{ borderRadius: '12px', width: '100%' }} />
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Skeleton variant="rectangular" height={260} sx={{ borderRadius: '12px', width: '100%' }} />
+      </Box>
+    </Box>
   </Box>
 );
 
@@ -92,9 +112,11 @@ const RequireRole = ({ roles, children }) => {
 };
 
 const AppRouter = () => {
+  const location = useLocation();
   return (
     <Suspense fallback={<PageLoader />}>
-      <Routes>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<MotionWrap><Login /></MotionWrap>} />
         <Route path="/maintenance" element={<MotionWrap><Maintenance /></MotionWrap>} />
         <Route path="/checkin" element={<MotionWrap><SelfCheckIn /></MotionWrap>} />
@@ -155,6 +177,7 @@ const AppRouter = () => {
           } 
         />
       </Routes>
+      </AnimatePresence>
     </Suspense>
   );
 };

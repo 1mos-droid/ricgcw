@@ -25,6 +25,8 @@ import { motion } from 'framer-motion';
 import { useColorMode } from '../theme';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
+import { useSessionTimeout } from '../hooks/useSessionTimeout';
+import EventsGateway from './layout/EventsGateway';
 
 // Icons
 import MenuIcon from '@mui/icons-material/Menu';
@@ -93,10 +95,10 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
       onClose={onClose}
       PaperProps={{
         sx: {
-          borderTopLeftRadius: 3,
-          borderTopRightRadius: 3,
-          bgcolor: alpha(theme.palette.background.paper, 0.9),
-          backdropFilter: 'blur(20px)',
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          bgcolor: alpha(theme.palette.background.paper, 0.8),
+          backdropFilter: 'blur(30px)',
           backgroundImage: 'none',
           maxHeight: '80vh',
           p: 3,
@@ -174,12 +176,42 @@ const AppLayout = ({ children }) => {
   const [open, setOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [showEventsGate, setShowEventsGate] = useState(false);
+
+  // Inactivity timeout: auto-logout after 15 minutes of user inactivity
+  useSessionTimeout({
+    timeoutMs: 15 * 60 * 1000, 
+    onTimeout: () => {
+      logout();
+      sessionStorage.removeItem('ricgcw_has_seen_events');
+      navigate('/login');
+    },
+    isEnabled: !!user && !isLoginPage
+  });
+
+  // Controls displaying the upcoming events gateway screen post-login
+  useEffect(() => {
+    if (user && !isLoginPage) {
+      const hasSeen = sessionStorage.getItem('ricgcw_has_seen_events');
+      if (!hasSeen) {
+        setShowEventsGate(true);
+      }
+    } else {
+      setShowEventsGate(false);
+    }
+  }, [user, isLoginPage]);
+
+  const handleDismissEventsGate = () => {
+    sessionStorage.setItem('ricgcw_has_seen_events', 'true');
+    setShowEventsGate(false);
+  };
 
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
   const handleLogout = () => {
     logout();
+    sessionStorage.removeItem('ricgcw_has_seen_events');
     handleClose();
     navigate('/login');
   };
@@ -232,6 +264,9 @@ const AppLayout = ({ children }) => {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.palette.background.default }}>
       <CssBaseline />
       
+      {/* Upcoming Events Post-Login gateway */}
+      <EventsGateway open={showEventsGate} onProceed={handleDismissEventsGate} />
+      
       <TopAppBar 
         open={open}
         isMobile={isMobile}
@@ -269,14 +304,18 @@ const AppLayout = ({ children }) => {
                 variant="persistent"
                 anchor="left" 
                 open={open} 
-                sx={{ 
-                '& .MuiDrawer-paper': { 
-                    boxSizing: 'border-box', 
+                PaperProps={{
+                  className: 'neo-glass-card',
+                  sx: {
+                    boxSizing: 'border-box',
                     width: drawerWidth,
-                    borderRight: 'none', 
-                    backgroundColor: theme.palette.background.paper, 
-                    boxShadow: theme.shadows[4]
-                } 
+                    border: 'none',
+                    borderRight: '1px solid var(--border-color-darker)',
+                    borderRadius: 0,
+                    boxShadow: 'none',
+                    backdropFilter: 'blur(30px) saturate(180%)',
+                    background: 'var(--bg-paper)'
+                  }
                 }}
             >
                 <SidebarNav 
@@ -294,15 +333,15 @@ const AppLayout = ({ children }) => {
           <Paper 
             sx={{ 
                 position: 'fixed', 
-                bottom: 0, 
-                left: 0, 
-                right: 0, 
+                bottom: 16, 
+                left: 16, 
+                right: 16, 
                 zIndex: theme.zIndex.drawer + 2,
-                borderRadius: 0,
+                borderRadius: '24px',
                 background: 'transparent',
                 boxShadow: 'none'
             }} 
-            elevation={3}
+            elevation={0}
           >
              <BottomNavigation
                 showLabels
@@ -316,22 +355,23 @@ const AppLayout = ({ children }) => {
                     }
                 }}
                 sx={{
-                  bgcolor: alpha(theme.palette.background.paper, 0.8),
-                  backdropFilter: 'blur(20px)',
-                  borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                  boxShadow: `0 -8px 24px ${alpha(theme.palette.common.black, 0.04)}`,
-                  height: 64,
+                  borderRadius: '24px',
+                  background: 'var(--bg-paper)',
+                  backdropFilter: 'blur(30px) saturate(180%)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--neo-shadow-out), var(--glass-glow)',
+                  height: 68,
                   '& .MuiBottomNavigationAction-root': {
-                    color: theme.palette.text.secondary,
+                    color: 'var(--text-secondary)',
                     transition: 'all 0.2s',
                     minWidth: 'auto',
                     padding: '6px 0',
                     '&.Mui-selected': {
-                      color: theme.palette.primary.main,
+                      color: 'var(--system-blue)',
                       fontWeight: 800,
                       '& .MuiSvgIcon-root': {
                         transform: 'translateY(-2px) scale(1.15)',
-                        filter: `drop-shadow(0 4px 10px ${alpha(theme.palette.primary.main, 0.3)})`,
+                        filter: 'drop-shadow(0 4px 10px rgba(0, 122, 255, 0.35))',
                       }
                     }
                   },

@@ -22,6 +22,7 @@ import {
   TextField,
   InputAdornment,
   CircularProgress,
+  Skeleton,
   alpha,
   useTheme,
   Container,
@@ -193,7 +194,6 @@ const BibleStudies = () => {
                     sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', mb: 3, backdropFilter: 'blur(10px)', fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }} 
                 />
                 <Typography variant="h2" sx={{ 
-                    fontFamily: '"Playfair Display", serif', 
                     fontStyle: 'italic', 
                     fontWeight: 700,
                     mb: 3,
@@ -290,7 +290,15 @@ const BibleStudies = () => {
             <AnimatePresence mode="wait">
                 {activeTab === 0 ? (
                     <motion.div key="modules" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                        {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
+                        {loading ? (
+                            <Grid container spacing={3}>
+                                {[1, 2, 3, 4].map((i) => (
+                                    <Grid size={{ xs: 12, sm: 6 }} key={i}>
+                                        <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 5 }} />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        ) : (
                             <Grid container spacing={3}>
                                 {filteredStudies.length === 0 ? (
                                     <Grid size={{ xs: 12 }}>
@@ -340,7 +348,13 @@ const BibleStudies = () => {
                 ) : (
                     <motion.div key="resources" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <Card sx={{ borderRadius: 6, overflow: 'hidden', border: `1px solid ${theme.palette.divider}`, boxShadow: theme.shadows[2] }}>
-                            {loading ? <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box> : (
+                            {loading ? (
+                                <Box sx={{ p: 3 }}>
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <Skeleton key={i} variant="rounded" height={60} sx={{ mb: 2, borderRadius: 2 }} />
+                                    ))}
+                                </Box>
+                            ) : (
                                 <List disablePadding>
                                     {filteredResources.length === 0 ? (
                                         <Box sx={{ py: 10, textAlign: 'center' }}>

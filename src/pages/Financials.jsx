@@ -549,7 +549,11 @@ const Financials = () => {
                 <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 0 }}>
                     <List disablePadding>
                         {loading ? (
-                            <Box sx={{ p: 3 }}><CircularProgress /></Box>
+                            <Box sx={{ p: 3 }}>
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <Skeleton key={i} variant="text" height={50} sx={{ mb: 1, borderRadius: 2 }} />
+                                ))}
+                            </Box>
                         ) : filteredTx.length === 0 ? (
                             <Box sx={{ p: 4, textAlign: 'center', opacity: 0.5 }}>
                                 <FileText size={40} />
