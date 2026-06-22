@@ -11,11 +11,11 @@ describe('getAppwriteEndpoint', () => {
   it('should fallback to the secure custom domain if endpoint is missing in env', () => {
     const env = {};
     const endpoint = getAppwriteEndpoint(env);
-    expect(endpoint).toBe('https://api.ricgcw.com/v1');
+    expect(endpoint).toBe('https://nyc.cloud.appwrite.io/v1');
   });
 
   it('should fallback to the secure custom domain if env is null or undefined', () => {
     const endpoint = getAppwriteEndpoint(undefined);
-    expect(endpoint).toBe('https://api.ricgcw.com/v1');
+    expect(endpoint).toBe('https://nyc.cloud.appwrite.io/v1');
   });
 });

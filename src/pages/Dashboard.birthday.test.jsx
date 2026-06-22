@@ -34,17 +34,24 @@ vi.mock('firebase/firestore', () => {
       let data = [];
       if (colRef.path === 'members') data = mockMembers;
       else if (colRef.path === 'events') data = mockEvents;
+      const docs = data.map(item => ({
+        id: item.id,
+        data: () => item
+      }));
       return Promise.resolve({
-        docs: data.map(item => ({
-          id: item.id,
-          data: () => item
-        }))
+        docs,
+        forEach: (callback) => docs.forEach(callback)
       });
     }),
     addDoc: vi.fn((colRef, data) => {
       mockAddDoc(colRef, data);
       return Promise.resolve({ id: 'new-id' });
-    })
+    }),
+    doc: vi.fn((db, path, id) => ({ path, id })),
+    writeBatch: vi.fn(() => ({
+      update: vi.fn(),
+      commit: vi.fn(() => Promise.resolve())
+    }))
   };
 });
 
@@ -74,6 +81,7 @@ describe('Dashboard Birthday Reminders Range & Timezone Checks', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockMembers = [];
     mockEvents = [];
   });

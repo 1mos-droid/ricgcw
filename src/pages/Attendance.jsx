@@ -668,7 +668,7 @@ const Attendance = () => {
                     key={record.id || index} 
                     onClick={() => {
                       setSelectedRecord(record);
-                      const attendeeIds = new Set((record.attendees || []).map(a => a.id));
+                      const attendeeIds = new Set((record.attendees || []).filter(a => a && a.id).map(a => a.id));
                       setEditedAttendees(attendeeIds);
                     }}
                     sx={{ 
@@ -871,8 +871,8 @@ const Attendance = () => {
           </div>
           <div style={{ display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1 }}>
-                  <h3>Present ({selectedRecord.attendees?.length || 0})</h3>
-                  <ul>{selectedRecord.attendees?.map((m, i) => <li key={i}>{m.name}</li>)}</ul>
+                  <h3>Present ({selectedRecord.attendees?.filter(m => m).length || 0})</h3>
+                  <ul>{selectedRecord.attendees?.filter(m => m).map((m, i) => <li key={i}>{m.name || "Unknown"}</li>)}</ul>
               </div>
               <div style={{ flex: 1 }}>
                   <h3>Absent ({getAbsentMembers(selectedRecord).length})</h3>

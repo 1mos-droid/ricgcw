@@ -672,8 +672,10 @@ const LiveBible = () => {
 
   const filteredVerses = useMemo(() => {
     if (!currentVerses) return [];
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) return currentVerses;
     return currentVerses.filter(v => 
-      v.text.toLowerCase().includes(searchTerm.toLowerCase())
+      (v.text || '').toLowerCase().includes(search)
     );
   }, [currentVerses, searchTerm]);
 

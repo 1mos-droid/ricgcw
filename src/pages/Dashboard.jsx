@@ -112,40 +112,65 @@ const Dashboard = () => {
     if (userRole !== 'admin' && userRole !== 'branch_admin') return;
 
     const today = new Date();
+    // Timezone-safe local ISO string for today (YYYY-MM-DD)
+    const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
-    // Scan range from today (0 days) to 7 days from now
+    // Check local storage cache to prevent duplicate processing/API calls on every load
+    const cachedDate = localStorage.getItem('birthdaysLastChecked');
+    if (cachedDate === todayISO) {
+      return;
+    }
+
+    // Build target date map for the next 8 days (0 to 7)
+    // Map key: "MM-DD" -> { targetDateISO, targetDateStr }
+    const targetDayMap = new Map();
     for (let d = 0; d <= 7; d++) {
       const targetDate = new Date();
       targetDate.setDate(today.getDate() + d);
       
       const targetMonth = targetDate.getMonth() + 1;
       const targetDay = targetDate.getDate();
+      const key = `${targetMonth}-${targetDay}`;
       
-      // Timezone-safe local ISO string (YYYY-MM-DD)
       const year = targetDate.getFullYear();
       const month = String(targetMonth).padStart(2, '0');
       const day = String(targetDay).padStart(2, '0');
       const targetDateISO = `${year}-${month}-${day}`;
       const targetDateStr = `${targetDateISO}T00:00:00.000Z`;
+      
+      targetDayMap.set(key, { targetDateISO, targetDateStr });
+    }
 
-      const upcomingBirthdays = members.filter(member => {
-        if (!member.dob) return false;
-        const dob = safeParseDate(member.dob);
-        return (dob.getMonth() + 1) === targetMonth && dob.getDate() === targetDay;
-      });
+    // Index allEvents to check for existing birthdays in O(1) time
+    // Event unique key: "eventName_targetDateISO"
+    const existingEvents = new Set();
+    allEvents.forEach(e => {
+      if (e.name && e.date) {
+        const isoDate = getISOStringDate(e.date);
+        existingEvents.add(`${e.name}_${isoDate}`);
+      }
+    });
 
-      for (const member of upcomingBirthdays) {
+    let writesOccurred = false;
+
+    // Filter upcoming birthdays in a single pass O(M) over members
+    for (const member of members) {
+      if (!member.dob) continue;
+      const dob = safeParseDate(member.dob);
+      const dobMonth = dob.getMonth() + 1;
+      const dobDay = dob.getDate();
+      const dobKey = `${dobMonth}-${dobDay}`;
+
+      const targetInfo = targetDayMap.get(dobKey);
+      if (targetInfo) {
         const eventName = `🎂 Birthday: ${member.name}`;
-        const exists = allEvents.some(e => 
-          e.name === eventName && 
-          getISOStringDate(e.date) === targetDateISO
-        );
+        const eventKey = `${eventName}_${targetInfo.targetDateISO}`;
 
-        if (!exists) {
+        if (!existingEvents.has(eventKey)) {
           try {
             await addDoc(collection(db, "events"), {
               name: eventName,
-              date: targetDateStr,
+              date: targetInfo.targetDateStr,
               time: "00:00",
               location: "Main Auditorium",
               isOnline: false,
@@ -153,20 +178,25 @@ const Dashboard = () => {
               branch: member.branch || 'Main',
               createdAt: new Date().toISOString()
             });
-            console.log(`Automatic event created: ${eventName} for ${targetDateISO}`);
+            console.log(`Automatic event created: ${eventName} for ${targetInfo.targetDateISO}`);
             
-            // Push to allEvents so that we don't recreate it if checking again in this loop
+            // Add to our sets to prevent duplicate checks/creation in the same execution
+            existingEvents.add(eventKey);
             allEvents.push({
               name: eventName,
-              date: targetDateStr,
+              date: targetInfo.targetDateStr,
               branch: member.branch || 'Main'
             });
+            writesOccurred = true;
           } catch (err) {
             console.error("Error creating birthday event:", err);
           }
         }
       }
     }
+
+    // Store in local storage that we checked today to prevent duplicate runs
+    localStorage.setItem('birthdaysLastChecked', todayISO);
   }, [userRole]);
 
   useEffect(() => {
@@ -229,16 +259,18 @@ const Dashboard = () => {
     };
   }, [data, filterData]);
 
-  const totalContributions = useMemo(() => {
-    return filteredData.transactions
-      .filter(t => t.type === 'contribution')
-      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  }, [filteredData.transactions]);
-
-  const totalExpenses = useMemo(() => {
-    return filteredData.transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const { totalContributions, totalExpenses } = useMemo(() => {
+    let contributions = 0;
+    let expenses = 0;
+    filteredData.transactions.forEach(t => {
+      const amt = Number(t.amount) || 0;
+      if (t.type === 'contribution') {
+        contributions += amt;
+      } else if (t.type === 'expense') {
+        expenses += amt;
+      }
+    });
+    return { totalContributions: contributions, totalExpenses: expenses };
   }, [filteredData.transactions]);
 
   const budgetProgress = useMemo(() => {
@@ -248,35 +280,77 @@ const Dashboard = () => {
 
   const campusAnalytics = useMemo(() => {
     const branches = ['Mallam', 'Kokrobitey', 'Langma', 'Diaspora'];
-    return branches.map(branchName => {
-      const membersCount = data.members.filter(m => m.branch === branchName).length;
-      const contributionsTotal = data.transactions
-        .filter(t => t.branch === branchName && t.type === 'contribution')
-        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-      
-      return {
-        name: branchName,
-        Members: membersCount,
-        Giving: contributionsTotal
-      };
-    });
-  }, [data.members, data.transactions]);
-
-  const safetyStatus = useMemo(() => {
-    const checkedInMemberIds = new Set();
-    filteredData.attendance.forEach(record => {
-      if (Array.isArray(record.attendees)) {
-        record.attendees.forEach(att => {
-          if (att && att.id) checkedInMemberIds.add(String(att.id));
-        });
+    const counts = {
+      Mallam: { members: 0, giving: 0 },
+      Kokrobitey: { members: 0, giving: 0 },
+      Langma: { members: 0, giving: 0 },
+      Diaspora: { members: 0, giving: 0 },
+    };
+    
+    data.members.forEach(m => {
+      if (m.branch && counts[m.branch] !== undefined) {
+        counts[m.branch].members += 1;
       }
     });
 
-    const checkedInChildren = data.members.filter(m => {
-      if (!checkedInMemberIds.has(String(m.id))) return false;
-      if (!m.dob) return false;
-      const age = new Date().getFullYear() - safeParseDate(m.dob).getFullYear();
-      return age < 13;
+    data.transactions.forEach(t => {
+      if (t.type === 'contribution' && t.branch && counts[t.branch] !== undefined) {
+        counts[t.branch].giving += (Number(t.amount) || 0);
+      }
+    });
+
+    return branches.map(branchName => ({
+      name: branchName,
+      Members: counts[branchName].members,
+      Giving: counts[branchName].giving
+    }));
+  }, [data.members, data.transactions]);
+
+  const safetyStatus = useMemo(() => {
+    let latestDateStr = null;
+    let latestDateTime = 0;
+
+    // Find the latest attendance record's date
+    filteredData.attendance.forEach(record => {
+      if (!record.date) return;
+      const d = safeParseDate(record.date);
+      const time = d.getTime();
+      if (time > latestDateTime) {
+        latestDateTime = time;
+        latestDateStr = getISOStringDate(record.date);
+      }
+    });
+
+    const checkedInMemberIds = new Set();
+    if (latestDateStr) {
+      filteredData.attendance.forEach(record => {
+        if (record.date && getISOStringDate(record.date) === latestDateStr) {
+          if (Array.isArray(record.attendees)) {
+            record.attendees.forEach(att => {
+              if (att && att.id) checkedInMemberIds.add(String(att.id));
+            });
+          }
+        }
+      });
+    }
+
+    // Build map for O(1) member lookup instead of O(M) DOB parses
+    const membersMap = new Map();
+    data.members.forEach(m => {
+      if (m.id) membersMap.set(String(m.id), m);
+    });
+
+    const checkedInChildren = [];
+    checkedInMemberIds.forEach(id => {
+      const m = membersMap.get(id);
+      if (m) {
+        if (m.dob) {
+          const age = new Date().getFullYear() - safeParseDate(m.dob).getFullYear();
+          if (age < 13) {
+            checkedInChildren.push(m);
+          }
+        }
+      }
     });
 
     const checkedInCount = checkedInChildren.length;
@@ -308,14 +382,24 @@ const Dashboard = () => {
       }
     });
 
-    const potentialVolunteers = data.members.map(m => ({
-      id: m.id || Math.random().toString(),
-      name: m.name || 'Anonymous',
-      roles: m.volunteerRoles || ['Usher', 'AV Sound Board', 'Children Teacher', 'Musician'],
-      availability: ['Sunday', 'Saturday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      lastServed: m.lastServed || '2026-05-24',
-      gapWeeks: 1
-    }));
+    // Extract unique roles needed to pre-filter potential volunteers
+    const slotRoles = new Set(slots.map(s => s.role));
+    const potentialVolunteers = [];
+    for (let i = 0; i < data.members.length; i++) {
+      const m = data.members[i];
+      const roles = m.volunteerRoles || ['Usher', 'AV Sound Board', 'Children Teacher', 'Musician'];
+      // Only include volunteers if they have a matching role needed
+      if (roles.some(r => slotRoles.has(r))) {
+        potentialVolunteers.push({
+          id: m.id || String(i),
+          name: m.name || 'Anonymous',
+          roles: roles,
+          availability: ['Sunday', 'Saturday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          lastServed: m.lastServed || '2026-05-24',
+          gapWeeks: 1
+        });
+      }
+    }
 
     const assignments = autoAssignVolunteers(slots, potentialVolunteers);
 
@@ -330,7 +414,16 @@ const Dashboard = () => {
   }, [filteredData.events, data.members]);
 
   const pendingAudits = useMemo(() => {
-    const mallamTx = data.transactions.filter(t => t.type === 'contribution' && t.branch === 'Mallam');
+    const mallamTx = [];
+    let batchTotal = 0;
+    
+    data.transactions.forEach(t => {
+      if (t.type === 'contribution' && t.branch === 'Mallam') {
+        mallamTx.push(t);
+        batchTotal += (Number(t.amount) || 0);
+      }
+    });
+
     if (mallamTx.length === 0) {
       return {
         batchId: null,
@@ -341,7 +434,6 @@ const Dashboard = () => {
       };
     }
 
-    const batchTotal = mallamTx.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     const countUsers = [user?.email || 'admin@ricgcw.org'];
 
     const auditCheck = validateBatchDeposit(

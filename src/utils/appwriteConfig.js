@@ -4,5 +4,5 @@
  * @returns {string} The resolved API endpoint.
  */
 export const getAppwriteEndpoint = (env) => {
-  return env?.VITE_APPWRITE_ENDPOINT || 'https://api.ricgcw.com/v1';
+  return env?.VITE_APPWRITE_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1';
 };

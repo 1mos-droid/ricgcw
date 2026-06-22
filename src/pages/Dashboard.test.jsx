@@ -53,14 +53,21 @@ vi.mock('firebase/firestore', () => {
       else if (colRef.path === 'transactions') data = mockTransactions;
       else if (colRef.path === 'events') data = mockEvents;
       else if (colRef.path === 'attendance') data = mockAttendance;
+      const docs = data.map(item => ({
+        id: item.id,
+        data: () => item
+      }));
       return Promise.resolve({
-        docs: data.map(item => ({
-          id: item.id,
-          data: () => item
-        }))
+        docs,
+        forEach: (callback) => docs.forEach(callback)
       });
     }),
-    addDoc: vi.fn(() => Promise.resolve({ id: 'new-id' }))
+    addDoc: vi.fn(() => Promise.resolve({ id: 'new-id' })),
+    doc: vi.fn((db, path, id) => ({ path, id })),
+    writeBatch: vi.fn(() => ({
+      update: vi.fn(),
+      commit: vi.fn(() => Promise.resolve())
+    }))
   };
 });
 
@@ -92,6 +99,7 @@ describe('Dashboard Component TDD Checks', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders MemberDashboardView for a member role', async () => {

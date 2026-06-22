@@ -52,7 +52,11 @@ vi.mock('firebase/firestore', () => ({
     return Promise.resolve();
   }),
   setDoc: vi.fn(() => Promise.resolve()),
-  addDoc: vi.fn(() => Promise.resolve({ id: 'new-id' }))
+  addDoc: vi.fn(() => Promise.resolve({ id: 'new-id' })),
+  writeBatch: vi.fn(() => ({
+    update: vi.fn(),
+    commit: vi.fn(() => Promise.resolve())
+  }))
 }));
 
 vi.mock('../firebase', () => ({

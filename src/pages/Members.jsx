@@ -39,7 +39,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  TablePagination
 } from '@mui/material';
 import { 
   UserPlus, 
@@ -98,6 +99,24 @@ const Members = () => {
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [rowMenuAnchor, setRowMenuAnchor] = useState(null);
   const [rowMenuMember, setRowMenuMember] = useState(null);
+
+  // Grid view pagination states
+  const [gridPage, setGridPage] = useState(0);
+  const [gridRowsPerPage, setGridRowsPerPage] = useState(12);
+
+  const handleGridPageChange = (event, newPage) => {
+    setGridPage(newPage);
+  };
+
+  const handleGridRowsPerPageChange = (event) => {
+    setGridRowsPerPage(parseInt(event.target.value, 10));
+    setGridPage(0);
+  };
+
+  // Reset grid page on filter changes
+  useEffect(() => {
+    setGridPage(0);
+  }, [searchTerm, selectedBranch, selectedStatus]);
 
   const handleRowMenuOpen = (event, member) => {
     event.stopPropagation();
@@ -353,14 +372,31 @@ const Members = () => {
   };
 
   const filteredMembers = useMemo(() => {
-    const environmentFiltered = filterData(members);
+    const environmentFiltered = filterData(members) || [];
+    const search = searchTerm.trim().toLowerCase();
+    const branch = selectedBranch ? selectedBranch.toLowerCase() : '';
+    const status = selectedStatus !== 'all' ? selectedStatus.toLowerCase() : '';
+
+    if (!search && !branch && !status) {
+      return environmentFiltered;
+    }
+
     return environmentFiltered.filter(m => {
-      const matchesSearch = (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           (m.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (m.memberId || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesBranch = selectedBranch === '' || (m.branch || '').toLowerCase() === selectedBranch.toLowerCase();
-      const matchesStatus = selectedStatus === 'all' || (m.status || 'active').toLowerCase() === selectedStatus.toLowerCase();
-      return matchesSearch && matchesBranch && matchesStatus;
+      if (branch) {
+        const mBranch = m.branch ? m.branch.toLowerCase() : '';
+        if (mBranch !== branch) return false;
+      }
+      if (status) {
+        const mStatus = (m.status || 'active').toLowerCase();
+        if (mStatus !== status) return false;
+      }
+      if (search) {
+        const name = (m.name || '').toLowerCase();
+        const email = (m.email || '').toLowerCase();
+        const memberId = (m.memberId || '').toLowerCase();
+        return name.includes(search) || email.includes(search) || memberId.includes(search);
+      }
+      return true;
     });
   }, [members, searchTerm, selectedBranch, selectedStatus, filterData]);
 
@@ -825,9 +861,30 @@ const Members = () => {
             </Box>
           </motion.div>
         ) : viewMode === 'grid' ? (
-          <Grid container spacing={3}>
-             {filteredMembers.map((member, idx) => renderMemberCard(member, idx))}
-          </Grid>
+          <Box>
+            <Grid container spacing={3}>
+               {filteredMembers
+                 .slice(gridPage * gridRowsPerPage, gridPage * gridRowsPerPage + gridRowsPerPage)
+                 .map((member, idx) => renderMemberCard(member, idx))}
+            </Grid>
+            <TablePagination
+              rowsPerPageOptions={[12, 24, 48]}
+              component="div"
+              count={filteredMembers.length}
+              rowsPerPage={gridRowsPerPage}
+              page={gridPage}
+              onPageChange={handleGridPageChange}
+              onRowsPerPageChange={handleGridRowsPerPageChange}
+              sx={{
+                mt: 4,
+                borderTop: `1px solid ${theme.palette.divider}`,
+                '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                }
+              }}
+            />
+          </Box>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <MasterDataGrid 
