@@ -16,24 +16,7 @@ import { db } from '../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { getUpcomingEvents } from '../../utils/eventFilters';
 
-/**
- * Formats a date string safely.
- * @param {string} dateStr 
- * @returns {string} Formatted string
- */
-const formatEventDate = (dateStr) => {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 'TBD';
-    return d.toLocaleDateString(undefined, { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  } catch {
-    return 'TBD';
-  }
-};
+
 
 /**
  * EventsGateway component

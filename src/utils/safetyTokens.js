@@ -4,17 +4,8 @@
  * @returns {Object} - Matching child and parent security tokens
  */
 export function generateSecurityTokens() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let token = '';
-  // Generate a random 8-character token
-  for (let i = 0; i < 8; i++) {
-    const idx = Math.floor(Math.random() * chars.length);
-    token += chars[idx];
-  }
-  return {
-    childToken: token,
-    parentToken: token
-  };
+  const token = Array.from({ length: 8 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join('');
+  return { childToken: token, parentToken: token };
 }
 
 /**

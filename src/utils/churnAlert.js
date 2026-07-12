@@ -33,12 +33,7 @@ export function checkChurnRisk(member, checkins = [], contributions = [], evalua
   const latestContributionTime = memberContributions[0] || null;
 
   // 3. Determine the latest activity time
-  let latestActivityTime = null;
-  if (latestCheckinTime && latestContributionTime) {
-    latestActivityTime = Math.max(latestCheckinTime, latestContributionTime);
-  } else {
-    latestActivityTime = latestCheckinTime || latestContributionTime || null;
-  }
+  const latestActivityTime = Math.max(latestCheckinTime || 0, latestContributionTime || 0) || null;
 
   // 4. If no activity ever recorded, check when the profile was created
   if (!latestActivityTime) {

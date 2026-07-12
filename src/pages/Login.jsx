@@ -832,8 +832,8 @@ const Login = () => {
                         component={motion.div}
                         key="signup-fields"
                         initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, height: 'auto', scale: 1, transitionEnd: { overflow: 'visible' } }}
+                        exit={{ opacity: 0, height: 0, scale: 0.95, overflow: 'hidden' }}
                         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                         style={{ overflow: 'hidden' }}
                       >

@@ -10,7 +10,6 @@ import {
   Avatar,
   Button,
   useTheme,
-  useMediaQuery,
   Skeleton,
   Chip,
   Stack,
@@ -61,7 +60,6 @@ import './Dashboard.css';
 const Dashboard = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useAuth();
   const workspaceContext = useWorkspace();
   const workspace = workspaceContext?.workspace || 'main';
@@ -151,7 +149,7 @@ const Dashboard = () => {
       }
     });
 
-    let writesOccurred = false;
+
 
     // Filter upcoming birthdays in a single pass O(M) over members
     for (const member of members) {
@@ -187,7 +185,6 @@ const Dashboard = () => {
               date: targetInfo.targetDateStr,
               branch: member.branch || 'Main'
             });
-            writesOccurred = true;
           } catch (err) {
             console.error("Error creating birthday event:", err);
           }
@@ -487,11 +484,7 @@ const Dashboard = () => {
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-7);
 
-    const categoryTotals = filteredData.transactions.reduce((acc, t) => {
-      const cat = t.category || 'Other';
-      acc[cat] = (acc[cat] || 0) + (Number(t.amount) || 0);
-      return acc;
-    }, {});
+
 
     const activities = [
       ...filteredData.members.slice(-5).map(m => ({ id: m.id, type: 'member', title: 'New Member', description: m.name, date: safeParseDate(m.createdAt), branch: m.branch })),

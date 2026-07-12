@@ -1,0 +1,54 @@
+name: Deploy Production to Firebase
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_test_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run Linting and Unit Tests
+        run: |
+          npm run lint
+          npx vitest run
+
+      - name: Build Frontend static assets
+        run: npm run build
+        env:
+          VITE_HF_TOKEN: ${{ secrets.VITE_HF_TOKEN }}
+          VITE_HF_REPO_ID: ${{ secrets.VITE_HF_REPO_ID }}
+          VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
+          VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
+          VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
+          VITE_APPWRITE_ENDPOINT: ${{ secrets.VITE_APPWRITE_ENDPOINT }}
+          VITE_APPWRITE_PROJECT_ID: ${{ secrets.VITE_APPWRITE_PROJECT_ID }}
+
+      - name: Install Cloud Functions Dependencies
+        working-directory: ./functions
+        run: npm ci
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy Infrastructure and Hosting to Firebase
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=service-account.json
+          firebase deploy --only functions,hosting --project thegatheringplace-app
+          rm service-account.json
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_THEGATHERINGPLACE_APP }}

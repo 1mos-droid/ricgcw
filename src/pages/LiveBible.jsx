@@ -517,7 +517,6 @@ const LiveBible = () => {
   // Data States
   const [books, setBooks] = useState([]);
   const [chapters, setChapters] = useState([]);
-  const [loadingBooks, setLoadingBooks] = useState(true);
   const [currentVerses, setCurrentVerses] = useState([]);
   const [loadingVerses, setLoadingVerses] = useState(false);
   
@@ -556,7 +555,6 @@ const LiveBible = () => {
   // 1. Fetch Books on Mount or Version Change
   useEffect(() => {
     const loadBooks = async () => {
-      setLoadingBooks(true);
       try {
         const bibleId = VERSION_MAP[selectedVersion] || VERSION_MAP.KJV;
         const data = await fetchBooks(bibleId);
@@ -567,8 +565,6 @@ const LiveBible = () => {
       } catch (error) {
         console.error("Error fetching books:", error);
         setSnackbar({ open: true, message: "Failed to connect to Bible API. Please check your API key.", severity: "error" });
-      } finally {
-        setLoadingBooks(false);
       }
     };
 

@@ -1,5 +1,3 @@
-import { parseISO, isValid } from 'date-fns';
-
 /**
  * Safely converts various date formats (ISO string, Firestore Timestamp, Date object)
  * to a standard JavaScript Date object.
@@ -17,20 +15,9 @@ export const safeParseDate = (dateVal) => {
     return new Date(dateVal.seconds * 1000 + (dateVal.nanoseconds || 0) / 1000000);
   }
 
-  // Handle ISO strings or other string formats
-  if (typeof dateVal === 'string') {
-    const parsed = parseISO(dateVal);
-    if (isValid(parsed)) return parsed;
-    const fallback = new Date(dateVal);
-    return isValid(fallback) ? fallback : new Date();
-  }
-
-  // Handle Date objects
-  if (dateVal instanceof Date && isValid(dateVal)) {
-    return dateVal;
-  }
-
-  return new Date();
+  // Handle Date objects or strings
+  const parsed = new Date(dateVal);
+  return !isNaN(parsed.getTime()) ? parsed : new Date();
 };
 
 /**

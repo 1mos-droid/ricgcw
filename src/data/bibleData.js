@@ -9,6 +9,3 @@ export const BIBLE_VERSIONS = [
   { id: 'AMP', label: 'Amplified' },
   { id: 'GENZ', label: 'Gen Z' }
 ];
-
-// Local bibleBooks data has been removed in favor of the real-time API.bible integration.
-export const bibleBooks = [];

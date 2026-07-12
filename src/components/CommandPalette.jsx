@@ -58,19 +58,7 @@ const CommandPalette = ({ open, onClose, members = [], onNavigate, onSelectMembe
     }
   }, [open]);
 
-  // Handle Ctrl+K/Cmd+K shortcuts at the parent or component level.
-  // We can also bundle it inside the component for automatic global listening.
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        // Since the open state is controlled from parent, we rely on parent's state,
-        // but listening here helps developers integrate it easily.
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+
 
   const filteredNavs = useMemo(() => {
     if (!query) return NAVIGATION_ITEMS;

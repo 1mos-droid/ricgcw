@@ -46,17 +46,10 @@ export const sendSMS = async (to, message) => {
 };
 
 /**
- * Sends a Bulk SMS to multiple recipients
+ * Sends a Bulk SMS to multiple recipients in parallel.
  * @param {string[]} recipients - Array of phone numbers
  * @param {string} message - The content of the SMS
  */
-export const sendBulkSMS = async (recipients, message) => {
-    // Termii has a bulk endpoint, but for simplicity and safety, 
-    // we can iterate or use their bulk API. 
-    // Implementing the iterative approach with a small delay to avoid rate limits if necessary.
-    const results = [];
-    for (const recipient of recipients) {
-        results.push(await sendSMS(recipient, message));
-    }
-    return results;
+export const sendBulkSMS = (recipients, message) => {
+  return Promise.all(recipients.map((recipient) => sendSMS(recipient, message)));
 };

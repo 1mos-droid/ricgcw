@@ -2,8 +2,7 @@ import React from 'react';
 import {
   Dialog,
   Typography,
-  Box,
-  useTheme
+  Box
 } from '@mui/material';
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { CupertinoButton } from './Cupertino';
@@ -18,7 +17,6 @@ const ConfirmationDialog = ({
   cancelText = "Cancel", 
   severity = "error" 
 }) => {
-  const theme = useTheme();
   const color = severity === 'error' ? 'var(--system-red)' : 'var(--system-blue)';
 
   return (
