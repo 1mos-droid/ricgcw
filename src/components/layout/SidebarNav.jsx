@@ -83,61 +83,60 @@ const SidebarNav = ({
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'transparent' }}>
       {/* Header Logo */}
-      <Box sx={{ display: 'flex', alignItems: 'center', padding: theme.spacing(0, 4), height: 100, justifyContent: 'space-between' }}>
-        <Stack direction="row" alignItems="center" spacing={2.5}>
+      <Box sx={{ display: 'flex', alignItems: 'center', padding: theme.spacing(0, 3), height: 72, borderBottom: '1px solid var(--border-color)', justifyContent: 'space-between' }}>
+        <Stack direction="row" alignItems="center" spacing={2}>
           <Box
             component="img"
             src="/ricgcw.png"
             alt="Rhema Inner Court Gospel Church Worldwide (RICGCW) Logo"
             sx={{
-              width: 56,
-              height: 56,
-              objectFit: 'contain',
-              filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.4)})`
+              width: 36,
+              height: 36,
+              objectFit: 'contain'
             }}
           />
           <Box>
-            <Typography variant="h6" fontWeight={900} lineHeight={1} letterSpacing="-0.01em" sx={{ color: theme.palette.text.primary, mb: 0.5 }}>
+            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2} sx={{ color: theme.palette.text.primary }}>
               RICGCW
             </Typography>
-            <Typography variant="caption" color="primary" fontWeight={900} sx={{ letterSpacing: '0.05em', fontSize: '0.6rem', textTransform: 'uppercase', display: 'block' }}>
-              Rhema Inner Court Gospel Church Worldwide
+            <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ letterSpacing: '0.02em', fontSize: '0.65rem', display: 'block' }}>
+              Church Management
             </Typography>
           </Box>
         </Stack>
       </Box>
       
       {/* Navigation Domains List */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 2, py: 3 }}>
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1.5, py: 2 }}>
         {Object.entries(groupedNavs).map(([domainName, items]) => {
           if (items.length === 0) return null;
 
           const isDomainOpen = openDomains[domainName];
 
           return (
-            <Box key={domainName} sx={{ mb: 2 }}>
+            <Box key={domainName} sx={{ mb: 1.5 }}>
               {/* Group Header Button */}
               <ListItemButton
                 onClick={() => toggleDomain(domainName)}
                 sx={{
-                  py: 1,
-                  px: 2,
-                  borderRadius: 2,
+                  py: 0.75,
+                  px: 1.5,
+                  borderRadius: 1.5,
                   justifyContent: 'space-between',
                   '&:hover': {
                     bgcolor: alpha(theme.palette.text.primary, 0.03)
                   }
                 }}
               >
-                <Typography variant="subtitle2" sx={{ opacity: 0.8, fontWeight: 900, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.7rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                   {domainName}
                 </Typography>
-                {isDomainOpen ? <ExpandLess sx={{ fontSize: 16 }} /> : <ExpandMore sx={{ fontSize: 16 }} />}
+                {isDomainOpen ? <ExpandLess sx={{ fontSize: 15, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 15, color: 'text.secondary' }} />}
               </ListItemButton>
 
               {/* Group Body (Collapsible) */}
               <Collapse in={isDomainOpen} timeout="auto" unmountOnExit>
-                <List sx={{ pl: 1, mt: 0.5 }}>
+                <List sx={{ pl: 0, mt: 0.25 }}>
                   {items.map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
@@ -147,30 +146,34 @@ const SidebarNav = ({
                         to={item.path} 
                         selected={isActive}
                         sx={{
-                          py: 1.2,
-                          borderRadius: 3,
-                          transition: 'all 0.2s',
+                          py: 0.9,
+                          px: 1.5,
+                          borderRadius: '8px',
+                          transition: 'background-color 0.15s ease, color 0.15s ease',
                           '&.Mui-selected': {
-                            bgcolor: 'rgba(0, 0, 0, 0.02)',
-                            color: 'var(--system-blue)',
-                            boxShadow: 'var(--neo-shadow-in)',
-                            '& .MuiListItemIcon-root': { color: 'var(--system-blue)' }
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            color: theme.palette.primary.main,
+                            boxShadow: 'none',
+                            '& .MuiListItemIcon-root': { color: theme.palette.primary.main },
+                            '&:hover': {
+                              bgcolor: alpha(theme.palette.primary.main, 0.12),
+                            }
                           },
                           '&:hover': {
-                            bgcolor: 'rgba(0,0,0,0.01)',
-                            color: 'var(--system-blue)'
+                            bgcolor: 'rgba(0, 0, 0, 0.03)',
+                            color: theme.palette.text.primary
                           }
                         }}
                       >
-                        <ListItemIcon sx={{ minWidth: 36, color: isActive ? 'var(--system-blue)' : 'var(--text-secondary)' }}>
-                          {React.cloneElement(item.icon, { sx: { fontSize: 20 } })}
+                        <ListItemIcon sx={{ minWidth: 32, color: isActive ? theme.palette.primary.main : 'text.secondary' }}>
+                          {React.cloneElement(item.icon, { sx: { fontSize: 18 } })}
                         </ListItemIcon>
                         <ListItemText 
                           primary={item.text} 
                           primaryTypographyProps={{ 
-                            fontWeight: isActive ? 900 : 700, 
+                            fontWeight: isActive ? 600 : 500, 
                             fontSize: '0.85rem',
-                            letterSpacing: '0.01em'
+                            letterSpacing: '0em'
                           }} 
                         />
                       </ListItemButton>
@@ -184,48 +187,45 @@ const SidebarNav = ({
       </Box>
 
       {/* User Profile in Sidebar Footer */}
-      <Box sx={{ p: 3, borderTop: '1px solid var(--border-color-darker)' }}>
+      <Box sx={{ p: 2, borderTop: '1px solid var(--border-color)' }}>
         {(userRole === 'admin' || userRole === 'developer') && (
           <Box 
-            component={motion.div}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="neo-glass-card-inset"
             sx={{ 
-              mb: 3, p: 2, borderRadius: 2.5, 
+              mb: 1.5, p: 1.25, borderRadius: '8px', 
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5,
-              borderColor: alpha(userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, 0.15)
+              gap: 1.25,
+              bgcolor: 'rgba(0,0,0,0.02)',
+              border: '1px solid var(--border-color)',
             }}
           >
-            <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, color: '#fff' }}>
-              <TerminalIcon sx={{ fontSize: 18 }} />
+            <Box sx={{ p: 0.75, borderRadius: 1, bgcolor: userRole === 'developer' ? theme.palette.secondary.main : theme.palette.primary.main, color: '#fff' }}>
+              <TerminalIcon sx={{ fontSize: 16 }} />
             </Box>
             <Box>
-              <Typography variant="caption" fontWeight={900} color={userRole === 'developer' ? "secondary" : "primary"} sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {localStorage.getItem('mimicData') ? 'Mimicking Mode' : 'Developer Console'}
+              <Typography variant="caption" fontWeight={600} color={userRole === 'developer' ? "secondary" : "primary"} sx={{ display: 'block', textTransform: 'uppercase', fontSize: '0.625rem', letterSpacing: '0.04em' }}>
+                {localStorage.getItem('mimicData') ? 'Mimicking' : 'Dev Mode'}
               </Typography>
-              <Typography variant="body2" fontWeight={800} sx={{ color: 'var(--text-primary)' }}>
+              <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--text-primary)', fontSize: '0.78rem' }}>
                 {userRole === 'developer' ? 'Master Access' : 'Authorized'}
               </Typography>
             </Box>
           </Box>
         )}
         <Box 
-          className="neo-glass-card"
           sx={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: 2, 
-            p: 2, 
-            borderRadius: 3, 
+            gap: 1.5, 
+            p: 1.25, 
+            borderRadius: '8px', 
             cursor: 'pointer',
             border: '1px solid var(--border-color)',
-            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            bgcolor: 'var(--bg-paper)',
+            boxShadow: 'var(--neo-shadow-out)',
+            transition: 'border-color 0.15s ease',
             '&:hover': { 
-              boxShadow: 'var(--neo-shadow-in)',
-              transform: 'translateY(1px)'
+              borderColor: alpha(theme.palette.primary.main, 0.4)
             }
           }}
           onClick={onProfileClick}
@@ -235,14 +235,23 @@ const SidebarNav = ({
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             variant="dot"
             color={localStorage.getItem('mimicData') ? "warning" : "success"}
-            sx={{ '& .MuiBadge-badge': { width: 14, height: 14, borderRadius: '50%', border: `3px solid var(--bg-paper-flat)` } }}
+            sx={{ '& .MuiBadge-badge': { width: 10, height: 10, borderRadius: '50%', border: `2px solid var(--bg-paper-flat)` } }}
           >
-            <UserAvatar name={user?.name || user?.email || 'User'} size={48} />
+            <UserAvatar name={user?.name || user?.email || 'User'} size={38} />
           </Badge>
           <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <Typography variant="subtitle2" fontWeight={900} noWrap sx={{ color: 'var(--text-primary)' }}>{user?.name || 'User'}</Typography>
-            <Typography variant="caption" color="primary" noWrap sx={{ display: 'block', fontWeight: 900, textTransform: 'uppercase', fontSize: '0.6rem' }}>{userRole}</Typography>
+            <Typography variant="body2" fontWeight={600} noWrap sx={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>{user?.name || 'User'}</Typography>
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontWeight: 500, textTransform: 'uppercase', fontSize: '0.65rem' }}>{userRole}</Typography>
           </Box>
+        </Box>
+        <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+          <Link to="/privacy-policy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 500 }}>
+            Privacy Policy
+          </Link>
+          <Typography component="span" sx={{ color: 'var(--text-secondary)', opacity: 0.4, fontSize: '0.7rem' }}>•</Typography>
+          <Link to="/terms-of-service" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 500 }}>
+            Terms of Service
+          </Link>
         </Box>
       </Box>
     </Box>

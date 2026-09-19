@@ -60,6 +60,10 @@ const SelfCheckIn = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
+    document.title = 'Self Check-In | RICGCW';
+  }, []);
+
+  useEffect(() => {
     const fetchMembers = async () => {
       try {
         const snapshot = await getDocs(collection(db, "members"));

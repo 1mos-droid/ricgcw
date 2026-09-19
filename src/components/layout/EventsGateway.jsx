@@ -107,10 +107,10 @@ const EventsGateway = ({ open, onProceed }) => {
             background: theme.palette.mode === 'dark' ? 'rgba(28, 28, 30, 0.45)' : 'rgba(255, 255, 255, 0.45)',
             backdropFilter: 'blur(30px) saturate(180%)',
             border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.5)'}`,
-            borderRadius: '24px',
+            borderRadius: '16px',
             boxShadow: theme.palette.mode === 'dark'
-              ? '0 30px 60px rgba(0,0,0,0.5), inset 1px 1px 0px rgba(255,255,255,0.05)'
-              : '0 30px 60px rgba(165,175,190,0.22), inset 1px 1px 0px rgba(255,255,255,0.6)',
+              ? '0 20px 40px rgba(0,0,0,0.4), inset 1px 1px 0px rgba(255,255,255,0.05)'
+              : '0 20px 40px rgba(165,175,190,0.18), inset 1px 1px 0px rgba(255,255,255,0.6)',
             p: { xs: 3.5, sm: 5 },
             textAlign: 'center',
           }}
@@ -125,17 +125,17 @@ const EventsGateway = ({ open, onProceed }) => {
                 width: 68,
                 height: 'auto',
                 mb: 2,
-                filter: 'drop-shadow(0 6px 12px rgba(0, 122, 255, 0.18))'
+                filter: 'drop-shadow(0 4px 8px rgba(0, 122, 255, 0.15))'
               }}
             />
-            <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: '0.15em', color: 'var(--system-blue)', textTransform: 'uppercase' }}>
-              Kingdom Update Gateway
+            <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: '0.12em', color: 'var(--system-blue)', textTransform: 'uppercase' }}>
+              Church Announcements
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.03em', mt: 0.5 }}>
-              Upcoming Church Events
+            <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mt: 0.5 }}>
+              Upcoming Events
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 380 }}>
-              Here are the upcoming services, conferences, and activities scheduled on the Rhema Inner Court calendar.
+              Here are the upcoming services, conferences, and activities scheduled on the church calendar.
             </Typography>
           </Box>
 
@@ -250,20 +250,20 @@ const EventsGateway = ({ open, onProceed }) => {
               justifyContent: 'center',
               gap: 1.25,
               width: '100%',
-              height: '52px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, var(--system-blue) 0%, var(--system-purple) 100%)',
+              height: '48px',
+              borderRadius: '8px',
+              background: 'var(--system-blue)',
               color: '#ffffff',
               fontFamily: 'var(--font-stack)',
-              fontSize: '0.98rem',
-              fontWeight: 800,
+              fontSize: '0.95rem',
+              fontWeight: 600,
               cursor: 'pointer',
               border: 'none',
               outline: 'none',
-              boxShadow: '0 8px 24px rgba(0, 122, 255, 0.18)'
+              boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)'
             }}
           >
-            Enter Portal Administration <ArrowRight size={18} strokeWidth={2.5} />
+            Enter Portal <ArrowRight size={18} strokeWidth={2.5} />
           </Button>
 
         </Box>

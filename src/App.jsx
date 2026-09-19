@@ -6,6 +6,7 @@ import AppRouter from './routes/Router';
 import AppLayout from './components/Layout';
 import ThemeConfig from './theme.jsx';
 import PWAPrompt from './components/PWAPrompt';
+import CookieConsent from './components/CookieConsent';
 
 // Helper: Resets view to top on page change (Polished feel)
 const ScrollToTop = () => {
@@ -24,6 +25,7 @@ function App() {
         <AppRouter />
       </AppLayout>
       <PWAPrompt />
+      <CookieConsent />
     </ThemeConfig>
   );
 }

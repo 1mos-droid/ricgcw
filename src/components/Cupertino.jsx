@@ -1,15 +1,14 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { motion } from 'framer-motion';
 
-// 1. Cupertino Button (Neomorphic Glass)
+// 1. Clean Button
 export const CupertinoButton = ({ 
   children, 
   onClick, 
   disabled = false, 
   variant = 'filled', // 'filled' | 'plain'
   color = 'primary', // 'primary' | 'destructive'
-  sx = {},
+  sx = {}, 
   ...props 
 }) => {
   let className = "neo-glass-button";
@@ -19,8 +18,7 @@ export const CupertinoButton = ({
 
   return (
     <Box
-      component={motion.button}
-      whileTap={disabled ? undefined : { scale: 0.98 }}
+      component="button"
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={className}
@@ -40,12 +38,12 @@ export const CupertinoButton = ({
   );
 };
 
-// 2. Cupertino Sliding Segmented Control (Neomorphic Glass)
+// 2. Sliding Segmented Control (Clean modern tabs)
 export const CupertinoSlidingSegmentedControl = ({ 
   options = [], 
   value, 
   onChange, 
-  sx = {},
+  sx = {}, 
   ...props 
 }) => {
   return (
@@ -63,8 +61,6 @@ export const CupertinoSlidingSegmentedControl = ({
         return (
           <Box
             key={idx}
-            component={motion.div}
-            whileTap={{ scale: 0.98 }}
             onClick={() => onChange(idx)}
             role="tab"
             aria-selected={isSelected}
@@ -79,7 +75,7 @@ export const CupertinoSlidingSegmentedControl = ({
             <Typography
               variant="body2"
               sx={{
-                fontWeight: isSelected ? 800 : 600,
+                fontWeight: isSelected ? 600 : 500,
                 fontSize: '0.8rem',
                 fontFamily: 'var(--font-stack)',
               }}
@@ -93,7 +89,7 @@ export const CupertinoSlidingSegmentedControl = ({
   );
 };
 
-// 3. Cupertino Grouped List Section
+// 3. Grouped List Section
 export const CupertinoListSection = ({ header, children, footer, sx = {} }) => {
   return (
     <Box sx={{ mb: 3, ...sx }}>
@@ -104,10 +100,10 @@ export const CupertinoListSection = ({ header, children, footer, sx = {} }) => {
             color: 'var(--text-secondary)', 
             fontSize: '0.72rem', 
             textTransform: 'uppercase', 
-            px: 2, 
-            mb: 1.25,
-            fontWeight: 800,
-            letterSpacing: 1,
+            px: 1.5, 
+            mb: 1,
+            fontWeight: 600,
+            letterSpacing: 0.5,
             fontFamily: 'var(--font-stack)'
           }}
         >
@@ -123,11 +119,11 @@ export const CupertinoListSection = ({ header, children, footer, sx = {} }) => {
           sx={{ 
             color: 'var(--text-secondary)', 
             fontSize: '0.72rem', 
-            px: 2, 
-            mt: 1.25, 
+            px: 1.5, 
+            mt: 1, 
             display: 'block',
-            fontWeight: 500,
-            fontFamily: 'var(--font-stack)'
+            fontWeight: 400,
+            fontFamily: 'var(--font-stack)' 
           }}
         >
           {footer}
@@ -137,7 +133,7 @@ export const CupertinoListSection = ({ header, children, footer, sx = {} }) => {
   );
 };
 
-// 4. Cupertino Grouped List Tile
+// 4. Grouped List Tile
 export const CupertinoListTile = ({ 
   leading: Leading, 
   title, 
@@ -149,18 +145,17 @@ export const CupertinoListTile = ({
   return (
     <Box
       onClick={onClick}
-      component={onClick ? motion.div : Box}
-      whileTap={onClick ? { opacity: 0.8 } : undefined}
+      component="div"
       sx={{
         display: 'flex',
         alignItems: 'center',
-        py: 2,
-        px: 2.5,
+        py: 1.5,
+        px: 2,
         cursor: onClick ? 'pointer' : 'default',
         borderBottom: divider ? '1px solid var(--border-color-darker)' : 'none',
-        transition: 'background-color 0.2s',
+        transition: 'background-color 0.15s ease',
         '&:hover': onClick ? {
-          backgroundColor: 'rgba(0,0,0,0.01)'
+          backgroundColor: 'rgba(0,0,0,0.02)'
         } : {}
       }}
     >
@@ -173,8 +168,8 @@ export const CupertinoListTile = ({
         <Typography 
           variant="body1" 
           sx={{ 
-            fontWeight: 600, 
-            fontSize: '0.92rem',
+            fontWeight: 500, 
+            fontSize: '0.9rem',
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-stack)' 
           }}
@@ -187,7 +182,7 @@ export const CupertinoListTile = ({
             sx={{ 
               color: 'var(--text-secondary)', 
               fontSize: '0.75rem',
-              fontWeight: 500,
+              fontWeight: 400,
               fontFamily: 'var(--font-stack)' 
             }}
           >
@@ -204,7 +199,7 @@ export const CupertinoListTile = ({
   );
 };
 
-// 5. Cupertino Card (Neomorphic Glass)
+// 5. Clean Card
 export const CupertinoCard = ({ children, sx = {}, ...props }) => {
   return (
     <Box
@@ -219,7 +214,7 @@ export const CupertinoCard = ({ children, sx = {}, ...props }) => {
   );
 };
 
-// 6. Cupertino Switch (Neomorphic Glass Switch)
+// 6. Switch
 export const CupertinoSwitch = ({ checked, onChange, disabled = false }) => {
   return (
     <Box
@@ -234,7 +229,7 @@ export const CupertinoSwitch = ({ checked, onChange, disabled = false }) => {
   );
 };
 
-// 7. Cupertino Text Field / Input (Neomorphic Glass Inset Input)
+// 7. Input Field
 export const CupertinoInput = ({ 
   placeholder,
   value,
@@ -268,7 +263,7 @@ export const CupertinoInput = ({
           outline: 'none',
           background: 'transparent',
           color: 'var(--text-primary)',
-          fontSize: '0.95rem',
+          fontSize: '0.9rem',
           fontFamily: 'var(--font-stack)',
           width: '100%',
           resize: 'none',

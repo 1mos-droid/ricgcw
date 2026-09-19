@@ -69,6 +69,10 @@ const Gallery = () => {
   }, [showNotification]);
 
   useEffect(() => {
+    document.title = 'Media & Gallery | RICGCW';
+  }, []);
+
+  useEffect(() => {
     fetchImages();
   }, [fetchImages]);
 

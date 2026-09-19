@@ -62,6 +62,10 @@ const Developer = () => {
   const [metadataSyncing, setMetadataSyncing] = useState(false);
 
   useEffect(() => {
+    document.title = 'Developer Tools | RICGCW';
+  }, []);
+
+  useEffect(() => {
     const fetchUsers = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "users"));

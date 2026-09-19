@@ -79,6 +79,10 @@ const BibleStudies = () => {
   }, []);
 
   useEffect(() => {
+    document.title = 'Bible Studies & Curriculums | RICGCW';
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -203,7 +207,7 @@ const BibleStudies = () => {
                     "{selectedScripture.text}"
                 </Typography>
                 <Typography variant="h6" sx={{ opacity: 0.8, letterSpacing: 2, fontWeight: 800 }}>
-                    — {selectedScripture.ref}
+                    - {selectedScripture.ref}
                 </Typography>
             </motion.div>
         </Container>

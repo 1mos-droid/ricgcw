@@ -113,6 +113,11 @@ const Members = () => {
     setGridPage(0);
   };
 
+  // Page Title
+  useEffect(() => {
+    document.title = 'Member Directory | RICGCW';
+  }, []);
+
   // Reset grid page on filter changes
   useEffect(() => {
     setGridPage(0);
@@ -528,7 +533,7 @@ const Members = () => {
       label: 'ID',
       render: (val) => (
         <Typography variant="caption" fontWeight={800} color="primary">
-          {val || '—'}
+          {val || '-'}
         </Typography>
       )
     },
@@ -554,7 +559,7 @@ const Members = () => {
       render: (_, row) => (
         <Stack direction="row" spacing={1} alignItems="center">
           <Box>
-            <Typography variant="body2" fontWeight={600}>{row.email || '—'}</Typography>
+            <Typography variant="body2" fontWeight={600}>{row.email || '-'}</Typography>
             <Typography variant="caption" color="text.secondary">{row.phone}</Typography>
           </Box>
           {row.email && (
@@ -580,7 +585,7 @@ const Members = () => {
       label: 'Joined',
       render: (val) => (
         <Typography variant="body2" fontWeight={500}>
-          {val ? format(safeParseDate(val), 'MMM yyyy') : '—'}
+          {val ? format(safeParseDate(val), 'MMM yyyy') : '-'}
         </Typography>
       )
     },

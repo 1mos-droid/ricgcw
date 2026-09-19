@@ -513,6 +513,10 @@ const SermonNotesHistory = ({
 
 const LiveBible = () => {
   const theme = useTheme();
+
+  useEffect(() => {
+    document.title = 'Scripture Study & Concordance | RICGCW';
+  }, []);
   
   // Data States
   const [books, setBooks] = useState([]);

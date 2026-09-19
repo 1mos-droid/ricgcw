@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -53,6 +53,10 @@ const Join = () => {
   const { showNotification } = useWorkspace();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Member Registration | RICGCW';
+  }, []);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -478,9 +482,9 @@ const Join = () => {
                         size="large"
                         disabled={submitting}
                         sx={{ 
-                            py: 2, borderRadius: 4, fontWeight: 900, fontSize: '1.1rem',
-                            boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
-                            '&:hover': { boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}` }
+                            py: 1.75, borderRadius: 1, fontWeight: 700, fontSize: '1rem',
+                            boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)',
+                            '&:hover': { boxShadow: '0 4px 12px rgba(0, 122, 255, 0.35)' }
                         }}
                     >
                         {submitting ? <CircularProgress size={24} color="inherit" /> : 'Complete Registration'}

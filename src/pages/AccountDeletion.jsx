@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -34,6 +34,10 @@ import { collection, addDoc } from 'firebase/firestore';
 const AccountDeletion = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = 'Account & Data Deletion | RICGCW';
+  }, []);
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');

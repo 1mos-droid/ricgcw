@@ -173,6 +173,10 @@ const Financials = () => {
   }, [showNotification]);
 
   useEffect(() => {
+    document.title = 'Financial Stewardship | RICGCW';
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [fetchData]);
 
@@ -598,9 +602,9 @@ const Financials = () => {
                 <Box sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" fontWeight={800}>Transaction Ledger</Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button size="small" variant={activeTab === 'all' ? 'contained' : 'outlined'} onClick={() => setActiveTab('all')} sx={{ borderRadius: 4 }}>All</Button>
-                        <Button size="small" variant={activeTab === 'income' ? 'contained' : 'outlined'} onClick={() => setActiveTab('income')} sx={{ borderRadius: 4 }}>Income</Button>
-                        <Button size="small" variant={activeTab === 'expense' ? 'contained' : 'outlined'} onClick={() => setActiveTab('expense')} sx={{ borderRadius: 4 }}>Expenses</Button>
+                        <Button size="small" variant={activeTab === 'all' ? 'contained' : 'outlined'} onClick={() => setActiveTab('all')} sx={{ borderRadius: 1 }}>All</Button>
+                        <Button size="small" variant={activeTab === 'income' ? 'contained' : 'outlined'} onClick={() => setActiveTab('income')} sx={{ borderRadius: 1 }}>Income</Button>
+                        <Button size="small" variant={activeTab === 'expense' ? 'contained' : 'outlined'} onClick={() => setActiveTab('expense')} sx={{ borderRadius: 1 }}>Expenses</Button>
                     </Box>
                 </Box>
                 <TableContainer>
@@ -667,14 +671,14 @@ const Financials = () => {
       <Dialog 
         open={openLogDialog} 
         onClose={() => setOpenLogDialog(false)}
-        PaperProps={{ sx: { borderRadius: 8, width: '100%', maxWidth: 450, p: 1 } }}
+        PaperProps={{ sx: { borderRadius: 2, width: '100%', maxWidth: 450, p: 1 } }}
       >
         <DialogTitle sx={{ fontWeight: 800, textAlign: 'center', pb: 1 }}>
             {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
         </DialogTitle>
         <DialogContent>
             <Stack spacing={3} sx={{ mt: 1 }}>
-                <Paper variant="outlined" sx={{ p: 0.5, borderRadius: 6, display: 'flex', bgcolor: theme.palette.action.hover }}>
+                <Paper variant="outlined" sx={{ p: 0.5, borderRadius: 1.5, display: 'flex', bgcolor: theme.palette.action.hover }}>
                     {['contribution', 'expense'].map((t) => (
                         <Button 
                             key={t}
@@ -682,7 +686,7 @@ const Financials = () => {
                             variant={type === t ? 'contained' : 'text'}
                             color={t === 'contribution' ? 'success' : 'error'}
                             onClick={() => setType(t)}
-                            sx={{ borderRadius: 4, fontWeight: 800, textTransform: 'capitalize', boxShadow: type === t ? 4 : 0 }}
+                            sx={{ borderRadius: 1, fontWeight: 700, textTransform: 'capitalize', boxShadow: type === t ? 1 : 0 }}
                         >
                             {t === 'contribution' ? 'Income' : 'Expense'}
                         </Button>
@@ -692,24 +696,24 @@ const Financials = () => {
                     fullWidth label="Amount" type="number" 
                     value={amount} onChange={(e) => setAmount(e.target.value)}
                     InputProps={{ startAdornment: <InputAdornment position="start">GHC</InputAdornment> }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
                 />
                 <TextField 
                     fullWidth label="Description" 
                     value={description} onChange={(e) => setDescription(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
                 />
                 <TextField 
                     fullWidth label="Date" type="date"
                     value={date} onChange={(e) => setDate(e.target.value)}
                     InputLabelProps={{ shrink: true }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
                 />
                 <TextField 
                     fullWidth select label="Location" 
                     value={category} onChange={(e) => setCategory(e.target.value)}
                     disabled={isBranchRestricted}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1 } }}
                 >
                     <MenuItem value="Mallam">Mallam</MenuItem>
                     <MenuItem value="Langma">Langma</MenuItem>
@@ -734,7 +738,7 @@ const Financials = () => {
                             variant="outlined" 
                             sx={{ 
                                 p: 2, 
-                                borderRadius: 4, 
+                                borderRadius: 1.5, 
                                 borderStyle: 'dashed', 
                                 textAlign: 'center', 
                                 cursor: 'pointer',
@@ -769,8 +773,8 @@ const Financials = () => {
             </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setOpenLogDialog(false)} sx={{ fontWeight: 700, borderRadius: 6, color: 'text.secondary' }}>Cancel</Button>
-            <Button variant="contained" onClick={handleTransaction} disabled={submitting} sx={{ fontWeight: 800, borderRadius: 6, px: 4 }}>
+            <Button onClick={() => setOpenLogDialog(false)} sx={{ fontWeight: 600, borderRadius: 1, color: 'text.secondary' }}>Cancel</Button>
+            <Button variant="contained" onClick={handleTransaction} disabled={submitting} sx={{ fontWeight: 600, borderRadius: 1, px: 3 }}>
                 {submitting ? <CircularProgress size={24} color="inherit" /> : (editingTransaction ? 'Update Record' : 'Confirm Log')}
             </Button>
         </DialogActions>

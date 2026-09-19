@@ -5,9 +5,7 @@ import {
   Box,
   Typography,
   Stack,
-  alpha,
   styled,
-  useTheme,
   InputBase,
   Badge,
   IconButton,
@@ -48,14 +46,13 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
-  borderRadius: 40,
-  background: 'rgba(0, 0, 0, 0.02)',
-  boxShadow: 'var(--neo-shadow-in)',
-  border: '1px solid var(--border-color-darker)',
-  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+  borderRadius: 8,
+  background: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
+  border: '1px solid var(--border-color)',
+  transition: 'border-color 0.15s ease, background-color 0.15s ease',
   '&:hover': {
-    background: 'rgba(0, 0, 0, 0.04)',
-    transform: 'translateY(-1px)',
+    background: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)',
+    borderColor: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)',
   },
   marginRight: theme.spacing(2),
   marginLeft: 0,
@@ -104,7 +101,6 @@ const TopAppBar = ({
   onProfileClick,
   notificationCount = 0
 }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { mode, toggleColorMode } = useColorMode();
   const { user } = useAuth();
@@ -170,8 +166,8 @@ const TopAppBar = ({
 
   return (
     <>
-      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" className="neo-glass-navbar" sx={{ top: 0, border: 'none', boxShadow: 'none' }}>
-        <Toolbar sx={{ height: { xs: 70, md: 90 }, justifyContent: 'space-between' }}>
+      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" className="neo-glass-navbar" sx={{ top: 0, border: 'none', borderBottom: '1px solid var(--border-color)', boxShadow: 'none' }}>
+        <Toolbar sx={{ height: { xs: 64, md: 72 }, justifyContent: 'space-between' }}>
             
           {/* Logo/Title */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -181,20 +177,19 @@ const TopAppBar = ({
                 src="/ricgcw.png"
                 alt="Rhema Inner Court Gospel Church Worldwide (RICGCW) Logo"
                 sx={{
-                  width: 36,
-                  height: 36,
-                  objectFit: 'contain',
-                  filter: `drop-shadow(0 2px 4px ${alpha(theme.palette.primary.main, 0.4)})`
+                  width: 32,
+                  height: 32,
+                  objectFit: 'contain'
                 }}
               />
             )}
 
-            <Typography variant="h5" component="h1" fontWeight={800} sx={{ display: { xs: 'none', md: 'block' }, mr: 1 }}>
+            <Typography variant="h6" component="h1" fontWeight={700} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontSize: '1.1rem' }}>
               {workspace === 'main' ? 'Sanctuary' : currentDepartment}
             </Typography>
             
             {isMobile && (
-              <Typography variant="h6" component="h1" fontWeight={800} sx={{ display: { xs: 'block', md: 'none' } }}>
+              <Typography variant="h6" component="h1" fontWeight={700} sx={{ display: { xs: 'block', md: 'none' }, fontSize: '1.05rem' }}>
                 RICGCW
               </Typography>
             )}
@@ -204,22 +199,15 @@ const TopAppBar = ({
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 0.5,
-                px: isMobile ? 0.75 : 1.5,
-                py: 0.5,
-                borderRadius: 4,
-                bgcolor: 'rgba(52, 199, 89, 0.08)',
+                gap: 0.75,
+                px: isMobile ? 0.75 : 1.25,
+                py: 0.35,
+                borderRadius: '6px',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
                 color: 'var(--system-green)',
-                fontWeight: 800,
+                fontWeight: 600,
                 fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                animation: 'pulse 2s infinite ease-in-out',
-                '@keyframes pulse': {
-                  '0%': { opacity: 0.7 },
-                  '50%': { opacity: 1 },
-                  '100%': { opacity: 0.7 },
-                }
+                letterSpacing: '0.02em',
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 12 }} />
@@ -241,11 +229,11 @@ const TopAppBar = ({
             </Search>
           </Box>
 
-          <Stack direction="row" spacing={isMobile ? 1 : 2} alignItems="center">
+          <Stack direction="row" spacing={isMobile ? 1 : 1.5} alignItems="center">
             {/* Campus / Site Switcher for Admin & Developer */}
             {(userRole === 'admin' || userRole === 'developer') && (
-              <FormControl size="small" variant="outlined" sx={{ minWidth: { xs: 90, sm: 150 } }}>
-                <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 800 }}>Select Campus</InputLabel>
+              <FormControl size="small" variant="outlined" sx={{ minWidth: { xs: 90, sm: 140 } }}>
+                <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Select Campus</InputLabel>
                 <Select
                   labelId="campus-select-label"
                   id="campus-select"
@@ -254,14 +242,14 @@ const TopAppBar = ({
                   label="Select Campus"
                   inputProps={{ 'aria-label': 'Select Campus' }}
                   sx={{
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     fontSize: '0.8rem',
-                    fontWeight: 700,
-                    bgcolor: 'rgba(0, 0, 0, 0.02)',
-                    border: '1px solid var(--border-color-darker)',
-                    boxShadow: 'var(--neo-shadow-in)',
+                    fontWeight: 600,
+                    bgcolor: 'transparent',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: 'none',
                     '& fieldset': { border: 'none' },
-                    '.MuiSelect-select': { py: 1 }
+                    '.MuiSelect-select': { py: 0.8 }
                   }}
                 >
                   <MenuItem value="all">All Campuses</MenuItem>

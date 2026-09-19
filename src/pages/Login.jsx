@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
@@ -168,7 +168,7 @@ const ScriptureShowcase = () => {
             "{scripture.text}"
           </Typography>
           <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.55)', fontWeight: 700, letterSpacing: 1 }}>
-            — {scripture.reference}
+            - {scripture.reference}
           </Typography>
         </motion.div>
       </AnimatePresence>
@@ -504,18 +504,18 @@ const SleekButton = ({ children, loading, type = 'submit', onClick, disabled }) 
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        height: '52px',
-        borderRadius: '16px',
-        background: 'linear-gradient(135deg, var(--system-blue) 0%, var(--system-purple) 100%)',
+        height: '48px',
+        borderRadius: '8px',
+        background: 'var(--system-blue)',
         color: '#ffffff',
         fontFamily: 'var(--font-stack)',
-        fontSize: '0.98rem',
-        fontWeight: 800,
-        letterSpacing: '0.5px',
+        fontSize: '0.95rem',
+        fontWeight: 600,
+        letterSpacing: '0.2px',
         cursor: disabled || loading ? 'not-allowed' : 'pointer',
         boxShadow: theme.palette.mode === 'dark'
-          ? '0 8px 30px rgba(0, 122, 255, 0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
-          : '0 8px 24px rgba(0, 122, 255, 0.18), inset 0 1px 0 rgba(255,255,255,0.3)',
+          ? '0 2px 8px rgba(0, 122, 255, 0.3)'
+          : '0 2px 8px rgba(0, 122, 255, 0.2)',
         position: 'relative',
         overflow: 'hidden',
         '&::after': {
@@ -549,6 +549,10 @@ const Login = () => {
   const { refreshUserContext } = useWorkspace();
   const { login, signup, isAuthenticated } = useAuth();
   
+  useEffect(() => {
+    document.title = isSignUp ? 'Create Account | RICGCW' : 'Sign In | RICGCW';
+  }, [isSignUp]);
+
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/');
@@ -839,7 +843,7 @@ const Login = () => {
                       >
                         <Stack spacing={2.5} sx={{ pb: 2.5 }}>
                           <SleekInput
-                            placeholder="Legal Full Name"
+                            placeholder="Full Name"
                             icon={User}
                             required
                             value={formData.name}
@@ -858,7 +862,7 @@ const Login = () => {
 
                   {/* Common Email Field */}
                   <SleekInput
-                    placeholder="Ecclesiastical Email"
+                    placeholder="Email Address"
                     icon={Mail}
                     type="email"
                     required
@@ -868,7 +872,7 @@ const Login = () => {
 
                   {/* Common Password Field */}
                   <SleekInput
-                    placeholder="Security Password"
+                    placeholder="Password"
                     icon={Lock}
                     type={showPassword ? 'text' : 'password'}
                     required
@@ -884,14 +888,14 @@ const Login = () => {
                   {/* Submit Button */}
                   <SleekButton type="submit" loading={loading}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {isSignUp ? 'Initialize Account' : 'Secure Sign In'} <ArrowRight size={18} strokeWidth={2.5} />
+                      {isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight size={18} strokeWidth={2.5} />
                     </Box>
                   </SleekButton>
 
                 </Stack>
               </form>
 
-              {/* Secure Shield Encryption Details */}
+              {/* Secure Authentication Details & Legal Links */}
               <Box sx={{ 
                 mt: 4, 
                 pt: 2.5, 
@@ -899,17 +903,23 @@ const Login = () => {
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center', 
-                gap: 1 
+                gap: 0.75 
               }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'var(--text-secondary)' }}>
                   <ShieldCheck size={16} color="var(--system-green)" />
-                  <Typography variant="caption" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Rhema Inner Court Network
+                  <Typography variant="caption" fontWeight={700} sx={{ letterSpacing: '0.04em' }}>
+                    Rhema Inner Court Gospel Church Worldwide
                   </Typography>
                 </Stack>
-                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', opacity: 0.5, fontWeight: 700, fontSize: '0.625rem', letterSpacing: 0.5 }}>
-                  SECURED WITH 256-BIT MILITARY-GRADE ENCRYPTION
-                </Typography>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
+                  <Link to="/privacy-policy" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textDecoration: 'none' }}>
+                    Privacy Policy
+                  </Link>
+                  <Typography variant="caption" sx={{ color: 'var(--text-secondary)', opacity: 0.5 }}>•</Typography>
+                  <Link to="/terms-of-service" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textDecoration: 'none' }}>
+                    Terms of Service
+                  </Link>
+                </Stack>
               </Box>
 
             </Box>

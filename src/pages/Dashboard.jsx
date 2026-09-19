@@ -84,18 +84,22 @@ const Dashboard = () => {
     return userRole !== 'admin' && userRole !== 'branch_admin' && userRole !== 'developer';
   }, [userRole]);
 
+  useEffect(() => {
+    document.title = 'Dashboard | RICGCW';
+  }, []);
+
   const dynamicGreeting = useMemo(() => {
     const greetings = [
-        "Let's lead with grace today",
-        "Excellence is our standard",
-        "Ready to make an impact?",
-        "Faith in action starts here",
-        "Empowered to serve the sanctuary",
-        "Charting the path of growth",
-        "Your leadership makes a difference",
-        "Cultivating the harvest together",
-        "A great day for ministry",
-        "Strength and honor today"
+        "Serving with diligence today",
+        "Excellence in ministry",
+        "Ready to serve the community",
+        "Faith in action",
+        "Faithful stewardship in all things",
+        "Guiding our members with grace",
+        "Dedication to our congregation",
+        "Cultivating spiritual growth together",
+        "A blessed day for ministry",
+        "Leading with purpose and integrity"
     ];
     const hour = new Date().getHours();
     let timeGreeting = "Good Morning";
@@ -659,9 +663,7 @@ const Dashboard = () => {
                 title="Active Membership" 
                 value={filteredData.members.length.toLocaleString()} 
                 icon={Users} 
-                trend="up"
-                trendValue="12"
-                trendLabel="growth from last month"
+                trendLabel="registered church members"
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -679,9 +681,7 @@ const Dashboard = () => {
                 title="Total Expenses" 
                 value={`GHC ${totalExpenses.toLocaleString()}`} 
                 icon={CreditCard} 
-                trend="down"
-                trendValue="5"
-                trendLabel="managed effectively"
+                trendLabel="recorded disbursements"
               />
             </Grid>
           </Grid>

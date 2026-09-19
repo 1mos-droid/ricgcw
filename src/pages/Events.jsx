@@ -108,6 +108,10 @@ const Events = () => {
   }, [showNotification]);
 
   useEffect(() => {
+    document.title = 'Church Events & Calendar | RICGCW';
+  }, []);
+
+  useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 

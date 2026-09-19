@@ -26,6 +26,7 @@ const SelfCheckIn = lazy(() => import('../pages/SelfCheckIn'));
 const Join = lazy(() => import('../pages/Join'));
 const Gallery = lazy(() => import('../pages/Gallery'));
 const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('../pages/TermsOfService'));
 const AccountDeletion = lazy(() => import('../pages/AccountDeletion'));
 
 // --- ANIMATION CONFIGURATION ---
@@ -125,6 +126,8 @@ const AppRouter = () => {
         <Route path="/join" element={<MotionWrap><Join /></MotionWrap>} />
         <Route path="/privacy-policy" element={<MotionWrap><PrivacyPolicy /></MotionWrap>} />
         <Route path="/privacy" element={<MotionWrap><PrivacyPolicy /></MotionWrap>} />
+        <Route path="/terms-of-service" element={<MotionWrap><TermsOfService /></MotionWrap>} />
+        <Route path="/terms" element={<MotionWrap><TermsOfService /></MotionWrap>} />
         <Route path="/delete-account" element={<MotionWrap><AccountDeletion /></MotionWrap>} />
         <Route path="/account-deletion" element={<MotionWrap><AccountDeletion /></MotionWrap>} />
         <Route path="/data-deletion" element={<MotionWrap><AccountDeletion /></MotionWrap>} />

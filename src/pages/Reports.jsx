@@ -102,6 +102,10 @@ const Reports = () => {
     return Array.from({ length: 5 }, (_, i) => currentYear - i);
   }, []);
 
+  useEffect(() => {
+    document.title = 'Ministry Reports | RICGCW';
+  }, []);
+
   // --- FETCH SUMMARY DATA ---
   useEffect(() => {
     const fetchStats = async () => {

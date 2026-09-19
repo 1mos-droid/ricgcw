@@ -8,86 +8,109 @@ const ColorModeContext = createContext({ toggleColorMode: () => {}, mode: 'light
 // 2. Custom hook to use the theme switch anywhere
 export const useColorMode = () => useContext(ColorModeContext);
 
-// 3. The Cupertino Design System (iOS/macOS Style)
+// 3. The Quiet Confidence Design System (Clean, Modern, Restrained)
 const getDesignTokens = (mode) => {
   const isLight = mode === 'light';
   
-  const systemBlue = '#007AFF';
-  const systemPurple = '#5856D6';
+  const systemBlue = isLight ? '#2563EB' : '#3B82F6';
+  const systemPurple = isLight ? '#4F46E5' : '#6366F1';
   
-  const backgroundDefault = isLight ? '#F2F2F7' : '#000000'; // Grouped backgrounds
-  const backgroundPaper = isLight ? '#FFFFFF' : '#1C1C1E'; // Translucent iOS materials
+  const backgroundDefault = isLight ? '#F8FAFC' : '#090A0F';
+  const backgroundPaper = isLight ? '#FFFFFF' : '#111318';
   
   return {
     palette: {
       mode,
-      primary: { main: systemBlue, light: '#64D2FF', dark: '#0059B3', contrastText: '#FFFFFF' },
-      secondary: { main: systemPurple, light: '#BF5AF2', dark: '#401A80', contrastText: '#FFFFFF' },
-      accent: { main: '#D4AF37' },
-      success: { main: '#34C759' }, // iOS Green
-      error: { main: '#FF3B30' }, // iOS Red
-      warning: { main: '#FF9500' }, // iOS Orange
+      primary: { main: systemBlue, light: '#60A5FA', dark: '#1D4ED8', contrastText: '#FFFFFF' },
+      secondary: { main: systemPurple, light: '#818CF8', dark: '#3730A3', contrastText: '#FFFFFF' },
+      accent: { main: '#D97706' },
+      success: { main: '#10B981' },
+      error: { main: '#EF4444' },
+      warning: { main: '#F59E0B' },
       background: {
         default: backgroundDefault,
         paper: backgroundPaper,
-        glass: isLight ? 'rgba(255, 255, 255, 0.7)' : 'rgba(28, 28, 30, 0.7)',
-        glassBorder: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)',
+        glass: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(17, 19, 24, 0.85)',
+        glassBorder: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
       },
       text: {
-        primary: isLight ? '#000000' : '#FFFFFF',
-        secondary: '#8E8E93',
+        primary: isLight ? '#0F172A' : '#F8FAFC',
+        secondary: isLight ? '#64748B' : '#94A3B8',
       },
-      divider: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+      divider: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
     },
-    // Soft, deep, premium iOS-style floating shadows
+    // Restrained, subtle elevation shadows
     shadows: [
       'none',
-      isLight ? '0px 2px 8px rgba(0, 0, 0, 0.01)' : '0px 2px 8px rgba(0, 0, 0, 0.1)',
-      isLight ? '0px 4px 12px rgba(0, 0, 0, 0.02)' : '0px 4px 12px rgba(0, 0, 0, 0.15)',
-      isLight ? '0px 8px 24px rgba(0, 0, 0, 0.02)' : '0px 8px 24px rgba(0, 0, 0, 0.2)',
-      isLight ? '0px 12px 32px rgba(0, 0, 0, 0.03)' : '0px 12px 32px rgba(0, 0, 0, 0.25)',
-      ...Array(20).fill(isLight ? '0px 20px 48px rgba(0, 0, 0, 0.04)' : '0px 20px 48px rgba(0, 0, 0, 0.3)'),
+      isLight ? '0 1px 2px 0 rgba(0, 0, 0, 0.04)' : '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
+      isLight ? '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04)' : '0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3)',
+      isLight ? '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03)' : '0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3)',
+      isLight ? '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.02)' : '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3)',
+      ...Array(20).fill(isLight ? '0 10px 20px -3px rgba(0, 0, 0, 0.06)' : '0 10px 20px -3px rgba(0, 0, 0, 0.6)'),
     ],
     typography: {
-      fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Compact", "Helvetica Neue", sans-serif',
-      h1: { fontWeight: 800, letterSpacing: '-0.03em' },
-      h2: { fontWeight: 800, letterSpacing: '-0.03em' },
-      h3: { fontWeight: 800, letterSpacing: '-0.02em' },
-      h4: { fontWeight: 700, letterSpacing: '-0.02em' },
-      h5: { fontWeight: 650, letterSpacing: '-0.01em' },
-      h6: { fontWeight: 650, letterSpacing: '-0.01em' },
-      subtitle1: { fontWeight: 600, letterSpacing: '0em' },
-      subtitle2: { fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.72rem' },
-      body1: { fontSize: '0.96rem', fontWeight: 450, letterSpacing: '-0.01em' },
-      body2: { fontSize: '0.86rem', fontWeight: 450, letterSpacing: '-0.01em' },
-      button: { textTransform: 'none', fontWeight: 600, fontSize: '0.95rem' },
+      fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+      h1: { fontWeight: 700, letterSpacing: '-0.025em' },
+      h2: { fontWeight: 700, letterSpacing: '-0.02em' },
+      h3: { fontWeight: 600, letterSpacing: '-0.015em' },
+      h4: { fontWeight: 600, letterSpacing: '-0.01em' },
+      h5: { fontWeight: 600, letterSpacing: '-0.005em' },
+      h6: { fontWeight: 600 },
+      subtitle1: { fontWeight: 500, letterSpacing: '0em' },
+      subtitle2: { fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.72rem' },
+      body1: { fontSize: '0.925rem', fontWeight: 400, letterSpacing: '-0.005em' },
+      body2: { fontSize: '0.85rem', fontWeight: 400, letterSpacing: '-0.005em' },
+      button: { textTransform: 'none', fontWeight: 600, fontSize: '0.9rem' },
     },
     shape: {
-      borderRadius: 12, // iOS rounded standard
+      borderRadius: 8,
     },
     components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: '8px',
+            textTransform: 'none',
+            fontWeight: 600,
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            borderRadius: '12px',
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            borderRadius: '12px',
+          },
+        },
+      },
       MuiCssBaseline: {
         styleOverrides: `
           body {
             background-color: ${backgroundDefault} !important;
-            background-image: ${isLight
-              ? 'radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.03) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(88, 86, 214, 0.03) 0px, transparent 50%)'
-              : 'radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.08) 0px, transparent 60%), radial-gradient(at 100% 100%, rgba(88, 86, 214, 0.08) 0px, transparent 60%)'} !important;
-            background-attachment: fixed !important;
+            background-image: none !important;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
           }
-          /* Custom Scrollbar resembling iOS */
+          /* Clean minimal scrollbars */
           ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
           }
           ::-webkit-scrollbar-track {
             background: transparent;
           }
           ::-webkit-scrollbar-thumb {
-            background: ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)'};
-            border-radius: 10px;
+            background: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
+            border-radius: 4px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)'};
           }
         `,
       }

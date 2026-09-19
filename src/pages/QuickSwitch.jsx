@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
@@ -32,6 +32,10 @@ import {
 const QuickSwitch = () => {
   const theme = useTheme();
   const { workspace: activeWorkspace, switchWorkspace, showNotification } = useWorkspace();
+
+  useEffect(() => {
+    document.title = 'Ministry Workspaces | RICGCW';
+  }, []);
   
   const workspaces = [
     { id: 'main', label: 'Main Sanctuary', desc: 'Central governance and master registry.', color: theme.palette.primary.main },

@@ -106,8 +106,8 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
         }
       }}
     >
-      <Box sx={{ width: 40, height: 4, bgcolor: theme.palette.divider, borderRadius: 1, mx: 'auto', mb: 4 }} />
-      <Typography variant="h6" fontWeight={800} sx={{ mb: 3, px: 1 }}>Explore</Typography>
+      <Box sx={{ width: 36, height: 4, bgcolor: theme.palette.divider, borderRadius: 1, mx: 'auto', mb: 3 }} />
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2.5, px: 1, fontSize: '1.1rem' }}>Explore</Typography>
       
       <Grid container spacing={2}>
         {filteredNavItems.map((item) => {
@@ -116,7 +116,7 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
             <Grid size={{ xs: 4 }} key={item.text}>
               <Box
                 component={motion.div}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   navigate(item.path);
                   onClose();
@@ -126,23 +126,23 @@ const MobileMoreMenu = ({ open, onClose, theme, navigate, filteredNavItems, loca
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 1,
-                  p: 2,
-                  borderRadius: 2.5,
-                  bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: isActive ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
                   color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                  transition: 'all 0.2s'
+                  transition: 'background-color 0.15s ease'
                 }}
               >
                 <Avatar 
                   sx={{ 
-                    bgcolor: isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.05),
+                    bgcolor: isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.04),
                     color: isActive ? '#fff' : theme.palette.text.primary,
-                    width: 50, height: 50, borderRadius: 2.5
+                    width: 44, height: 44, borderRadius: 2
                   }}
                 >
                   {item.icon}
                 </Avatar>
-                <Typography variant="caption" fontWeight={700} align="center" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Typography variant="caption" fontWeight={600} align="center" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 0.3 }}>
                   {item.text}
                 </Typography>
               </Box>
@@ -316,15 +316,13 @@ const AppLayout = ({ children }) => {
                 anchor="left" 
                 open={open} 
                 PaperProps={{
-                  className: 'neo-glass-card',
                   sx: {
                     boxSizing: 'border-box',
                     width: drawerWidth,
                     border: 'none',
-                    borderRight: '1px solid var(--border-color-darker)',
+                    borderRight: '1px solid var(--border-color)',
                     borderRadius: 0,
                     boxShadow: 'none',
-                    backdropFilter: 'blur(30px) saturate(180%)',
                     background: 'var(--bg-paper)'
                   }
                 }}
@@ -344,11 +342,11 @@ const AppLayout = ({ children }) => {
           <Paper 
             sx={{ 
                 position: 'fixed', 
-                bottom: 16, 
-                left: 16, 
-                right: 16, 
+                bottom: 12, 
+                left: 12, 
+                right: 12, 
                 zIndex: theme.zIndex.drawer + 2,
-                borderRadius: '24px',
+                borderRadius: '16px',
                 background: 'transparent',
                 boxShadow: 'none'
             }} 
@@ -366,29 +364,29 @@ const AppLayout = ({ children }) => {
                     }
                 }}
                 sx={{
-                  borderRadius: '24px',
+                  borderRadius: '16px',
                   background: 'var(--bg-paper)',
                   backdropFilter: 'blur(30px) saturate(180%)',
                   border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--neo-shadow-out), var(--glass-glow)',
-                  height: 68,
+                  boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.08)',
+                  height: 60,
                   '& .MuiBottomNavigationAction-root': {
                     color: 'var(--text-secondary)',
-                    transition: 'all 0.2s',
+                    transition: 'color 0.15s ease',
                     minWidth: 'auto',
-                    padding: '6px 0',
+                    padding: '4px 0',
                     '&.Mui-selected': {
                       color: 'var(--system-blue)',
-                      fontWeight: 800,
+                      fontWeight: 600,
                       '& .MuiSvgIcon-root': {
-                        transform: 'translateY(-2px) scale(1.15)',
-                        filter: 'drop-shadow(0 4px 10px rgba(0, 122, 255, 0.35))',
+                        transform: 'none',
+                        filter: 'none',
                       }
                     }
                   },
                   '& .MuiSvgIcon-root': {
-                    fontSize: '1.4rem',
-                    transition: 'transform 0.2s ease-in-out',
+                    fontSize: '1.3rem',
+                    transition: 'none',
                   }
                 }}
              >

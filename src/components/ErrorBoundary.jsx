@@ -107,7 +107,7 @@ const ErrorFallback = ({ onReset, onHome }) => {
             </Typography>
             
             <Typography variant="h6" color="text.secondary" sx={{ mb: 4, fontWeight: 500, lineHeight: 1.6 }}>
-              But take heart—God is still in control. The system encountered an unexpected issue, but we're working to restore the sanctuary for you.
+              But take heart, God is still in control. The system encountered an unexpected issue, but we are working to resolve it for you.
             </Typography>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mb: 6 }}>

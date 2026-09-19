@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Box, 
@@ -36,6 +36,10 @@ const Help = () => {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    document.title = 'Support & Guides | RICGCW';
+  }, []);
 
   const faqs = [
     { id: 1, q: "How do I sync member data?", a: "The system automatically syncs every 5 minutes. You can force a manual sync in Settings > Maintenance." },

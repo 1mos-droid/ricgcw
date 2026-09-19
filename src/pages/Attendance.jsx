@@ -84,6 +84,10 @@ const Attendance = () => {
   const [scannerMode, setScannerMode] = useState(false);
   const [serviceQrOpen, setServiceQrOpen] = useState(false);
 
+  useEffect(() => {
+    document.title = 'Attendance Tracking | RICGCW';
+  }, []);
+
   const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
   const filteredRecords = useMemo(() => {
     let records = filterData(attendanceRecords);

@@ -68,6 +68,10 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
+    document.title = 'User Management | RICGCW';
+  }, []);
+
+  useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

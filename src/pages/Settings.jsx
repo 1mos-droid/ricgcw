@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -46,6 +46,10 @@ const Settings = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { showNotification } = useWorkspace();
+
+  useEffect(() => {
+    document.title = 'System Settings | RICGCW';
+  }, []);
   
   // --- STATE ---
   const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');

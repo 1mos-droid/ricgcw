@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -31,6 +31,10 @@ import { useNavigate } from 'react-router-dom';
 const PrivacyPolicy = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = 'Privacy Policy | RICGCW';
+  }, []);
 
   const sections = [
     {
