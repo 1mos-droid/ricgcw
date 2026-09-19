@@ -78,14 +78,19 @@ const Events = () => {
       
       const upcomingEvents = (eventsData || []).filter(event => {
         if (!event.date) return false;
-        // Combine date and time to check if it has passed
+        const isBirthday = event.name && (event.name.includes('🎂') || event.name.toLowerCase().includes('birthday'));
         const eventDateStr = getISOStringDate(event.date); // Get YYYY-MM-DD
-        const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
+        const eventTime = event.time && (!isBirthday || event.time !== '00:00') ? event.time : (isBirthday ? '10:30' : (event.time || '00:00'));
+        const eventDateTime = new Date(`${eventDateStr}T${eventTime}`);
         
         // If eventDateTime is invalid, fallback to checking just the date
         if (isNaN(eventDateTime.getTime())) {
           const justDate = safeParseDate(event.date);
-          justDate.setHours(23, 59, 59, 999); // Allow until end of day
+          if (isBirthday) {
+            justDate.setHours(10, 30, 0, 0);
+          } else {
+            justDate.setHours(23, 59, 59, 999); // Allow until end of day
+          }
           return justDate >= now;
         }
         

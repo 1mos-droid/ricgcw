@@ -900,25 +900,16 @@ const Members = () => {
 
       <AddMemberDialog open={openAddMemberDialog} onClose={() => setOpenAddMemberDialog(false)} onAddMember={handleAddMember} />
       
-      <DetailDrawer
-        open={selectedMember !== null}
-        onClose={() => setSelectedMember(null)}
-        title={selectedMember?.name || 'Member Details'}
-        subtitle={selectedMember?.memberId}
-        width={500}
-      >
-        {selectedMember && (
-          <MemberDetailsDialog 
-            open={true} 
-            onClose={() => setSelectedMember(null)} 
-            member={selectedMember} 
-            onEdit={handleEdit} 
-            onDelete={handleDelete}
-            initialTab={dialogTab}
-            isEmbedded={true} // We'll need to update MemberDetailsDialog to handle this
-          />
-        )}
-      </DetailDrawer>
+      {selectedMember && (
+        <MemberDetailsDialog 
+          open={selectedMember !== null} 
+          onClose={() => setSelectedMember(null)} 
+          member={selectedMember} 
+          onEdit={handleEdit} 
+          onDelete={handleDelete}
+          initialTab={dialogTab}
+        />
+      )}
 
       {/* --- ONBOARDING QR DIALOG --- */}
       <Dialog 

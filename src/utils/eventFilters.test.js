@@ -45,4 +45,25 @@ describe('getUpcomingEvents helper', () => {
     expect(getUpcomingEvents(undefined, new Date())).toEqual([]);
     expect(getUpcomingEvents([], new Date())).toEqual([]);
   });
+
+  it('should persist birthday events until 10:30am on the day of the event', () => {
+    const birthdayEvent = {
+      id: 'b1',
+      name: '🎂 Birthday: John Doe',
+      date: '2026-06-20T00:00:00.000Z',
+      time: '00:00'
+    };
+
+    // 1. Same day at 09:00 AM -> Should be included
+    const beforeCutoff = new Date('2026-06-20T09:00:00.000Z');
+    expect(getUpcomingEvents([birthdayEvent], beforeCutoff)).toHaveLength(1);
+
+    // 2. Same day at 10:30 AM -> Should be included
+    const atCutoff = new Date('2026-06-20T10:30:00.000Z');
+    expect(getUpcomingEvents([birthdayEvent], atCutoff)).toHaveLength(1);
+
+    // 3. Same day at 10:31 AM -> Should be filtered out
+    const afterCutoff = new Date('2026-06-20T10:31:00.000Z');
+    expect(getUpcomingEvents([birthdayEvent], afterCutoff)).toHaveLength(0);
+  });
 });

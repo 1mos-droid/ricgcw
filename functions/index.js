@@ -160,7 +160,7 @@ exports.checkBirthdays = onSchedule("0 0 * * *", async (event) => {
         const newEvent = {
           name: eventName,
           date: targetDate.toISOString().split('T')[0] + "T00:00:00.000Z",
-          time: "00:00",
+          time: "10:30",
           location: "Main Auditorium",
           isOnline: false,
           description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
@@ -206,10 +206,11 @@ exports.updateMemberStatuses = onSchedule("0 1 * * *", async (event) => {
       }
     });
 
-    const batch = db.batch();
-    let updatesCount = 0;
+    let batch = db.batch();
+    let batchOperationCount = 0;
+    let totalUpdatesCount = 0;
 
-    membersSnapshot.forEach(doc => {
+    for (const doc of membersSnapshot.docs) {
       const member = doc.data();
       const memberId = doc.id;
       
@@ -229,22 +230,25 @@ exports.updateMemberStatuses = onSchedule("0 1 * * *", async (event) => {
       }
 
       if (member.status !== targetStatus) {
-        // Safety: Don't move manually discontinued/inactive members back to active 
-        // unless they have actually attended recently (handled by the 'else' targetStatus="active")
         batch.update(doc.ref, { status: targetStatus });
-        updatesCount++;
+        batchOperationCount++;
+        totalUpdatesCount++;
       }
 
-      // Handle batch limit (500)
-      if (updatesCount >= 490) {
-        // For very large databases, this would need to commit and start a new batch.
-        // Assuming member count is within reasonable church limits for now.
+      // Handle batch limit safely (commits every 400 operations)
+      if (batchOperationCount >= 400) {
+        await batch.commit();
+        batch = db.batch();
+        batchOperationCount = 0;
       }
-    });
+    }
 
-    if (updatesCount > 0) {
+    if (batchOperationCount > 0) {
       await batch.commit();
-      console.log(`[STATUS SYNC] Updated ${updatesCount} member statuses based on attendance.`);
+    }
+    
+    if (totalUpdatesCount > 0) {
+      console.log(`[STATUS SYNC] Updated ${totalUpdatesCount} member statuses based on attendance.`);
     }
 
   } catch (error) {

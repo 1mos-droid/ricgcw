@@ -135,7 +135,7 @@ const SelfCheckIn = () => {
         });
       }
 
-      setCheckedIn(true);
+      setCheckedIn(pickupTag || true);
       if (!isAuto) {
         showNotification(`Check-in successful for ${member.name}!`, "success");
       }

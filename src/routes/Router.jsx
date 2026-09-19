@@ -25,6 +25,8 @@ const Maintenance = lazy(() => import('../pages/Maintenance'));
 const SelfCheckIn = lazy(() => import('../pages/SelfCheckIn'));
 const Join = lazy(() => import('../pages/Join'));
 const Gallery = lazy(() => import('../pages/Gallery'));
+const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy'));
+const AccountDeletion = lazy(() => import('../pages/AccountDeletion'));
 
 // --- ANIMATION CONFIGURATION ---
 const pageVariants = {
@@ -121,6 +123,11 @@ const AppRouter = () => {
         <Route path="/maintenance" element={<MotionWrap><Maintenance /></MotionWrap>} />
         <Route path="/checkin" element={<MotionWrap><SelfCheckIn /></MotionWrap>} />
         <Route path="/join" element={<MotionWrap><Join /></MotionWrap>} />
+        <Route path="/privacy-policy" element={<MotionWrap><PrivacyPolicy /></MotionWrap>} />
+        <Route path="/privacy" element={<MotionWrap><PrivacyPolicy /></MotionWrap>} />
+        <Route path="/delete-account" element={<MotionWrap><AccountDeletion /></MotionWrap>} />
+        <Route path="/account-deletion" element={<MotionWrap><AccountDeletion /></MotionWrap>} />
+        <Route path="/data-deletion" element={<MotionWrap><AccountDeletion /></MotionWrap>} />
         
         {/* Protected Routes (Authenticated) */}
         <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Account & Data Deletion - RICGCW Connect</title>
+  <meta name="description" content="Request account and personal data deletion for RICGCW Connect mobile app and Rhema Inner Court Gospel Church web platforms.">
+  <link rel="icon" type="image/png" href="/ricgcw.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #007AFF;
+      --error: #FF3B30;
+      --error-light: #FFF0F0;
+      --bg: #F8FAFD;
+      --card-bg: #FFFFFF;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #080C14;
+        --card-bg: #0E1424;
+        --error-light: #2A1215;
+        --text-main: #FFFFFF;
+        --text-muted: #94A3B8;
+        --border: #1E293B;
+        --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      }
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .logo {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      margin-bottom: 14px;
+    }
+    .overline {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--error);
+      margin-bottom: 6px;
+    }
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .sub {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 600px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-error {
+      background: var(--error-light);
+      border-color: rgba(255, 59, 48, 0.25);
+    }
+    ul {
+      padding-left: 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    input[type="email"], input[type="text"], textarea {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-main);
+      outline: none;
+      transition: border 0.2s;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      background: var(--error);
+      color: #fff;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: opacity 0.2s;
+      text-decoration: none;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .notice {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="/ricgcw.png" alt="RICGCW Logo" class="logo">
+      <div class="overline">Google Play Policy Compliance</div>
+      <h1>Request Account & Data Deletion</h1>
+      <div class="sub">Permanent account deletion for <strong>RICGCW Connect</strong> mobile application and web portal.</div>
+    </div>
+
+    <div class="grid">
+      <div class="card card-error">
+        <div class="card-title" style="color: var(--error);">What Will Be Deleted</div>
+        <ul>
+          <li>Firebase Authentication login credentials</li>
+          <li>Member profile (Full name, phone, branch, department)</li>
+          <li>Confidential prayer requests and testimony logs</li>
+          <li>Personal spiritual journal notes</li>
+          <li>Sanctuary check-in records &amp; child court pickup tags</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">Processing Timeline</div>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">
+          • All personal database records are permanently deleted within <strong>7 business days</strong>.
+        </p>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+          • Non-profit financial contribution audit logs are retained in anonymized accounting summaries as required by applicable laws.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 16px;">Direct Email Deletion Request</h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">
+        To request deletion of your account and all associated personal data, click below to open your email client or send an email to <a href="mailto:privacy@ricgcw.org">privacy@ricgcw.org</a> with your registered email address:
+      </p>
+
+      <a href="mailto:privacy@ricgcw.org?subject=Account%20and%20Data%20Deletion%20Request%20-%20RICGCW%20Connect&body=Hello%20RICGCW%20Privacy%20Team%2C%0A%0APlease%20permanently%20delete%20my%20RICGCW%20Connect%20account%20and%20all%20associated%20data.%0A%0ARegistered%20Email%3A%20%0AFull%20Name%3A%20%0A%0AThank%20you." class="btn">
+        Send Deletion Request via Email (privacy@ricgcw.org)
+      </a>
+
+      <div class="notice">
+        Alternatively, open the <strong>RICGCW Connect</strong> mobile application &rarr; <em>Profile &rarr; Security &rarr; Delete Account</em>.
+      </div>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 Rhema Inner Court Gospel Church (Word Assembly Worldwide). All rights reserved.
+      <br>
+      <a href="/privacy.html">View Full Privacy Policy</a> • <a href="/">Return to Home</a>
+    </div>
+  </div>
+</body>
+</html>

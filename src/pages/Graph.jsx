@@ -116,7 +116,9 @@ const Graph = () => {
                     </Box>
                 </Box>
                 <Box sx={{ height: 350, width: '100%', minWidth: 0, position: 'relative' }}>
-                    {!loading && chartData && chartData.length > 0 && (
+                    {loading ? (
+                        <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />
+                    ) : chartData && chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={350} minWidth={0}>
                             <AreaChart data={chartData}>
                                 <defs>
@@ -128,10 +130,16 @@ const Graph = () => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} unit="%" />
-                                <Tooltip contentStyle={{ borderRadius: 2, border: 'none', boxShadow: theme.shadows[8] }} />
+                                <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: theme.shadows[8] }} />
                                 <Area type="monotone" dataKey="attendance" stroke={theme.palette.primary.main} strokeWidth={4} fillOpacity={1} fill="url(#colorAtt)" />
                             </AreaChart>
                         </ResponsiveContainer>
+                    ) : (
+                        <Box sx={{ py: 10, textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary" fontWeight={700}>
+                                No attendance trends recorded yet. Check in members on the Attendance page to populate insights.
+                            </Typography>
+                        </Box>
                     )}
                 </Box>
             </Card>
@@ -143,13 +151,15 @@ const Graph = () => {
                 <Typography variant="h6" fontWeight={800} gutterBottom>Revenue Streams</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 4 }}>Daily contribution totals (GHC)</Typography>
                 <Box sx={{ height: 300, width: '100%', minWidth: 0, position: 'relative' }}>
-                    {!loading && chartData && chartData.length > 0 && (
+                    {loading ? (
+                        <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+                    ) : chartData && chartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300} minWidth={0}>
                             <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} />
-                                <Tooltip cursor={{ fill: alpha(theme.palette.primary.main, 0.05) }} contentStyle={{ borderRadius: 2, border: 'none', boxShadow: theme.shadows[8] }} />
+                                <Tooltip cursor={{ fill: alpha(theme.palette.primary.main, 0.05) }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: theme.shadows[8] }} />
                                 <Bar dataKey="income" radius={[4, 4, 0, 0]} barSize={30}>
                                     {chartData.map((entry, index) => (
                                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -157,6 +167,12 @@ const Graph = () => {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                    ) : (
+                        <Box sx={{ py: 8, textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary" fontWeight={700}>
+                                No financial contribution data logged for this period.
+                            </Typography>
+                        </Box>
                     )}
                 </Box>
             </Card>

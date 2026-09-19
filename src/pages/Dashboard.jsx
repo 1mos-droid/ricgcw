@@ -169,7 +169,7 @@ const Dashboard = () => {
             await addDoc(collection(db, "events"), {
               name: eventName,
               date: targetInfo.targetDateStr,
-              time: "00:00",
+              time: "10:30",
               location: "Main Auditorium",
               isOnline: false,
               description: `Happy Birthday to ${member.name}! This is an automatically generated reminder.`,
@@ -216,12 +216,18 @@ const Dashboard = () => {
 
         const upcomingEvents = (rawEvents || []).filter(event => {
           if (!event.date) return false;
+          const isBirthday = event.name && (event.name.includes('🎂') || event.name.toLowerCase().includes('birthday'));
           const eventDateStr = getISOStringDate(event.date);
-          const eventDateTime = new Date(`${eventDateStr}T${event.time || '00:00'}`);
+          const eventTime = event.time && (!isBirthday || event.time !== '00:00') ? event.time : (isBirthday ? '10:30' : (event.time || '00:00'));
+          const eventDateTime = new Date(`${eventDateStr}T${eventTime}`);
           
           if (isNaN(eventDateTime.getTime())) {
             const justDate = safeParseDate(event.date);
-            justDate.setHours(23, 59, 59, 999);
+            if (isBirthday) {
+              justDate.setHours(10, 30, 0, 0);
+            } else {
+              justDate.setHours(23, 59, 59, 999);
+            }
             return justDate >= now;
           }
           return eventDateTime >= now;

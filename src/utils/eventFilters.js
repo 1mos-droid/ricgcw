@@ -14,9 +14,10 @@ export const getUpcomingEvents = (events, referenceDate) => {
     .filter(event => {
       if (!event.date) return false;
       const eventDate = new Date(event.date);
+      const isBirthday = event.name && (event.name.includes('🎂') || event.name.toLowerCase().includes('birthday'));
       
       // Integrate time if present
-      if (event.time && typeof event.time === 'string') {
+      if (event.time && typeof event.time === 'string' && (!isBirthday || event.time !== '00:00')) {
         const parts = event.time.split(':');
         const hours = parseInt(parts[0], 10) || 0;
         const minutes = parseInt(parts[1], 10) || 0;
@@ -24,6 +25,9 @@ export const getUpcomingEvents = (events, referenceDate) => {
         eventDate.setMinutes(minutes);
         eventDate.setSeconds(0);
         eventDate.setMilliseconds(0);
+      } else if (isBirthday) {
+        // Birthday events persist until 10:30 AM on the day of the event
+        eventDate.setHours(10, 30, 0, 0);
       } else {
         eventDate.setHours(23, 59, 59, 999);
       }

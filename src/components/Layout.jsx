@@ -162,7 +162,18 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const { userRole, workspace, currentDepartment } = useWorkspace(); 
   
-  const isLoginPage = location.pathname === '/login';
+  const STANDALONE_PATHS = [
+    '/login',
+    '/join',
+    '/checkin',
+    '/maintenance',
+    '/privacy-policy',
+    '/privacy',
+    '/delete-account',
+    '/account-deletion',
+    '/data-deletion'
+  ];
+  const isStandalonePage = STANDALONE_PATHS.includes(location.pathname);
 
   const filteredNavItems = NAV_ITEMS.filter(item => {
     if (userRole === 'developer') return true;
@@ -186,12 +197,12 @@ const AppLayout = ({ children }) => {
       sessionStorage.removeItem('ricgcw_has_seen_events');
       navigate('/login');
     },
-    isEnabled: !!user && !isLoginPage
+    isEnabled: !!user && !isStandalonePage
   });
 
   // Controls displaying the upcoming events gateway screen post-login
   useEffect(() => {
-    if (user && !isLoginPage) {
+    if (user && !isStandalonePage) {
       const hasSeen = sessionStorage.getItem('ricgcw_has_seen_events');
       if (!hasSeen) {
         setShowEventsGate(true);
@@ -199,7 +210,7 @@ const AppLayout = ({ children }) => {
     } else {
       setShowEventsGate(false);
     }
-  }, [user, isLoginPage]);
+  }, [user, isStandalonePage]);
 
   const handleDismissEventsGate = () => {
     sessionStorage.setItem('ricgcw_has_seen_events', 'true');
@@ -245,17 +256,17 @@ const AppLayout = ({ children }) => {
     const currentPath = location.pathname;
     const matched = filteredBottomNavItems.find(item => item.path === currentPath);
     if (matched && currentPath !== '/settings') {
-        setBottomNavValue(currentPath);
+      setBottomNavValue(currentPath);
     } else if (currentPath === '/settings' || !matched) {
-        setBottomNavValue('/settings');
+      setBottomNavValue('/settings');
     }
   }, [location.pathname, filteredBottomNavItems]);
 
-  if (isLoginPage) {
+  if (isStandalonePage) {
     return (
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.palette.background.default }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', bgcolor: theme.palette.background.default }}>
         <CssBaseline />
-        <Box component="main" sx={{ flexGrow: 1 }}>{children}</Box>
+        <Box component="main" sx={{ flexGrow: 1, width: '100%' }}>{children}</Box>
       </Box>
     );
   }
