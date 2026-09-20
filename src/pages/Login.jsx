@@ -548,16 +548,6 @@ const Login = () => {
   const theme = useTheme();
   const { refreshUserContext } = useWorkspace();
   const { login, signup, isAuthenticated } = useAuth();
-  
-  useEffect(() => {
-    document.title = isSignUp ? 'Create Account | RICGCW' : 'Sign In | RICGCW';
-  }, [isSignUp]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
-    }
-  }, [navigate, isAuthenticated]);
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -569,6 +559,16 @@ const Login = () => {
     branch: 'Mallam' 
   });
   const [error, setError] = useState('');
+  
+  useEffect(() => {
+    document.title = isSignUp ? 'Create Account | RICGCW' : 'Sign In | RICGCW';
+  }, [isSignUp]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [navigate, isAuthenticated]);
 
   const branches = ['Mallam', 'Langma', 'Kokrobitey', 'Diaspora', 'Overseer'];
 
