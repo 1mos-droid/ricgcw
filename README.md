@@ -34,6 +34,8 @@ A bespoke, high-performance digital headquarters for the **Redeemed Christian Ch
 | **Children's Court** | A dedicated, secure environment for managing our youngest members (formerly Children's Department). |
 | **Youth Ministry** | Specialized workspace for departmental records and engagement tracking. |
 | **Command Center** | "Quick Switch" between Sanctuary, Youth, and Children's Court environments with enforced data partitioning. |
+| **Legal & Privacy** | Comprehensive Terms of Service and Privacy Policy compliant with Ghana Data Protection Act 2012. |
+| **Cookie & Consent** | Transparent user consent dialog with persistent session privacy preferences. |
 
 ---
 
