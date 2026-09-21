@@ -6,7 +6,7 @@ A phased journey to transform the existing RICGCW application into a cohesive, p
 
 ## Phases
 
-- [ ] **Phase 1: Workflow Audit, Foundation & Feedback System** - Catalog broken user journeys, decouple direct Firestore UI calls into services, and establish global feedback.
+- [x] **Phase 1: Workflow Audit, Foundation & Feedback System** - Catalog broken user journeys, decouple direct Firestore UI calls into services, and establish global feedback.
 - [ ] **Phase 2: Member & Registry Management End-to-End** - Connect onboarding, profile lifecycle, family relations, age-based department sync, and exports.
 - [ ] **Phase 3: Attendance, QR Check-In & Churn Risk Engine** - Harden mobile QR self-check-in, duplicate prevention, child-guardian security tokens, and live attendance metrics.
 - [ ] **Phase 4: Treasury, Dual-Custody Controls & Paystack Integration** - Implement two-person digital deposit approvals, reconciliation checks, Paystack giving, and financial reporting.
@@ -42,7 +42,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03: Global notification toasts, loading skeletons, and destructive confirmation modals
+- [x] 01-03: Global notification toasts, loading skeletons, and destructive confirmation modals
 
 ### Phase 2: Member & Registry Management End-to-End
 
