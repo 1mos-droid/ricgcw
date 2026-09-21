@@ -38,7 +38,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02: Centralized Firestore service layer abstraction and UI decoupling
+- [x] 01-02: Centralized Firestore service layer abstraction and UI decoupling
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
