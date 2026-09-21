@@ -79,16 +79,16 @@ export const WorkspaceProvider = ({ children }) => {
   const userRole = useMemo(() => mimicData?.role || user?.role || 'guest', [user, mimicData]);
 
   // --- Global Notification State ---
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info', duration: 5000 });
   const [confirmation, setConfirmation] = useState({ open: false, title: '', message: '', onConfirm: () => {}, severity: 'error' });
 
-  const showNotification = (message, severity = 'info') => {
-    setNotification({ open: true, message, severity });
-  };
+  const showNotification = useCallback((message, severity = 'info', duration = 5000) => {
+    setNotification({ open: true, message, severity, duration });
+  }, [setNotification]);
 
-  const showConfirmation = ({ title, message, onConfirm, severity = 'error' }) => {
+  const showConfirmation = useCallback(({ title, message, onConfirm, severity = 'error' }) => {
     setConfirmation({ open: true, title, message, onConfirm, severity });
-  };
+  }, [setConfirmation]);
 
   const refreshUserContext = () => {
     const activeWs = localStorage.getItem('activeWorkspace') || 'main';
@@ -171,8 +171,8 @@ export const WorkspaceProvider = ({ children }) => {
       {/* Global Notification Component */}
       <Snackbar 
         open={notification.open} 
-        autoHideDuration={5000} 
-        onClose={() => setNotification({ ...notification, open: false })}
+        autoHideDuration={notification.duration || 5000} 
+        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         sx={{
           zIndex: 99999,

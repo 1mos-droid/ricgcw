@@ -62,13 +62,20 @@ import { format } from 'date-fns';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
-import { db, storage } from '../firebase';
-import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import TableSkeleton from '../components/molecules/TableSkeleton';
+import EmptyState from '../components/molecules/EmptyState';
+import { 
+  recordTransaction, 
+  updateTransaction, 
+  deleteTransaction, 
+  getTransactions 
+} from '../services/financialService';
 
 // --- SUB-COMPONENTS ---
 
@@ -148,22 +155,25 @@ const Financials = () => {
   const [date, setDate] = useState(getISOStringDate(new Date()));
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptUrl, setReceiptUrl] = useState('');
+  const [, setUploadProgress] = useState(0);
 
   // --- FETCH DATA ---
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const txSnapshot = await getDocs(collection(db, "transactions"));
-      const txData = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Sort transactions by date descending (newest first)
-      const sortedTx = (txData || []).sort((a, b) => {
-        const dateA = safeParseDate(a.date);
-        const dateB = safeParseDate(b.date);
-        return dateB - dateA;
-      });
-      
-      setTransactions(sortedTx);
+      const result = await getTransactions();
+      if (result.success) {
+        const txData = result.data;
+        // Sort transactions by date descending (newest first)
+        const sortedTx = (txData || []).sort((a, b) => {
+          const dateA = safeParseDate(a.date);
+          const dateB = safeParseDate(b.date);
+          return dateB - dateA;
+        });
+        setTransactions(sortedTx);
+      } else {
+        showNotification(result.error || "Failed to sync financial data.", "error");
+      }
     } catch (err) {
       console.error("Finance Sync Error:", err);
       showNotification("Failed to sync financial data.", "error");
@@ -180,20 +190,33 @@ const Financials = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleTransaction = async () => {
-    if (!amount || !description || !category || !date) {
-      showNotification("Please fill in all fields.", "warning");
+  // --- ACTIONS ---
+  const handleSaveTransaction = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      showNotification("Please enter a valid amount.", "warning");
       return;
     }
-    setSubmitting(true);
+    if (!description.trim()) {
+      showNotification("Please provide a description.", "warning");
+      return;
+    }
+
     try {
+      setSubmitting(true);
       let finalReceiptUrl = receiptUrl;
 
-      // Handle File Upload if new file selected
+      // Handle File Upload if present
       if (receiptFile) {
-        const fileRef = ref(storage, `receipts/${Date.now()}_${receiptFile.name}`);
-        const uploadResult = await uploadBytes(fileRef, receiptFile);
-        finalReceiptUrl = await getDownloadURL(uploadResult.ref);
+        setUploadProgress(10);
+        const fileExt = receiptFile.name.split('.').pop();
+        const fileName = `receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const fileRef = ref(storage, fileName);
+        
+        await uploadBytes(fileRef, receiptFile);
+        setUploadProgress(70);
+        finalReceiptUrl = await getDownloadURL(fileRef);
+        setUploadProgress(100);
       }
 
       const txData = {
@@ -207,10 +230,12 @@ const Financials = () => {
       };
       
       if (editingTransaction) {
-        await setDoc(doc(db, "transactions", editingTransaction.id), txData, { merge: true });
+        const result = await updateTransaction(editingTransaction.id, txData);
+        if (!result.success) throw new Error(result.error);
         showNotification("Transaction updated successfully.", "success");
       } else {
-        await addDoc(collection(db, "transactions"), { ...txData, createdAt: new Date().toISOString() });
+        const result = await recordTransaction({ ...txData, createdAt: new Date().toISOString() });
+        if (!result.success) throw new Error(result.error);
         showNotification("Transaction recorded successfully.", "success");
       }
       
@@ -238,10 +263,10 @@ const Financials = () => {
 
   const handleEditClick = (tx) => {
     setEditingTransaction(tx);
-    setAmount(tx.amount);
+    setAmount(tx.amount.toString());
     setDescription(tx.description);
     setType(tx.type);
-    setCategory(tx.category);
+    setCategory(tx.category || (isBranchRestricted ? userBranch : 'Mallam'));
     setDate(getISOStringDate(tx.date));
     setReceiptUrl(tx.receiptUrl || '');
     setOpenLogDialog(true);
@@ -253,7 +278,8 @@ const Financials = () => {
       message: "Permanently delete this record?",
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, "transactions", id));
+          const result = await deleteTransaction(id);
+          if (!result.success) throw new Error(result.error);
           await fetchData();
           showNotification("Deleted.", "success");
         } catch (error) {
@@ -618,16 +644,24 @@ const Financials = () => {
                         </TableHead>
                         <TableBody>
                             {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
+                                Array.from({ length: 6 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        {Array.from({ length: 6 }).map((_, j) => (
-                                            <TableCell key={j}><Skeleton /></TableCell>
+                                        {Array.from({ length: 7 }).map((_, j) => (
+                                            <TableCell key={j}><Skeleton height={28} /></TableCell>
                                         ))}
                                     </TableRow>
                                 ))
                             ) : filteredTx.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>No transactions found.</TableCell>
+                                    <TableCell colSpan={7} sx={{ p: 0, border: 0 }}>
+                                        <EmptyState
+                                            title="No transactions recorded"
+                                            description="The financial ledger is currently empty for this category. Record a new income or expense transaction to begin tracking church accounts."
+                                            actionLabel="Record Transaction"
+                                            onAction={() => setOpenLogDialog(true)}
+                                            sx={{ border: 0, bgcolor: 'transparent', py: 6 }}
+                                        />
+                                    </TableCell>
                                 </TableRow>
                             ) : (
                                 filteredTx.map((tx) => (
@@ -774,7 +808,7 @@ const Financials = () => {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setOpenLogDialog(false)} sx={{ fontWeight: 600, borderRadius: 1, color: 'text.secondary' }}>Cancel</Button>
-            <Button variant="contained" onClick={handleTransaction} disabled={submitting} sx={{ fontWeight: 600, borderRadius: 1, px: 3 }}>
+            <Button variant="contained" onClick={handleSaveTransaction} disabled={submitting} sx={{ fontWeight: 600, borderRadius: 1, px: 3 }}>
                 {submitting ? <CircularProgress size={24} color="inherit" /> : (editingTransaction ? 'Update Record' : 'Confirm Log')}
             </Button>
         </DialogActions>

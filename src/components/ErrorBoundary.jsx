@@ -65,7 +65,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const ErrorFallback = ({ error, onReset, onHome }) => {
+const ErrorFallback = ({ onReset, onHome }) => {
   const theme = useTheme();
 
   return (

@@ -16,7 +16,7 @@ const TrendChartCard = ({
   data = [], 
   dataKey = 'value', 
   xKey = 'name',
-  filterValue,
+  filterValue = '30d',
   onFilterChange,
   filterOptions = [
     { value: '7d', label: 'Last 7 Days' },
@@ -35,7 +35,7 @@ const TrendChartCard = ({
           </Typography>
           <Select
             size="small"
-            value={filterValue}
+            value={filterValue || '30d'}
             onChange={(e) => onFilterChange && onFilterChange(e.target.value)}
             sx={{ 
               borderRadius: '8px',

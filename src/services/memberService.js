@@ -13,9 +13,7 @@ import {
   getDoc, 
   addDoc, 
   setDoc, 
-  deleteDoc, 
-  query, 
-  where 
+  deleteDoc 
 } from 'firebase/firestore';
 
 const MEMBERS_COLLECTION = 'members';

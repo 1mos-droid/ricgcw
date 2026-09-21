@@ -3,6 +3,8 @@ import {
   recordAttendance, 
   getAttendanceByDate, 
   deleteAttendanceRecord,
+  getAttendanceRecords,
+  updateAttendanceRecord,
   validateAttendanceData 
 } from './attendanceService';
 import * as firestore from 'firebase/firestore';
@@ -146,6 +148,53 @@ describe('attendanceService', () => {
     it('returns failure if recordId is missing', async () => {
       const result = await deleteAttendanceRecord(null);
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('getAttendanceRecords', () => {
+    it('returns all attendance documents from collection', async () => {
+      firestore.getDocs.mockResolvedValueOnce({
+        docs: [
+          { id: 'rec-1', data: () => ({ date: '2026-09-21', count: 10 }) },
+          { id: 'rec-2', data: () => ({ date: '2026-09-20', count: 15 }) }
+        ]
+      });
+
+      const result = await getAttendanceRecords();
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].id).toBe('rec-1');
+    });
+
+    it('handles errors gracefully', async () => {
+      firestore.getDocs.mockRejectedValueOnce(new Error('Fetch failed'));
+      const result = await getAttendanceRecords();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Fetch failed');
+    });
+  });
+
+  describe('updateAttendanceRecord', () => {
+    it('updates record and recalculates count if attendees passed', async () => {
+      firestore.setDoc.mockResolvedValueOnce();
+
+      const result = await updateAttendanceRecord('rec-1', {
+        attendees: [{ id: 'm1', name: 'John' }, { id: 'm2', name: 'Jane' }]
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.count).toBe(2);
+      expect(firestore.setDoc).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'rec-1' }),
+        expect.objectContaining({ count: 2 }),
+        { merge: true }
+      );
+    });
+
+    it('returns error if recordId is missing', async () => {
+      const result = await updateAttendanceRecord(null, {});
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Record ID is required');
     });
   });
 });

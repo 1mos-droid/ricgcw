@@ -17,7 +17,6 @@ import {
   useTheme, 
   Chip,
   CircularProgress,
-  Skeleton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -59,8 +58,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import QRCode from 'react-qr-code';
 
-import { db } from '../firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getMembers } from '../services/memberService';
+import { 
+  getAttendanceRecords, 
+  recordAttendance, 
+  updateAttendanceRecord, 
+  deleteAttendanceRecord 
+} from '../services/attendanceService';
+import TableSkeleton from '../components/molecules/TableSkeleton';
+import EmptyState from '../components/molecules/EmptyState';
 import { safeParseDate } from '../utils/dateUtils';
 
 const Attendance = () => {
@@ -89,6 +95,13 @@ const Attendance = () => {
   }, []);
 
   const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
+  const displayedMembers = useMemo(() => {
+    return filteredMembers.filter(m => {
+      if (!selectedBranch) return true;
+      return String(m.branch || '').toLowerCase() === String(selectedBranch).toLowerCase();
+    });
+  }, [filteredMembers, selectedBranch]);
+
   const filteredRecords = useMemo(() => {
     let records = filterData(attendanceRecords);
     if (selectedBranch) {
@@ -126,17 +139,24 @@ const Attendance = () => {
     try {
       if (members.length === 0) setLoading(true); 
       
-      const [membersSnapshot, attendanceSnapshot] = await Promise.all([
-        getDocs(collection(db, "members")),
-        getDocs(collection(db, "attendance"))
+      const [membersRes, attendanceRes] = await Promise.all([
+        getMembers(),
+        getAttendanceRecords()
       ]);
       
-      const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const attendanceData = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (!membersRes.success) {
+        showNotification(membersRes.error || "Failed to load members.", "error");
+      }
+      if (!attendanceRes.success) {
+        showNotification(attendanceRes.error || "Failed to load attendance.", "error");
+      }
+
+      const membersData = membersRes.data || [];
+      const attendanceData = attendanceRes.data || [];
       
-      setMembers(membersData || []); 
+      setMembers(membersData); 
       
-      const sortedRecords = attendanceData.sort((a, b) => 
+      const sortedRecords = [...attendanceData].sort((a, b) => 
         safeParseDate(b.date) - safeParseDate(a.date)
       );
       
@@ -236,7 +256,12 @@ const Attendance = () => {
       };
 
       const recordId = `${selectedDate}_${(isBranchRestricted ? userBranch : selectedBranch) || 'All'}`;
-      await setDoc(doc(db, "attendance", recordId), recordData, { merge: true });
+      const res = await recordAttendance({ id: recordId, ...recordData });
+      
+      if (!res.success) {
+        showNotification(res.error || "Failed to save attendance.", "error");
+        return;
+      }
       
       setSelectedAttendees(new Set());
       await fetchData(); 
@@ -262,7 +287,12 @@ const Attendance = () => {
       };
 
       const { id, ...dataToSave } = updatedRecord;
-      await setDoc(doc(db, "attendance", id), dataToSave, { merge: true });
+      const res = await updateAttendanceRecord(id, dataToSave);
+      
+      if (!res.success) {
+        showNotification(res.error || "Failed to update attendance.", "error");
+        return;
+      }
 
       await fetchData(); 
       showNotification("Attendance updated successfully!", "success");
@@ -285,7 +315,11 @@ const Attendance = () => {
       onConfirm: async () => {
         setSubmitting(true);
         try {
-          await deleteDoc(doc(db, "attendance", selectedRecord.id));
+          const res = await deleteAttendanceRecord(selectedRecord.id);
+          if (!res.success) {
+            showNotification(res.error || "Failed to delete attendance record.", "error");
+            return;
+          }
           setSelectedRecord(null);
           await fetchData();
           showNotification("Attendance record deleted successfully!", "success");
@@ -585,21 +619,16 @@ const Attendance = () => {
             {/* Member List */}
             <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 3, py: 4, maxHeight: '700px', minHeight: '400px' }}>
               {loading ? (
-                 Array.from(new Array(6)).map((_, index) => (
-                   <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                     <Skeleton variant="circular" width={48} height={48} sx={{ mr: 2, borderRadius: 2 }} />
-                     <Box sx={{ flex: 1 }}>
-                        <Skeleton variant="text" width="40%" height={24} />
-                        <Skeleton variant="text" width="60%" height={20} />
-                     </Box>
-                   </Box>
-                 ))
+                <TableSkeleton rows={6} columns={2} />
+              ) : displayedMembers.length === 0 ? (
+                <EmptyState 
+                  icon={<Users size={48} />} 
+                  title="No Members Found" 
+                  description={selectedBranch ? `No members registered for ${selectedBranch} branch.` : "No members found in registry."}
+                />
               ) : (
                 <Grid container spacing={2}>
-                  {filteredMembers.filter(m => {
-                    if (!selectedBranch) return true;
-                    return String(m.branch).toLowerCase() === String(selectedBranch).toLowerCase();
-                  }).map((member) => {
+                  {displayedMembers.map((member) => {
                     const isSelected = selectedAttendees.has(member.id);
                     return (
                       <Grid size={{ xs: 12, sm: 6 }} key={member.id}>
@@ -661,11 +690,14 @@ const Attendance = () => {
             </Box>
 
             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
-              {filteredRecords.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 5, opacity: 0.5 }}>
-                    <History size={48} style={{ marginBottom: 16 }} />
-                    <Typography fontWeight={700}>No history found</Typography>
-                </Box>
+              {loading ? (
+                <TableSkeleton rows={4} columns={1} />
+              ) : filteredRecords.length === 0 ? (
+                <EmptyState 
+                  icon={<History size={40} />} 
+                  title="No History Found" 
+                  description="No attendance sessions recorded yet."
+                />
               ) : (
                 filteredRecords.map((record, index) => (
                   <Box 

@@ -11,11 +11,8 @@ import {
   doc, 
   getDocs, 
   getDoc, 
-  addDoc, 
   setDoc, 
-  deleteDoc, 
-  query, 
-  where 
+  deleteDoc 
 } from 'firebase/firestore';
 
 const ATTENDANCE_COLLECTION = 'attendance';
@@ -89,13 +86,13 @@ export const recordAttendance = async (attendanceData) => {
     }
 
     const payload = {
-      date: attendanceData.date,
-      serviceType: attendanceData.serviceType || 'main',
-      branch: attendanceData.branch || 'Main',
-      count: attendanceData.count || (attendanceData.attendees ? attendanceData.attendees.length : 0),
+      serviceType: 'main',
+      branch: 'Main',
+      recordedBy: 'system',
+      createdAt: new Date().toISOString(),
+      ...attendanceData,
+      count: attendanceData.count ?? (attendanceData.attendees ? attendanceData.attendees.length : 0),
       attendees: attendanceData.attendees || (attendanceData.newAttendee ? [attendanceData.newAttendee] : []),
-      recordedBy: attendanceData.recordedBy || 'system',
-      createdAt: attendanceData.createdAt || new Date().toISOString()
     };
 
     await setDoc(recordRef, payload, { merge: true });
@@ -108,6 +105,25 @@ export const recordAttendance = async (attendanceData) => {
     return { 
       success: false, 
       error: err.message || 'Failed to record attendance' 
+    };
+  }
+};
+
+/**
+ * Fetches all attendance records.
+ * 
+ * @returns {Promise<ServiceResponse>} List of all attendance records
+ */
+export const getAttendanceRecords = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, ATTENDANCE_COLLECTION));
+    const records = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+    return { success: true, data: records };
+  } catch (err) {
+    console.error('attendanceService.getAttendanceRecords error:', err);
+    return { 
+      success: false, 
+      error: err.message || 'Failed to fetch attendance records' 
     };
   }
 };
@@ -134,6 +150,38 @@ export const getAttendanceByDate = async (date) => {
     return { 
       success: false, 
       error: err.message || 'Failed to fetch attendance for date' 
+    };
+  }
+};
+
+/**
+ * Updates an existing attendance record.
+ * 
+ * @param {string} recordId
+ * @param {Object} updateData
+ * @returns {Promise<ServiceResponse>}
+ */
+export const updateAttendanceRecord = async (recordId, updateData) => {
+  try {
+    if (!recordId) {
+      return { success: false, error: 'Record ID is required for update' };
+    }
+    const recordRef = doc(db, ATTENDANCE_COLLECTION, recordId);
+    const payload = {
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    };
+    if (payload.attendees) {
+      payload.count = payload.attendees.length;
+    }
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+    await setDoc(recordRef, payload, { merge: true });
+    return { success: true, data: { id: recordId, ...payload } };
+  } catch (err) {
+    console.error(`attendanceService.updateAttendanceRecord error for ${recordId}:`, err);
+    return { 
+      success: false, 
+      error: err.message || 'Failed to update attendance record' 
     };
   }
 };

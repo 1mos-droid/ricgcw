@@ -68,7 +68,7 @@ import MemberDetailsDialog from '../components/MemberDetailsDialog';
 import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
-import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -78,6 +78,9 @@ import StatusBadge from '../components/atoms/StatusBadge';
 import UserAvatar from '../components/atoms/UserAvatar';
 import MasterDataGrid from '../components/molecules/MasterDataGrid';
 import DetailDrawer from '../components/molecules/DetailDrawer';
+import TableSkeleton from '../components/molecules/TableSkeleton';
+import EmptyState from '../components/molecules/EmptyState';
+import { createMember, updateMember, deleteMember, getMembers } from '../services/memberService';
 
 const Members = () => {
   const theme = useTheme();
@@ -164,17 +167,19 @@ const Members = () => {
   const fetchMembers = useCallback(async (isSilent = false) => {
     try {
       if (!isSilent) setLoading(true);
-      const querySnapshot = await getDocs(collection(db, "members"));
-      const membersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Sort members by 'createdAt' (newest first)
-      const sortedMembers = (membersData || []).sort((a, b) => {
-        const dateA = safeParseDate(a.createdAt || 0);
-        const dateB = safeParseDate(b.createdAt || 0);
-        return dateB - dateA;
-      });
-      
-      setMembers(sortedMembers);
+      const result = await getMembers();
+      if (result.success) {
+        const membersData = result.data;
+        // Sort members by 'createdAt' (newest first)
+        const sortedMembers = (membersData || []).sort((a, b) => {
+          const dateA = safeParseDate(a.createdAt || 0);
+          const dateB = safeParseDate(b.createdAt || 0);
+          return dateB - dateA;
+        });
+        setMembers(sortedMembers);
+      } else {
+        showNotification(result.error || "Failed to sync member database.", "error");
+      }
     } catch (_err) {
       console.error("Members Fetch Error:", _err);
       showNotification("Failed to sync member database.", "error");
@@ -308,15 +313,16 @@ const Members = () => {
       // Auto-generate Member ID
       const memberId = generateMemberId(newMember.branch, members);
       
-      const docRef = await addDoc(collection(db, "members"), {
+      const result = await createMember({
         ...newMember,
-        memberId,
-        createdAt: new Date().toISOString()
+        memberId
       });
+      if (!result.success) throw new Error(result.error);
+      
       await fetchMembers(true); 
       setOpenAddMemberDialog(false);
       showNotification(`Member registered with ID: ${memberId}`, "success");
-      return { id: docRef.id, ...newMember, memberId };
+      return { id: result.data.id, ...newMember, memberId };
     } catch (err) {
       showNotification(`Failed to register: ${err.message}`, "error");
       throw err;
@@ -327,7 +333,8 @@ const Members = () => {
 
   const handleEdit = async (id, updatedMember) => {
     try {
-      await setDoc(doc(db, "members", id), updatedMember, { merge: true });
+      const result = await updateMember(id, updatedMember);
+      if (!result.success) throw new Error(result.error);
       await fetchMembers(true);
       setSelectedMember(prev => prev && prev.id === id ? { ...prev, ...updatedMember } : prev);
       showNotification("Profile updated.", "success");
@@ -342,7 +349,8 @@ const Members = () => {
       message: "Permanently remove this member?",
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, "members", id));
+          const result = await deleteMember(id);
+          if (!result.success) throw new Error(result.error);
           await fetchMembers(true);
           setSelectedMember(null);
           setSelectedMemberIds(prev => prev.filter(mId => mId !== id));
@@ -363,7 +371,7 @@ const Members = () => {
       onConfirm: async () => {
         try {
           setLoading(true);
-          await Promise.all(selectedMemberIds.map(id => deleteDoc(doc(db, "members", id))));
+          await Promise.all(selectedMemberIds.map(id => deleteMember(id)));
           await fetchMembers(true);
           setSelectedMemberIds([]);
           showNotification("Selected members removed.", "info");
@@ -847,23 +855,27 @@ const Members = () => {
           </Grid>
         </Grid>
       </Paper>
-
       {/* --- CONTENT AREA --- */}
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-             <Grid container spacing={3}>
-               {[1, 2, 3, 4, 5, 6].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={260} sx={{ borderRadius: 6 }} /></Grid>)}
-             </Grid>
+            {viewMode === 'table' ? (
+              <TableSkeleton rows={8} columns={5} />
+            ) : (
+              <Grid container spacing={3}>
+                {[1, 2, 3, 4, 5, 6].map(i => <Grid key={i} size={{ xs: 12, md: 4 }}><Skeleton variant="rectangular" height={260} sx={{ borderRadius: 6 }} /></Grid>)}
+              </Grid>
+            )}
           </motion.div>
         ) : filteredMembers.length === 0 ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-            <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 8 }}>
-              <UserX size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />
-              <Typography variant="h6" fontWeight={800} color="text.secondary">No members found</Typography>
-              <Typography variant="body2" color="text.secondary">Adjust your filters to see results.</Typography>
-              <Button sx={{ mt: 3, fontWeight: 700 }} onClick={() => { setSearchTerm(''); setSelectedBranch(''); setSelectedStatus('all'); }}>Clear Filters</Button>
-            </Box>
+            <EmptyState 
+              icon={<UserX size={40} />}
+              title="No members found"
+              description={searchTerm || selectedBranch || selectedStatus !== 'all' ? "No members match your active filters. Try adjusting your query or clear filters." : "Your congregation registry is empty. Add your first member to begin tracking attendance and engagement."}
+              actionLabel={searchTerm || selectedBranch || selectedStatus !== 'all' ? "Clear Filters" : "Add New Member"}
+              onAction={searchTerm || selectedBranch || selectedStatus !== 'all' ? () => { setSearchTerm(''); setSelectedBranch(''); setSelectedStatus('all'); } : () => setOpenAddMemberDialog(true)}
+            />
           </motion.div>
         ) : viewMode === 'grid' ? (
           <Box>
