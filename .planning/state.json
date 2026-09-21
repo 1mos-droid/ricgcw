@@ -1,0 +1,48 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "1",
+      "name": "Workflow Audit, Foundation & Feedback System",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "Member & Registry Management End-to-End",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Attendance, QR Check-In & Churn Risk Engine",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "Treasury, Dual-Custody Controls & Paystack Integration",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Events, Volunteer Rostering & Communications",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "Live Bible & Spiritual Experience",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Security Hardening, RBAC & SaaS Production Readiness",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 1 of 7 · 0% · executing"
+  },
+  "updated_at": "2026-09-21T08:26:30.027Z"
+}
