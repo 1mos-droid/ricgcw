@@ -19,6 +19,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import * as Sentry from '@sentry/react';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -31,9 +32,14 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Sentry will automatically catch this if initialized, 
-    // but you could also explicitly log it here.
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    try {
+      if (Sentry && typeof Sentry.captureException === 'function') {
+        Sentry.captureException(error, { extra: errorInfo });
+      }
+    } catch (sentryErr) {
+      console.warn("Failed to forward error to Sentry:", sentryErr);
+    }
   }
 
   handleReset = () => {
@@ -46,14 +52,20 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      return <ErrorFallback onReset={this.handleReset} onHome={this.handleGoHome} />;
+      return (
+        <ErrorFallback 
+          error={this.state.error}
+          onReset={this.handleReset} 
+          onHome={this.handleGoHome} 
+        />
+      );
     }
 
     return this.props.children;
   }
 }
 
-const ErrorFallback = ({ onReset, onHome }) => {
+const ErrorFallback = ({ error, onReset, onHome }) => {
   const theme = useTheme();
 
   return (
@@ -114,6 +126,7 @@ const ErrorFallback = ({ onReset, onHome }) => {
               <Button 
                 variant="contained" 
                 size="large"
+                aria-label="Reload Application"
                 startIcon={<RefreshCcw size={18} />}
                 onClick={onReset}
                 sx={{ 
@@ -124,16 +137,17 @@ const ErrorFallback = ({ onReset, onHome }) => {
                   boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}`
                 }}
               >
-                Try Again
+                Reload Application
               </Button>
               <Button 
                 variant="outlined" 
                 size="large"
+                aria-label="Return to Dashboard"
                 startIcon={<Home size={18} />}
                 onClick={onHome}
                 sx={{ borderRadius: 2, py: 1.5, px: 4, fontWeight: 800, borderWidth: 2, '&:hover': { borderWidth: 2 } }}
               >
-                Return to Sanctuary
+                Return to Dashboard
               </Button>
             </Stack>
 

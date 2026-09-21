@@ -32,8 +32,7 @@ import {
 } from '@mui/material';
 import { X, UserPlus, User, Mail, Phone, MapPin, Cake, Building, Users, Briefcase, Globe, Waves, Cross, Heart, Baby } from 'lucide-react';
 import { getDepartmentByAge } from '../utils/dateUtils';
-import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { createMember, getMembers } from '../services/memberService';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -70,9 +69,11 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "members"));
-        const data = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name, memberId: doc.data().memberId }));
-        setAllMembers(data);
+        const result = await getMembers();
+        if (result.success && result.data) {
+          const data = result.data.map(doc => ({ id: doc.id, name: doc.name, memberId: doc.memberId }));
+          setAllMembers(data);
+        }
       } catch (err) {
         console.error("Fetch members error:", err);
       }
@@ -156,7 +157,15 @@ const AddMemberDialog = ({ open, onClose, onAddMember }) => {
           spouseName: String(formData.spouseName || "").trim() || null,
           childrenNames: String(formData.childrenNames || "").trim() || null
         };
-        await onAddMember(payload);
+        if (typeof onAddMember === 'function') {
+          await onAddMember(payload);
+        } else {
+          const result = await createMember(payload);
+          if (!result.success) {
+            throw new Error(result.error);
+          }
+          if (onClose) onClose();
+        }
         // The parent will set open=false upon success, triggering the reset useEffect
       } catch (err) {
         console.error("Submission error:", err);

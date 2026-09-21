@@ -17,8 +17,7 @@ import {
 } from '@mui/material';
 import { CreditCard, Wallet, HeartHandshake } from 'lucide-react';
 import { usePaystackPayment } from 'react-paystack';
-import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { recordTransaction } from '../services/financialService';
 import { useWorkspace } from '../context/WorkspaceContext';
 
 const DigitalGivingDialog = ({ open, onClose, user, memberProfile }) => {
@@ -59,12 +58,16 @@ const DigitalGivingDialog = ({ open, onClose, user, memberProfile }) => {
             isDigital: true
         };
 
-        await addDoc(collection(db, "transactions"), payload);
-        showNotification(`Thank you! Your ${type} has been recorded.`, "success");
-        setAmount('');
-        onClose();
+        const result = await recordTransaction(payload);
+        if (result.success) {
+          showNotification(`Thank you! Your ${type} has been recorded.`, "success");
+          setAmount('');
+          onClose();
+        } else {
+          throw new Error(result.error);
+        }
     } catch (err) {
-        console.error("Firestore save failed after payment:", err);
+        console.error("Financial service save failed after payment:", err);
         showNotification("Payment successful, but failed to record in database. Please contact support.", "error");
     } finally {
         setLoading(false);
