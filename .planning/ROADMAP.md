@@ -34,7 +34,7 @@ A phased journey to transform the existing RICGCW application into a cohesive, p
 Plans:
 **Wave 1**
 
-- [ ] 01-01: Workflow audit and cataloging of incomplete UI-data journeys
+- [x] 01-01: Workflow audit and cataloging of incomplete UI-data journeys
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
