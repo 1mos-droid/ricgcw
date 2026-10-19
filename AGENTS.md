@@ -10,7 +10,7 @@ A unified, production-ready Church Management System (CMS) that serves as the op
 
 ### Constraints
 
-- **Tech Stack**: React 19, Vite, Material UI (MUI v7), Cloud Firestore, Appwrite Cloud, Termii SMS, Paystack.
+- **Tech Stack**: React 19, Vite, Material UI (MUI v7), Firebase Authentication, Cloud Firestore, Termii SMS, Paystack.
 - **Security & Authorization**: Authorization must be strictly enforced via Firestore security rules and backend validation—never rely on UI element visibility alone.
 - **Financial Compliance**: Dual-custody approval workflows require two distinct administrative signatures and reconciled math before ledger finalization.
 - **Mobile Usability**: Primary church workers and congregants interact via mobile devices; touch ergonomics, PWA performance, and responsive layouts are mandatory.
@@ -172,7 +172,7 @@ A unified, production-ready Church Management System (CMS) that serves as the op
 |-----------|----------------|------|
 | `App` | Root component configuring ThemeProvider, BrowserRouter, AuthProvider, and WorkspaceProvider | [`src/App.jsx`](file:///home/admin/Projects/ricgcw/src/App.jsx) |
 | `AppRouter` | Lazy-loaded page route definitions, AnimatePresence transitions, and `RequireAuth`/`RequireRole` guards | [`src/routes/Router.jsx`](file:///home/admin/Projects/ricgcw/src/routes/Router.jsx) |
-| `AuthContext` | Hybrid authentication lifecycle: Appwrite sessions synchronized with Firestore `users/{email}` profiles | [`src/context/AuthContext.jsx`](file:///home/admin/Projects/ricgcw/src/context/AuthContext.jsx) |
+| `AuthContext` | Unified Firebase Authentication lifecycle with seamless Appwrite migration synchronized with Firestore `users/{email}` profiles | [`src/context/AuthContext.jsx`](file:///home/admin/Projects/ricgcw/src/context/AuthContext.jsx) |
 | `WorkspaceContext` | Multi-environment context (`main`, `youth`, `children`), maintenance mode listener, and dev identity mimicry | [`src/context/WorkspaceContext.jsx`](file:///home/admin/Projects/ricgcw/src/context/WorkspaceContext.jsx) |
 | `Layout` | Responsive shell supporting desktop drawer sidebar and mobile glassmorphism bottom navigation | [`src/components/Layout.jsx`](file:///home/admin/Projects/ricgcw/src/components/Layout.jsx) |
 | `TopAppBar` | Header navigation bar containing workspace quick switch, command palette shortcut, and user profile menu | [`src/components/layout/TopAppBar.jsx`](file:///home/admin/Projects/ricgcw/src/components/layout/TopAppBar.jsx) |
@@ -184,7 +184,7 @@ A unified, production-ready Church Management System (CMS) that serves as the op
 
 ## Pattern Overview
 
-- **Hybrid Cloud Architecture:** Leverages Appwrite Cloud for authenticated identity sessions and user labels, combined with Google Cloud Firestore for high-throughput real-time database subscriptions and synchronization.
+- **Unified Firebase Cloud Architecture:** Leverages Firebase Authentication for identity sessions and user management, combined with Google Cloud Firestore for high-throughput real-time database subscriptions and synchronization, with backward-compatible JIT migration for legacy Appwrite logins.
 - **Hierarchical Role-Based Access Control (RBAC):** Strict 5-tier permission model (`developer` > `admin` > `branch_admin` > `minister` > `member`/`guest`) enforced at route transitions and UI component renders.
 - **Domain Guardrails & Data Auditing:** Financial compliance enforced through dual-custody verification algorithms ([`src/utils/dualCustody.js`](file:///home/admin/Projects/ricgcw/src/utils/dualCustody.js)); child safety secured via paired guardian-child pairing tokens with 12-hour TTLs ([`src/utils/safetyTokens.js`](file:///home/admin/Projects/ricgcw/src/utils/safetyTokens.js)).
 - **Automated Self-Healing Data:** Age-based member classification automatically transitions members between Children's Court (<13), Youth Ministry (13–35), and Main Sanctuary upon administrative dashboard access ([`src/utils/syncDepartments.js`](file:///home/admin/Projects/ricgcw/src/utils/syncDepartments.js)).

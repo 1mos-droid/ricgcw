@@ -36,9 +36,8 @@ import {
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
-import { account } from '../appwrite';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { motion } from 'framer-motion';
 import { syncMemberDepartments } from '../utils/syncDepartments';
 
@@ -83,12 +82,10 @@ const Developer = () => {
 const handleSyncMetadata = async () => {
   setMetadataSyncing(true);
   try {
-    // In a real app, this would iterate all users if we had a server-side SDK.
-    // Since we are client-side, we can at least force-sync the CURRENT user's Appwrite data to Firestore.
-    await account.get();
-    // The AuthContext already has a syncUserProfile but it's not exported.
-    // For now, we inform the user that their own profile is synced on every login.
-    showNotification("Local profile metadata synced with Appwrite.", "success");
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+    }
+    showNotification("Local profile metadata synced with Firebase.", "success");
   } catch {
     showNotification("Failed to sync metadata.", "error");
   } finally {
@@ -212,7 +209,7 @@ const filteredUsers = users.filter(u =>
                 startIcon={metadataSyncing ? <CircularProgress size={18} /> : <Fingerprint size={18} />}
                 sx={{ borderRadius: 3, fontWeight: 700, py: 1.5 }}
               >
-                {metadataSyncing ? 'Refreshing Metadata...' : 'Force Sync My Appwrite Data'}
+                {metadataSyncing ? 'Refreshing Metadata...' : 'Force Sync My Firebase Data'}
               </Button>
           </Card>
         </Grid>

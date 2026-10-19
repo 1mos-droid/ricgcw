@@ -45,6 +45,7 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 import { uploadToHuggingFace } from '../utils/huggingFaceApi';
+import { isImageFile, compressImage } from '../utils/imageCompressor';
 
 const Events = () => {
   const theme = useTheme();
@@ -56,6 +57,20 @@ const Events = () => {
   const [submitting, setSubmitting] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [flierFile, setFlierFile] = useState(null);
+  const [flierPreview, setFlierPreview] = useState(null);
+  const [compressing, setCompressing] = useState(false);
+
+  useEffect(() => {
+    if (!flierFile) {
+      setFlierPreview(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(flierFile);
+    setFlierPreview(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [flierFile]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -123,14 +138,23 @@ const Events = () => {
     }));
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
+      if (!isImageFile(file)) {
         showNotification("Please select an image file for the flier.", "warning");
         return;
       }
-      setFlierFile(file);
+      try {
+        setCompressing(true);
+        const compressed = await compressImage(file);
+        setFlierFile(compressed);
+      } catch (err) {
+        console.warn("Compression fallback:", err);
+        setFlierFile(file);
+      } finally {
+        setCompressing(false);
+      }
     }
   };
 
@@ -143,7 +167,7 @@ const Events = () => {
 
     setSubmitting(true);
     // 1. Create a local preview URL for instant UI feedback if there's a flier
-    const localFlierPreview = flierFile ? URL.createObjectURL(flierFile) : null;
+    const localFlierPreview = flierPreview;
 
     try {
       let flierUrl = null;
@@ -370,11 +394,16 @@ const Events = () => {
                           bgcolor: alpha(theme.palette.primary.main, 0.05)
                         }
                       }}>
-                        {flierFile ? (
+                        {compressing ? (
+                          <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
+                            <CircularProgress size={18} color="primary" />
+                            <Typography variant="caption" fontWeight={700} color="primary">Optimizing image for upload...</Typography>
+                          </Stack>
+                        ) : flierFile ? (
                           <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
                             <Box sx={{ position: 'relative' }}>
                                 <Avatar 
-                                    src={URL.createObjectURL(flierFile)} 
+                                    src={flierPreview} 
                                     variant="rounded" 
                                     sx={{ width: 40, height: 40, borderRadius: 1.5 }} 
                                 />
@@ -405,10 +434,10 @@ const Events = () => {
                     variant="contained" 
                     fullWidth 
                     size="large"
-                    disabled={submitting}
+                    disabled={submitting || compressing}
                     sx={{ mt: 1, py: 1.8, borderRadius: 3, fontWeight: 800, boxShadow: theme.shadows[4] }}
                   >
-                    {submitting ? <CircularProgress size={24} color="inherit" /> : 'Publish Event'}
+                    {submitting ? <CircularProgress size={24} color="inherit" /> : compressing ? 'Optimizing Image...' : 'Publish Event'}
                   </Button>
                 </Grid>
               </Grid>

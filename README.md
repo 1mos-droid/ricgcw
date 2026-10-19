@@ -43,7 +43,7 @@ A bespoke, high-performance digital headquarters for the **Redeemed Christian Ch
 
 *   **Frontend:** React 19 + Vite (Turbo-charged performance)
 *   **Design:** Material UI (MUI) + Framer Motion (Fluid animations)
-*   **Backend:** Firebase Firestore (Real-time DB) + Appwrite Cloud (Auth & Session)
+*   **Backend:** Firebase Authentication & Cloud Firestore (Real-time DB)
 *   **Utilities:** Recharts (Analytics), jsPDF (Reports), date-fns (Age Logic)
 
 ---

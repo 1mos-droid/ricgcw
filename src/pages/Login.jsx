@@ -547,11 +547,13 @@ const Login = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { refreshUserContext } = useWorkspace();
-  const { login, signup, isAuthenticated } = useAuth();
+  const { login, signup, resetPassword, isAuthenticated } = useAuth();
 
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState('');
   const [formData, setFormData] = useState({ 
     email: '', 
     password: '', 
@@ -561,8 +563,12 @@ const Login = () => {
   const [error, setError] = useState('');
   
   useEffect(() => {
-    document.title = isSignUp ? 'Create Account | RICGCW' : 'Sign In | RICGCW';
-  }, [isSignUp]);
+    if (isForgotPassword) {
+      document.title = 'Reset Password | RICGCW';
+    } else {
+      document.title = isSignUp ? 'Create Account | RICGCW' : 'Sign In | RICGCW';
+    }
+  }, [isSignUp, isForgotPassword]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -599,6 +605,27 @@ const Login = () => {
     } catch (err) {
       console.error("Auth Error:", err);
       setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setResetSuccess('');
+
+    if (!formData.email) {
+      setError('Please enter your email address to receive a reset link.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await resetPassword(formData.email);
+      setResetSuccess(res.message || 'Password reset link sent! Check your inbox.');
+    } catch (err) {
+      setError(err.message || 'Failed to send password reset email.');
     } finally {
       setLoading(false);
     }
@@ -782,118 +809,246 @@ const Login = () => {
                   Rhema Inner Court Gospel Church
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  {isSignUp ? 'Ministry Registration Portal' : 'Official Administrator Access'}
+                  {isForgotPassword ? 'Password Recovery & Activation Portal' : (isSignUp ? 'Ministry Registration Portal' : 'Official Administrator Access')}
                 </Typography>
               </Box>
 
               {/* Form Input fields */}
-              <form onSubmit={handleSubmit}>
-                <Stack spacing={2.5}>
-                  
-                  {/* Sliding Tab Controller */}
-                  <SlidingTabSelector isSignUp={isSignUp} onChange={setIsSignUp} />
+              {isForgotPassword ? (
+                <form onSubmit={handleResetPassword}>
+                  <Stack spacing={2.5}>
+                    <Typography variant="body2" sx={{ color: 'var(--text-secondary)', textAlign: 'left', fontSize: '0.875rem' }}>
+                      Enter your registered church email address. We'll send you a secure link to activate or reset your password.
+                    </Typography>
 
-                  {/* Error Notification Alert */}
-                  <AnimatePresence>
-                    {error && (
-                      <Box
-                        component={motion.div}
-                        initial={{ opacity: 0, y: -12, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                        transition={{ duration: 0.25 }}
-                        style={{ width: '100%' }}
-                      >
-                        <Box sx={{ 
-                          fontWeight: 700, 
-                          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 59, 48, 0.08)', 
-                          color: 'var(--system-red)',
-                          p: 1.75, 
-                          borderRadius: '14px', 
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          textAlign: 'left',
-                          fontSize: '0.825rem',
-                          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 59, 48, 0.25)' : 'rgba(255, 59, 48, 0.15)'}`,
-                          boxShadow: '0 4px 12px rgba(255, 59, 48, 0.05)'
-                        }}>
-                          <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'rgba(255, 59, 48, 0.15)' }}>
-                            <span style={{ fontWeight: 900 }}>!</span>
+                    {/* Error & Success Alerts */}
+                    <AnimatePresence>
+                      {error && (
+                        <Box
+                          component={motion.div}
+                          initial={{ opacity: 0, y: -12, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -12, scale: 0.95 }}
+                          transition={{ duration: 0.25 }}
+                          style={{ width: '100%' }}
+                        >
+                          <Box sx={{ 
+                            fontWeight: 700, 
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 59, 48, 0.08)', 
+                            color: 'var(--system-red)',
+                            p: 1.75, 
+                            borderRadius: '14px', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            textAlign: 'left',
+                            fontSize: '0.825rem',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 59, 48, 0.25)' : 'rgba(255, 59, 48, 0.15)'}`,
+                            boxShadow: '0 4px 12px rgba(255, 59, 48, 0.05)'
+                          }}>
+                            <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'rgba(255, 59, 48, 0.15)' }}>
+                              <span style={{ fontWeight: 900 }}>!</span>
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                              {error}
+                            </Typography>
                           </Box>
-                          <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
-                            {error}
-                          </Typography>
                         </Box>
-                      </Box>
-                    )}
-                  </AnimatePresence>
+                      )}
+                      {resetSuccess && (
+                        <Box
+                          component={motion.div}
+                          initial={{ opacity: 0, y: -12, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -12, scale: 0.95 }}
+                          transition={{ duration: 0.25 }}
+                          style={{ width: '100%' }}
+                        >
+                          <Box sx={{ 
+                            fontWeight: 700, 
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(52, 199, 89, 0.15)' : 'rgba(52, 199, 89, 0.08)', 
+                            color: 'var(--system-green)',
+                            p: 1.75, 
+                            borderRadius: '14px', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            textAlign: 'left',
+                            fontSize: '0.825rem',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(52, 199, 89, 0.25)' : 'rgba(52, 199, 89, 0.15)'}`,
+                            boxShadow: '0 4px 12px rgba(52, 199, 89, 0.05)'
+                          }}>
+                            <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'rgba(52, 199, 89, 0.15)' }}>
+                              <span style={{ fontWeight: 900 }}>✓</span>
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                              {resetSuccess}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </AnimatePresence>
 
-                  {/* Sign Up Exclusive Fields (Full Name & Branch Dropdown) */}
-                  <AnimatePresence initial={false} mode="popLayout">
-                    {isSignUp && (
-                      <Box
-                        component={motion.div}
-                        key="signup-fields"
-                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, height: 'auto', scale: 1, transitionEnd: { overflow: 'visible' } }}
-                        exit={{ opacity: 0, height: 0, scale: 0.95, overflow: 'hidden' }}
-                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                        style={{ overflow: 'hidden' }}
+                    <SleekInput
+                      placeholder="Email Address"
+                      icon={Mail}
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+
+                    <SleekButton type="submit" loading={loading}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        Send Reset Link <ArrowRight size={18} strokeWidth={2.5} />
+                      </Box>
+                    </SleekButton>
+
+                    <Box sx={{ textAlign: 'center', mt: 0.5 }}>
+                      <Typography 
+                        onClick={() => { setIsForgotPassword(false); setError(''); setResetSuccess(''); }}
+                        variant="caption" 
+                        sx={{ 
+                          color: 'var(--system-blue)', 
+                          fontWeight: 700, 
+                          cursor: 'pointer',
+                          fontSize: '0.825rem',
+                          '&:hover': { textDecoration: 'underline' } 
+                        }}
                       >
-                        <Stack spacing={2.5} sx={{ pb: 2.5 }}>
-                          <SleekInput
-                            placeholder="Full Name"
-                            icon={User}
-                            required
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          />
+                        ← Return to Sign In
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit}>
+                  <Stack spacing={2.5}>
+                    
+                    {/* Sliding Tab Controller */}
+                    <SlidingTabSelector isSignUp={isSignUp} onChange={setIsSignUp} />
 
-                          <SleekBranchSelector
-                            value={formData.branch}
-                            onChange={(val) => setFormData({ ...formData, branch: val })}
-                            options={branches}
-                          />
-                        </Stack>
+                    {/* Error Notification Alert */}
+                    <AnimatePresence>
+                      {error && (
+                        <Box
+                          component={motion.div}
+                          initial={{ opacity: 0, y: -12, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -12, scale: 0.95 }}
+                          transition={{ duration: 0.25 }}
+                          style={{ width: '100%' }}
+                        >
+                          <Box sx={{ 
+                            fontWeight: 700, 
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 59, 48, 0.08)', 
+                            color: 'var(--system-red)',
+                            p: 1.75, 
+                            borderRadius: '14px', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            textAlign: 'left',
+                            fontSize: '0.825rem',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 59, 48, 0.25)' : 'rgba(255, 59, 48, 0.15)'}`,
+                            boxShadow: '0 4px 12px rgba(255, 59, 48, 0.05)'
+                          }}>
+                            <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'rgba(255, 59, 48, 0.15)' }}>
+                              <span style={{ fontWeight: 900 }}>!</span>
+                            </Box>
+                            <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                              {error}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Sign Up Exclusive Fields (Full Name & Branch Dropdown) */}
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {isSignUp && (
+                        <Box
+                          component={motion.div}
+                          key="signup-fields"
+                          initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, height: 'auto', scale: 1, transitionEnd: { overflow: 'visible' } }}
+                          exit={{ opacity: 0, height: 0, scale: 0.95, overflow: 'hidden' }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <Stack spacing={2.5} sx={{ pb: 2.5 }}>
+                            <SleekInput
+                              placeholder="Full Name"
+                              icon={User}
+                              required
+                              value={formData.name}
+                              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            />
+
+                            <SleekBranchSelector
+                              value={formData.branch}
+                              onChange={(val) => setFormData({ ...formData, branch: val })}
+                              options={branches}
+                            />
+                          </Stack>
+                        </Box>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Common Email Field */}
+                    <SleekInput
+                      placeholder="Email Address"
+                      icon={Mail}
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+
+                    {/* Common Password Field */}
+                    <SleekInput
+                      placeholder="Password"
+                      icon={Lock}
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      endAdornment={
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small" sx={{ p: 0.25, color: 'var(--text-secondary)' }}>
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </IconButton>
+                      }
+                    />
+
+                    {/* Forgot Password link when in Sign In mode */}
+                    {!isSignUp && (
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -1 }}>
+                        <Typography 
+                          onClick={() => { setIsForgotPassword(true); setError(''); setResetSuccess(''); }}
+                          variant="caption" 
+                          sx={{ 
+                            color: 'var(--system-blue)', 
+                            fontWeight: 700, 
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            '&:hover': { textDecoration: 'underline' } 
+                          }}
+                        >
+                          Forgot password?
+                        </Typography>
                       </Box>
                     )}
-                  </AnimatePresence>
 
-                  {/* Common Email Field */}
-                  <SleekInput
-                    placeholder="Email Address"
-                    icon={Mail}
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
+                    {/* Submit Button */}
+                    <SleekButton type="submit" loading={loading}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight size={18} strokeWidth={2.5} />
+                      </Box>
+                    </SleekButton>
 
-                  {/* Common Password Field */}
-                  <SleekInput
-                    placeholder="Password"
-                    icon={Lock}
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    endAdornment={
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small" sx={{ p: 0.25, color: 'var(--text-secondary)' }}>
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </IconButton>
-                    }
-                  />
-
-                  {/* Submit Button */}
-                  <SleekButton type="submit" loading={loading}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight size={18} strokeWidth={2.5} />
-                    </Box>
-                  </SleekButton>
-
-                </Stack>
-              </form>
+                  </Stack>
+                </form>
+              )}
 
               {/* Secure Authentication Details & Legal Links */}
               <Box sx={{ 

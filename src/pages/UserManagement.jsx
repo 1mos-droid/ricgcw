@@ -96,7 +96,7 @@ const UserManagement = () => {
     
     showConfirmation({
       title: "Revoke Access",
-      message: `Permanently remove access for ${selectedUser.name}? This will only remove the user record from the system registry, not their Appwrite account.`,
+      message: `Permanently remove access for ${selectedUser.name}? This will only remove the user record from the system registry, not their authentication account.`,
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, "users", selectedUser.id));
@@ -135,6 +135,7 @@ const UserManagement = () => {
   const filteredUsers = users.filter(u => 
     (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.firebaseUid || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (u.appwriteId || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -191,7 +192,7 @@ const UserManagement = () => {
         ) : (
             filteredUsers.map((user) => {
                 const roleColor = getRoleColor(user.role);
-                const isLinked = !!user.appwriteId;
+                const isLinked = !!(user.firebaseUid || user.appwriteId);
                 const isVerified = user.verified === true;
                 const hasActivity = user.lastActive && user.lastActive !== 'Never';
                 
@@ -222,7 +223,7 @@ const UserManagement = () => {
                                             boxShadow: theme.shadows[2]
                                         }}>
                                             {isVerified ? (
-                                                <Tooltip title="Email Verified in Appwrite"><CheckCircle2 size={18} color={theme.palette.success.main} fill={alpha(theme.palette.success.main, 0.1)} /></Tooltip>
+                                                <Tooltip title="Email Verified"><CheckCircle2 size={18} color={theme.palette.success.main} fill={alpha(theme.palette.success.main, 0.1)} /></Tooltip>
                                             ) : (
                                                 <Tooltip title="Email Not Verified"><XCircle size={18} color={theme.palette.error.main} fill={alpha(theme.palette.error.main, 0.1)} /></Tooltip>
                                             )}
@@ -234,7 +235,7 @@ const UserManagement = () => {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             boxShadow: theme.shadows[2]
                                         }}>
-                                            <Tooltip title="Awaiting first-time login to sync Appwrite data">
+                                            <Tooltip title="Awaiting first login to sync authentication data">
                                                 <RefreshCw size={18} color={theme.palette.warning.main} />
                                             </Tooltip>
                                         </Box>
@@ -249,9 +250,9 @@ const UserManagement = () => {
                                 <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.8rem' }}>
                                     <Mail size={14} /> {user.email}
                                 </Typography>
-                                <Tooltip title={isLinked ? "Appwrite Unique ID" : "This user exists in the registry but needs to log in once to link their Appwrite ID."}>
+                                <Tooltip title={isLinked ? (user.firebaseUid ? "Firebase Auth UID" : "Legacy Appwrite ID") : "This user exists in the registry but needs to log in once to link their account."}>
                                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.8rem', opacity: isLinked ? 0.7 : 0.4, cursor: 'help' }}>
-                                        <Fingerprint size={14} /> {user.appwriteId || (hasActivity ? 'Sync Pending' : 'Account Connection Needed')}
+                                        <Fingerprint size={14} /> {user.firebaseUid || user.appwriteId || (hasActivity ? 'Sync Pending' : 'Account Connection Needed')}
                                     </Typography>
                                 </Tooltip>
                             </Stack>
@@ -266,7 +267,7 @@ const UserManagement = () => {
 
                                 {isLinked && user.labels && user.labels.length > 0 && (
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <Typography variant="caption" fontWeight={800} color="text.secondary">APPWRITE LABELS</Typography>
+                                        <Typography variant="caption" fontWeight={800} color="text.secondary">SYSTEM LABELS</Typography>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'flex-end', maxWidth: '70%' }}>
                                             {user.labels.map(label => (
                                                 <Chip key={label} label={label} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700 }} />

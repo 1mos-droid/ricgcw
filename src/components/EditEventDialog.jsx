@@ -20,6 +20,7 @@ import {
 import { X, Edit, Calendar, Clock, MapPin, Type, Upload, Image as ImageIcon } from 'lucide-react';
 import { safeParseDate } from '../utils/dateUtils';
 import { uploadToHuggingFace } from '../utils/huggingFaceApi';
+import { isImageFile, compressImage } from '../utils/imageCompressor';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -37,6 +38,8 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
   });
 
   const [flierFile, setFlierFile] = useState(null);
+  const [flierPreview, setFlierPreview] = useState(null);
+  const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -55,6 +58,18 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
     }
   }, [event, open]);
 
+  useEffect(() => {
+    if (!flierFile) {
+      setFlierPreview(formData.flierUrl || null);
+      return;
+    }
+    const url = URL.createObjectURL(flierFile);
+    setFlierPreview(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [flierFile, formData.flierUrl]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (errors[e.target.name]) {
@@ -62,10 +77,19 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setFlierFile(file);
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file && isImageFile(file)) {
+      try {
+        setCompressing(true);
+        const compressed = await compressImage(file);
+        setFlierFile(compressed);
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        setFlierFile(file);
+      } finally {
+        setCompressing(false);
+      }
     }
   };
 
@@ -81,7 +105,7 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
     if (validate()) {
       setSubmitting(true);
       // 1. Local preview for instant feedback
-      const localFlierPreview = flierFile ? URL.createObjectURL(flierFile) : null;
+      const localFlierPreview = flierPreview;
 
       try {
         let flierUrl = formData.flierUrl;
@@ -257,10 +281,15 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
                       bgcolor: alpha(theme.palette.primary.main, 0.05)
                     }
                   }}>
-                    {flierFile || formData.flierUrl ? (
+                    {compressing ? (
+                      <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
+                        <CircularProgress size={18} color="primary" />
+                        <Typography variant="caption" fontWeight={700} color="primary">Optimizing image for upload...</Typography>
+                      </Stack>
+                    ) : flierFile || formData.flierUrl ? (
                       <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
                         <Avatar 
-                          src={flierFile ? URL.createObjectURL(flierFile) : formData.flierUrl} 
+                          src={flierPreview} 
                           variant="rounded" 
                           imgProps={{ crossOrigin: 'anonymous' }}
                           sx={{ width: 40, height: 40, borderRadius: 1.5 }} 
@@ -301,10 +330,10 @@ const EditEventDialog = ({ open, onClose, onEditEvent, event }) => {
         <Button 
           onClick={handleSubmit} 
           variant="contained"
-          disabled={!formData.name || !formData.date || submitting}
+          disabled={!formData.name || !formData.date || submitting || compressing}
           sx={{ borderRadius: 1.5, fontWeight: 800, px: 4, py: 1.2, boxShadow: theme.shadows[4], minWidth: 150, width: { xs: '100%', sm: 'auto' } }}
         >
-          {submitting ? <CircularProgress size={24} color="inherit" /> : 'Update Calendar'}
+          {submitting ? <CircularProgress size={24} color="inherit" /> : compressing ? 'Optimizing...' : 'Update Calendar'}
         </Button>
       </DialogActions>
     </Dialog>
