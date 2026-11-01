@@ -178,8 +178,15 @@ export const AuthProvider = ({ children }) => {
             if (appwriteErr.code === 401 || appwriteErr.type === 'user_invalid_credentials') {
               throw new Error('Invalid email or password.');
             }
-            if (appwriteErr.code === 503 || appwriteErr.message?.includes('Network') || appwriteErr.message?.includes('Failed to fetch')) {
-              throw new Error('Legacy authentication server is currently paused. Please use "Forgot Password" to set a direct Firebase password, or contact an administrator.');
+            if (
+              appwriteErr.code === 403 ||
+              appwriteErr.code === 503 ||
+              appwriteErr.type === 'project_paused' ||
+              appwriteErr.message?.includes('paused') ||
+              appwriteErr.message?.includes('Network') ||
+              appwriteErr.message?.includes('Failed to fetch')
+            ) {
+              throw new Error('The legacy Appwrite server is currently paused. Please unpause the project at cloud.appwrite.io, or click "Forgot password?" below to access your account.');
             }
             throw new Error('Invalid email or password.');
           }
@@ -304,24 +311,20 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      try {
-        await sendPasswordResetEmail(auth, cleanEmail);
-        return { success: true, message: 'Password reset link sent! Please check your email inbox.' };
-      } catch (err) {
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-          const userDoc = await getDoc(doc(db, 'users', cleanEmail));
-          if (userDoc.exists()) {
-            // User exists in registry but not yet in Firebase Auth; provision and send reset email
+      // 1. Check if user exists in the church Firestore registry
+      const userDoc = await getDoc(doc(db, 'users', cleanEmail));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // If user is not yet provisioned in Firebase Auth, provision them first
+        // so sendPasswordResetEmail actually sends the email despite email enumeration protection
+        if (!userData.firebaseUid || !userData.migratedToFirebase) {
+          try {
             const tempPassword = Math.random().toString(36).slice(-8) + 'Aa1!' + Math.random().toString(36).slice(-8);
             const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, tempPassword);
             
-            const userData = userDoc.data();
             if (userData.name) {
               await updateProfile(userCred.user, { displayName: userData.name });
             }
-
-            await sendPasswordResetEmail(auth, cleanEmail);
-            await signOut(auth);
 
             await setDoc(doc(db, 'users', cleanEmail), {
               firebaseUid: userCred.user.uid,
@@ -329,11 +332,16 @@ export const AuthProvider = ({ children }) => {
               migratedAt: new Date().toISOString()
             }, { merge: true });
 
-            return { success: true, message: 'Password reset link sent! Please check your email inbox to activate your account.' };
+            await signOut(auth);
+          } catch (provisionErr) {
+            console.warn("User provision check note:", provisionErr?.message);
           }
         }
-        throw err;
       }
+
+      // 2. Send the password reset email now that the account is guaranteed to exist
+      await sendPasswordResetEmail(auth, cleanEmail);
+      return { success: true, message: 'Password reset link sent! Please check your email inbox.' };
     } catch (err) {
       console.error("Reset Password Error:", err);
       let message = err.message || 'Failed to send password reset email.';

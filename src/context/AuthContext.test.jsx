@@ -265,14 +265,9 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
   });
 
   it('provisions unmigrated user in Firebase and sends password reset link', async () => {
-    // 1. Firebase Auth says user not found
-    const notFoundError = new Error('User not found');
-    notFoundError.code = 'auth/user-not-found';
-    mockSendPasswordResetEmail
-      .mockRejectedValueOnce(notFoundError)
-      .mockResolvedValueOnce(); // second call after provisioning succeeds
+    mockSendPasswordResetEmail.mockResolvedValueOnce();
 
-    // 2. User exists in Firestore registry
+    // User exists in Firestore registry
     mockGetDoc.mockResolvedValueOnce({
       exists: () => true,
       data: () => ({
@@ -305,7 +300,7 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
 
     expect(res.success).toBe(true);
     expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalled();
-    expect(mockSendPasswordResetEmail).toHaveBeenCalledTimes(2);
+    expect(mockSendPasswordResetEmail).toHaveBeenCalledTimes(1);
     expect(mockSignOut).toHaveBeenCalled();
   });
 
