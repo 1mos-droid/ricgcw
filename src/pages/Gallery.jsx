@@ -164,7 +164,7 @@ const Gallery = () => {
         mb: 6, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: '12px',
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
@@ -250,7 +250,7 @@ const Gallery = () => {
           ))}
         </Grid>
       ) : filteredImages.length === 0 ? (
-        <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 8 }}>
+        <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: '12px' }}>
           <ImageIcon size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />
           <Typography variant="h6" fontWeight={800} color="text.secondary">No images yet</Typography>
           <Typography variant="body2" color="text.secondary">Be the first to share a moment!</Typography>

@@ -20,11 +20,9 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import UserAvatar from '../atoms/UserAvatar';
 
 const DOMAIN_GROUPS = {
-  'Administration': ['Dashboard', 'Members', 'Users', 'Quick Switch', 'Developer'],
-  'Ministry': ['Attendance', 'Events', 'Bible Studies', 'Live Bible', 'Gallery'],
-  'Finance': ['Financials', 'Graph'],
-  'Engagement': ['Reports', 'Help'],
-  'Configuration': ['Settings']
+  'Core Operations': ['Dashboard', 'Members', 'Attendance', 'Financials'],
+  'Ministry & Media': ['Events', 'Bible Studies', 'Live Bible', 'Gallery'],
+  'Insights & Admin': ['Reports', 'Graph', 'Users', 'Quick Switch', 'Settings', 'Help', 'Developer']
 };
 
 const SidebarNav = ({ 
@@ -37,11 +35,9 @@ const SidebarNav = ({
   const location = useLocation();
 
   const [openDomains, setOpenDomains] = useState({
-    'Administration': true,
-    'Ministry': true,
-    'Finance': true,
-    'Engagement': true,
-    'Configuration': true,
+    'Core Operations': true,
+    'Ministry & Media': true,
+    'Insights & Admin': true,
   });
 
   const toggleDomain = (domain) => {
@@ -54,11 +50,9 @@ const SidebarNav = ({
   // Group the provided navItems into their respective domains
   const groupedNavs = React.useMemo(() => {
     const groups = {
-      'Administration': [],
-      'Ministry': [],
-      'Finance': [],
-      'Engagement': [],
-      'Configuration': []
+      'Core Operations': [],
+      'Ministry & Media': [],
+      'Insights & Admin': []
     };
 
     navItems.forEach(item => {
@@ -71,9 +65,9 @@ const SidebarNav = ({
           break;
         }
       }
-      // Fallback to Administration if not matched
+      // Fallback to Core Operations if not matched
       if (!foundGroup) {
-        groups['Administration'].push(item);
+        groups['Core Operations'].push(item);
       }
     });
 
@@ -146,14 +140,17 @@ const SidebarNav = ({
                         to={item.path} 
                         selected={isActive}
                         sx={{
-                          py: 0.9,
+                          height: 40,
+                          py: 0,
                           px: 1.5,
                           borderRadius: '8px',
-                          transition: 'background-color 0.15s ease, color 0.15s ease',
+                          borderLeft: isActive ? '3px solid var(--system-blue)' : '3px solid transparent',
+                          transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                           '&.Mui-selected': {
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
                             color: theme.palette.primary.main,
                             boxShadow: 'none',
+                            borderLeft: '3px solid var(--system-blue)',
                             '& .MuiListItemIcon-root': { color: theme.palette.primary.main },
                             '&:hover': {
                               bgcolor: alpha(theme.palette.primary.main, 0.12),
@@ -166,7 +163,7 @@ const SidebarNav = ({
                         }}
                       >
                         <ListItemIcon sx={{ minWidth: 32, color: isActive ? theme.palette.primary.main : 'text.secondary' }}>
-                          {React.cloneElement(item.icon, { sx: { fontSize: 18 } })}
+                          {React.cloneElement(item.icon, { sx: { fontSize: 20 } })}
                         </ListItemIcon>
                         <ListItemText 
                           primary={item.text} 

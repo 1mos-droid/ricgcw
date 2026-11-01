@@ -10,6 +10,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
   border: 1px solid var(--border-color) !important;
   background: var(--bg-paper) !important;
   box-shadow: var(--neo-shadow-out) !important;
@@ -43,7 +45,8 @@
 
 /* 2. Custom Cards for Operations Status */
 .operations-status-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }

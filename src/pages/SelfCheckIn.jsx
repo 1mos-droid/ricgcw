@@ -169,7 +169,7 @@ const SelfCheckIn = () => {
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <Box sx={{ 
             p: 6, 
-            borderRadius: 8, 
+            borderRadius: '16px', 
             bgcolor: alpha(theme.palette.success.main, 0.05),
             border: `2px solid ${alpha(theme.palette.success.main, 0.1)}`,
             mb: 4

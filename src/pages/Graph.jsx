@@ -130,7 +130,7 @@ const Graph = () => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} unit="%" />
-                                <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: theme.shadows[8] }} />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: theme.shadows[8] }} />
                                 <Area type="monotone" dataKey="attendance" stroke={theme.palette.primary.main} strokeWidth={4} fillOpacity={1} fill="url(#colorAtt)" />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -159,7 +159,7 @@ const Graph = () => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600 }} />
-                                <Tooltip cursor={{ fill: alpha(theme.palette.primary.main, 0.05) }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: theme.shadows[8] }} />
+                                <Tooltip cursor={{ fill: alpha(theme.palette.primary.main, 0.05) }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: theme.shadows[8] }} />
                                 <Bar dataKey="income" radius={[4, 4, 0, 0]} barSize={30}>
                                     {chartData.map((entry, index) => (
                                         <Cell key={index} fill={COLORS[index % COLORS.length]} />

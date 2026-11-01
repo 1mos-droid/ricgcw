@@ -89,7 +89,7 @@ const ErrorFallback = ({ onReset, onHome }) => {
             elevation={0}
             sx={{ 
               p: { xs: 4, md: 6 }, 
-              borderRadius: 8, 
+              borderRadius: '16px', 
               textAlign: 'center',
               border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
               boxShadow: `0 32px 64px -12px ${alpha(theme.palette.primary.main, 0.15)}`,

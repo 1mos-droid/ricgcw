@@ -643,7 +643,8 @@ const Login = () => {
       {/* 1. Left Panel - Hero Showcase (hidden on mobile) */}
       <Box sx={{
         display: { xs: 'none', md: 'flex' },
-        width: '42%',
+        width: { md: '50%', lg: '45%' },
+        flexShrink: 0,
         position: 'relative',
         background: 'linear-gradient(135deg, #09090E 0%, #151522 100%)',
         flexDirection: 'column',
@@ -711,38 +712,40 @@ const Login = () => {
         <ThemeToggle />
 
         {/* Dynamic Glow Circles (Floating behind glass) */}
-        <Box sx={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
-          <motion.div
+        <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
+          <Box
+            component={motion.div}
             animate={{ 
               x: [0, 45, 0],
               y: [0, -35, 0],
               scale: [1, 1.12, 1],
             }}
             transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-            style={{
+            sx={{
               position: 'absolute',
               top: '12%',
               right: '8%',
-              width: '420px',
-              height: '420px',
+              width: { xs: '200px', md: '420px' },
+              height: { xs: '200px', md: '420px' },
               borderRadius: '50%',
               background: 'radial-gradient(circle, rgba(0, 122, 255, 0.08) 0%, transparent 70%)',
               filter: 'blur(75px)',
             }}
           />
-          <motion.div
+          <Box
+            component={motion.div}
             animate={{ 
               x: [0, -45, 0],
               y: [0, 35, 0],
               scale: [1, 1.08, 1],
             }}
             transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-            style={{
+            sx={{
               position: 'absolute',
               bottom: '12%',
               left: '8%',
-              width: '480px',
-              height: '480px',
+              width: { xs: '220px', md: '480px' },
+              height: { xs: '220px', md: '480px' },
               borderRadius: '50%',
               background: 'radial-gradient(circle, rgba(88, 86, 214, 0.06) 0%, transparent 70%)',
               filter: 'blur(75px)',
@@ -809,7 +812,7 @@ const Login = () => {
                   Rhema Inner Court Gospel Church
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  {isForgotPassword ? 'Password Recovery & Activation Portal' : (isSignUp ? 'Ministry Registration Portal' : 'Official Administrator Access')}
+                  {isForgotPassword ? 'Password Recovery & Activation Portal' : (isSignUp ? 'Member & Worker Account Request' : 'Ministry & Leadership Portal')}
                 </Typography>
               </Box>
 
@@ -1075,6 +1078,13 @@ const Login = () => {
                     Terms of Service
                   </Link>
                 </Stack>
+
+                {/* Mobile Scripture Subtitle */}
+                <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 2, textAlign: 'center' }}>
+                  <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem' }}>
+                    &ldquo;Enter into His gates with thanksgiving, and into His courts with praise.&rdquo; &mdash; Psalm 100:4
+                  </Typography>
+                </Box>
               </Box>
 
             </Box>

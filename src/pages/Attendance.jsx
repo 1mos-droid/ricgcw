@@ -79,6 +79,7 @@ const Attendance = () => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedAttendees, setSelectedAttendees] = useState(new Set());
   const [selectedBranch, setSelectedBranch] = useState(isBranchRestricted ? userBranch : '');
+  const [rosterSearch, setRosterSearch] = useState('');
   
   const [selectedRecord, setSelectedRecord] = useState(null); 
   const [reportTab, setReportTab] = useState(0); 
@@ -97,10 +98,26 @@ const Attendance = () => {
   const filteredMembers = useMemo(() => filterData(members), [members, filterData]);
   const displayedMembers = useMemo(() => {
     return filteredMembers.filter(m => {
-      if (!selectedBranch) return true;
-      return String(m.branch || '').toLowerCase() === String(selectedBranch).toLowerCase();
+      if (selectedBranch && String(m.branch || '').toLowerCase() !== String(selectedBranch).toLowerCase()) {
+        return false;
+      }
+      if (rosterSearch.trim()) {
+        const query = rosterSearch.trim().toLowerCase();
+        const name = String(m.name || '').toLowerCase();
+        const memberId = String(m.memberId || '').toLowerCase();
+        return name.includes(query) || memberId.includes(query);
+      }
+      return true;
     });
-  }, [filteredMembers, selectedBranch]);
+  }, [filteredMembers, selectedBranch, rosterSearch]);
+
+  const handleSelectAll = () => {
+    setSelectedAttendees(new Set(displayedMembers.map(m => m.id)));
+  };
+
+  const handleClearAll = () => {
+    setSelectedAttendees(new Set());
+  };
 
   const filteredRecords = useMemo(() => {
     let records = filterData(attendanceRecords);
@@ -395,7 +412,7 @@ const Attendance = () => {
         mb: 6, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: '12px',
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
@@ -439,53 +456,53 @@ const Attendance = () => {
           </Box>
       </Card>
 
-      {/* --- COMMAND BAR --- */}
+      {/* --- SERVICE CHECK-IN HEADER BAR --- */}
       <Paper 
         elevation={0} 
         sx={{ 
-          p: 2, 
-          borderRadius: 6, 
-          mb: 5, 
-          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+          p: { xs: 1.5, sm: 2 }, 
+          borderRadius: '12px', 
+          mb: 4, 
+          border: '1px solid var(--border-color)', 
           bgcolor: alpha(theme.palette.background.paper, 0.8), 
           backdropFilter: 'blur(20px)',
           position: 'sticky',
           top: 20,
           zIndex: 10,
-          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
+          boxShadow: 'var(--neo-shadow-out)'
         }}
         className="no-print"
       >
-        <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, md: 3 }}>
+        <Grid container spacing={1.5} alignItems="center">
+          <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
             <Box sx={{ position: 'relative' }}>
                 <input 
                     type="date" 
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     style={{ 
-                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`, 
-                        borderRadius: 16,
-                        padding: '0 16px',
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: '8px',
+                        padding: '0 12px',
                         fontFamily: 'inherit', 
-                        fontWeight: 700,
+                        fontWeight: 600,
                         width: '100%',
-                        height: 56,
-                        fontSize: '0.9rem',
+                        height: 44,
+                        fontSize: '0.85rem',
                         backgroundColor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
-                        color: theme.palette.text.primary,
+                        color: 'var(--text-primary)',
                         outline: 'none'
                     }}
                 />
             </Box>
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth size="medium" disabled={isBranchRestricted}>
+            <FormControl fullWidth size="small" disabled={isBranchRestricted}>
                 <Select 
                     value={selectedBranch} 
                     onChange={(e) => setSelectedBranch(e.target.value)} 
                     displayEmpty
-                    sx={{ borderRadius: 4, height: 56, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
+                    sx={{ borderRadius: '8px', height: 44, fontSize: '0.85rem', fontWeight: 600, bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) }}
                 >
                     <MenuItem value="">All Branches</MenuItem>
                     <MenuItem value="Langma">Langma</MenuItem>
@@ -495,82 +512,121 @@ const Attendance = () => {
                 </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, sm: 12, md: 7 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
-              <Tooltip title="Self Check-in QR">
-                  <Button 
-                      onClick={() => setServiceQrOpen(true)}
-                      variant="outlined"
-                      sx={{ 
-                          borderRadius: 4,
-                          height: 56,
-                          px: { xs: 2, lg: 3 },
-                          fontWeight: 800,
-                          borderColor: alpha(theme.palette.secondary.main, 0.2),
-                          color: theme.palette.secondary.main,
-                          '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05), borderColor: theme.palette.secondary.main },
-                          flexGrow: { xs: 1, sm: 0 }
-                      }}
-                  >
-                      <QrCode size={22} />
-                      <Typography variant="button" sx={{ display: { xs: 'none', lg: 'inline' }, ml: 1 }}>Check-in QR</Typography>
-                  </Button>
-              </Tooltip>
-
+          <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+            <input 
+              type="text"
+              placeholder="Search roster..."
+              value={rosterSearch}
+              onChange={(e) => setRosterSearch(e.target.value)}
+              style={{
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '0 12px',
+                fontFamily: 'inherit',
+                fontWeight: 600,
+                width: '100%',
+                height: 44,
+                fontSize: '0.85rem',
+                backgroundColor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
+                color: 'var(--text-primary)',
+                outline: 'none'
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 5 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              size="small"
+              onClick={handleSelectAll}
+              disabled={displayedMembers.length === 0}
+              variant="outlined"
+              sx={{ height: 38, borderRadius: '8px', textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', px: 1.5, borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            >
+              Select All
+            </Button>
+            <Button
+              size="small"
+              onClick={handleClearAll}
+              disabled={selectedAttendees.size === 0}
+              variant="outlined"
+              sx={{ height: 38, borderRadius: '8px', textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', px: 1.5, borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            >
+              Clear
+            </Button>
+            <Tooltip title="Self Check-in QR">
               <Button 
-                  onClick={() => setScannerMode(!scannerMode)} 
-                  variant={scannerMode ? "contained" : "outlined"}
-                  color={scannerMode ? "primary" : "inherit"}
-                  sx={{ 
-                      borderRadius: 4,
-                      height: 56,
-                      px: { xs: 2, lg: 3 },
-                      fontWeight: 800,
-                      boxShadow: scannerMode ? `0 8px 16px -4px ${alpha(theme.palette.primary.main, 0.4)}` : 'none',
-                      flexGrow: { xs: 1, sm: 0 }
-                  }}
+                onClick={() => setServiceQrOpen(true)}
+                variant="outlined"
+                size="small"
+                sx={{ 
+                  borderRadius: '8px',
+                  height: 38,
+                  px: 1.5,
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  textTransform: 'none',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--system-purple)',
+                }}
               >
-                  {scannerMode ? <X size={22} /> : <Camera size={22} />}
-                  <Typography variant="button" sx={{ display: { xs: 'none', lg: 'inline' }, ml: 1 }}>{scannerMode ? "Close Scanner" : "Scan QR"}</Typography>
+                <QrCode size={18} />
+                <Typography variant="button" sx={{ display: { xs: 'none', xl: 'inline' }, ml: 0.5, fontSize: '0.8rem' }}>Check-in QR</Typography>
               </Button>
+            </Tooltip>
 
-              <Button 
-                  variant="contained" 
-                  onClick={handleSave} 
-                  disabled={submitting || selectedAttendees.size === 0}
-                  startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <CheckCircle size={22} />}
-                  sx={{ 
-                      borderRadius: 4,
-                      height: 56,
-                      px: { xs: 2, lg: 4 },
-                      fontWeight: 800,
-                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
-                      '&:hover': { 
-                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
-                          transform: 'translateY(-2px)'
-                      },
-                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      flexGrow: { xs: 2, sm: 0 }
-                  }}
-              >
-                  <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>
-                      Submit Record ({selectedAttendees.size})
-                  </Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', lg: 'none' } }}>
-                      Submit ({selectedAttendees.size})
-                  </Box>
-              </Button>
+            <Button 
+              onClick={() => setScannerMode(!scannerMode)} 
+              variant={scannerMode ? "contained" : "outlined"}
+              color={scannerMode ? "primary" : "inherit"}
+              size="small"
+              sx={{ 
+                borderRadius: '8px',
+                height: 38,
+                px: 1.5,
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                textTransform: 'none',
+                borderColor: 'var(--border-color)',
+              }}
+            >
+              {scannerMode ? <X size={18} /> : <Camera size={18} />}
+              <Typography variant="button" sx={{ display: { xs: 'none', xl: 'inline' }, ml: 0.5, fontSize: '0.8rem' }}>{scannerMode ? "Close" : "Scan"}</Typography>
+            </Button>
+
+            <Button 
+              variant="contained" 
+              onClick={handleSave} 
+              disabled={submitting || selectedAttendees.size === 0}
+              size="small"
+              startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <CheckCircle size={18} />}
+              sx={{ 
+                borderRadius: '8px',
+                height: 38,
+                px: 2,
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                textTransform: 'none',
+                bgcolor: 'var(--system-blue)',
+              }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                Submit Record ({selectedAttendees.size})
+              </Box>
+              <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                Submit ({selectedAttendees.size})
+              </Box>
+            </Button>
           </Grid>
         </Grid>
       </Paper>
 
       {/* --- CONTENT GRID --- */}
-      <Grid container spacing={4} className="no-print">
+      <Grid container spacing={3} className="no-print">
         
         {/* --- LEFT COL: MARK ATTENDANCE --- */}
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', boxShadow: theme.shadows[4], border: `1px solid ${theme.palette.divider}` }}>
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', boxShadow: 'var(--neo-shadow-out)', border: '1px solid var(--border-color)' }}>
             {/* Header / Title */}
-            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.background.default, 0.5), display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ p: 2.5, borderBottom: '1px solid var(--border-color)', bgcolor: alpha(theme.palette.background.default, 0.5), display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main, width: 44, height: 44, borderRadius: 3 }}>
                     <Users size={22} />
                 </Avatar>
@@ -679,8 +735,8 @@ const Attendance = () => {
         </Grid>
 
         {/* --- RIGHT COL: HISTORY LOG --- */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: 6, maxHeight: '800px', overflow: 'hidden', boxShadow: theme.shadows[3], border: `1px solid ${theme.palette.divider}` }}>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Card sx={{ height: 'auto', display: 'flex', flexDirection: 'column', borderRadius: '12px', maxHeight: '800px', overflow: 'hidden', boxShadow: 'var(--neo-shadow-out)', border: '1px solid var(--border-color)' }}>
             <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 2, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
               <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, width: 44, height: 44, borderRadius: 3 }}><History size={22} /></Avatar>
               <Box>

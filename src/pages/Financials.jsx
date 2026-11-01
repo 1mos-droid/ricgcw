@@ -89,17 +89,16 @@ const StatCard = ({ title, value, subValue, icon: Icon, color, delay }) => { // 
     >
       <Card sx={{ 
         p: 3, 
-        borderRadius: 8, 
+        borderRadius: '12px', 
         height: '100%',
         display: 'flex', 
         flexDirection: 'column',
         justifyContent: 'space-between',
-        border: `1px solid ${alpha(color, 0.1)}`,
-        boxShadow: `0 4px 20px -5px ${alpha(color, 0.15)}`,
-        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.4)} 100%)`,
-        backdropFilter: 'blur(10px)',
+        border: '1px solid var(--border-color)',
+        boxShadow: 'var(--neo-shadow-out)',
+        background: 'var(--bg-paper)',
         transition: 'transform 0.2s',
-        '&:hover': { transform: 'translateY(-4px)' }
+        '&:hover': { transform: 'translateY(-2px)' }
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
@@ -107,7 +106,7 @@ const StatCard = ({ title, value, subValue, icon: Icon, color, delay }) => { // 
             <Typography variant="h4" component="h3" fontWeight={800} sx={{ my: 1, color: theme.palette.text.primary }}>{value}</Typography>
           </Box>
           <Box sx={{ 
-            p: 1.5, borderRadius: 6, 
+            p: 1.5, borderRadius: '8px', 
             bgcolor: alpha(color, 0.1), color: color 
           }}>
             <Icon size={24} />
@@ -388,7 +387,7 @@ const Financials = () => {
         mb: 4, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: '12px',
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
@@ -410,16 +409,16 @@ const Financials = () => {
       <Paper 
         elevation={0} 
         sx={{ 
-          p: 2, 
-          borderRadius: 6, 
-          mb: 5, 
-          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+          p: { xs: 1.5, sm: 2 }, 
+          borderRadius: '12px', 
+          mb: 4, 
+          border: '1px solid var(--border-color)', 
           bgcolor: alpha(theme.palette.background.paper, 0.8), 
           backdropFilter: 'blur(20px)',
           position: 'sticky',
           top: 20,
           zIndex: 10,
-          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
+          boxShadow: 'var(--neo-shadow-out)'
         }}
       >
         <Grid container spacing={2} alignItems="center">
@@ -538,7 +537,7 @@ const Financials = () => {
         
         {/* CHART (Full width on small, 2/3 on large) */}
         <Grid size={{ xs: 12, lg: 8 }}>
-            <Card sx={{ p: 3, borderRadius: 8, height: 400, mb: { xs: 4, lg: 0 }, boxShadow: theme.shadows[4] }}>
+            <Card sx={{ p: 3, borderRadius: '12px', height: 400, mb: { xs: 4, lg: 0 }, boxShadow: 'var(--neo-shadow-out)', border: '1px solid var(--border-color)', bgcolor: 'var(--bg-paper)' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
                     <Typography variant="h6" fontWeight={800}>Cash Flow Analysis</Typography>
                     <Chip label="Real-time" size="small" color="success" variant="outlined" sx={{ fontWeight: 700 }} />
@@ -557,7 +556,7 @@ const Financials = () => {
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} dy={10} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
                         <RechartsTooltip 
-                            contentStyle={{ borderRadius: 8, border: 'none', boxShadow: theme.shadows[8], backgroundColor: theme.palette.background.paper }}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: theme.shadows[8], backgroundColor: theme.palette.background.paper }}
                             itemStyle={{ fontWeight: 700, color: theme.palette.text.primary }}
                         />
                         <Area type="monotone" dataKey="amt" stroke={theme.palette.primary.main} strokeWidth={3} fillOpacity={1} fill="url(#colorFlow)" />
@@ -570,7 +569,7 @@ const Financials = () => {
 
         {/* RECENT TRANSACTIONS (1/3 on large) */}
         <Grid size={{ xs: 12, lg: 4 }}>
-            <Card sx={{ height: '100%', minHeight: 400, borderRadius: 8, display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[4] }}>
+            <Card sx={{ height: '100%', minHeight: 400, borderRadius: '12px', display: 'flex', flexDirection: 'column', boxShadow: 'var(--neo-shadow-out)', border: '1px solid var(--border-color)', bgcolor: 'var(--bg-paper)' }}>
                 <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" fontWeight={800}>Activity</Typography>
                     <IconButton size="small"><Filter size={18} /></IconButton>
@@ -597,7 +596,7 @@ const Financials = () => {
                                             <Avatar sx={{ 
                                                 bgcolor: tx.type === 'contribution' ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
                                                 color: tx.type === 'contribution' ? theme.palette.success.main : theme.palette.error.main,
-                                                borderRadius: 6
+                                                borderRadius: '8px'
                                             }}>
                                                 {tx.type === 'contribution' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                                             </Avatar>
@@ -624,7 +623,7 @@ const Financials = () => {
 
         {/* DESKTOP LEDGER TABLE (Full Width) */}
         <Grid size={{ xs: 12 }}>
-            <Card sx={{ borderRadius: 8, overflow: 'hidden', boxShadow: theme.shadows[4] }}>
+            <Card sx={{ borderRadius: '12px', overflow: 'hidden', boxShadow: 'var(--neo-shadow-out)', border: '1px solid var(--border-color)', bgcolor: 'var(--bg-paper)' }}>
                 <Box sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" fontWeight={800}>Transaction Ledger</Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
@@ -633,8 +632,8 @@ const Financials = () => {
                         <Button size="small" variant={activeTab === 'expense' ? 'contained' : 'outlined'} onClick={() => setActiveTab('expense')} sx={{ borderRadius: 1 }}>Expenses</Button>
                     </Box>
                 </Box>
-                <TableContainer>
-                    <Table>
+                <TableContainer sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <Table sx={{ minWidth: 650 }}>
                         <TableHead>
                             <TableRow>
                                 {['Date', 'Description', 'Category', 'Location', 'Amount', 'Evidence', 'Actions'].map(h => (

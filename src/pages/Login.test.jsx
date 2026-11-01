@@ -95,7 +95,7 @@ describe('Login Page', () => {
     expect(screen.getByText(/Return to Sign In/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText(/Return to Sign In/i));
-    expect(screen.getByText(/Official Administrator Access/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ministry & Leadership Portal/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Password/i)).toBeInTheDocument();
   });
 

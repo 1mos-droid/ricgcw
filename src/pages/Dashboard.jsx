@@ -625,6 +625,113 @@ const Dashboard = () => {
         </Paper>
       </motion.div>
 
+      {/* 1.5 SUNDAY SERVICE QUICK ACTIONS BAR */}
+      <motion.div variants={itemVariants}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 1.5, sm: 2 },
+            mb: 3,
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            bgcolor: 'var(--bg-paper)',
+            boxShadow: 'var(--neo-shadow-out)',
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            justifyContent="space-between"
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Clock size={18} color="var(--system-blue)" />
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Sunday Service Quick Actions
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/attendance')}
+                sx={{
+                  height: 38,
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  textTransform: 'none',
+                  px: 2,
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  bgcolor: 'transparent',
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), borderColor: 'var(--system-blue)' },
+                }}
+              >
+                + Take Attendance
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/financials')}
+                sx={{
+                  height: 38,
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  textTransform: 'none',
+                  px: 2,
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  bgcolor: 'transparent',
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), borderColor: 'var(--system-blue)' },
+                }}
+              >
+                + Record Giving
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/members?action=new')}
+                sx={{
+                  height: 38,
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  textTransform: 'none',
+                  px: 2,
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  bgcolor: 'transparent',
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), borderColor: 'var(--system-blue)' },
+                }}
+              >
+                + Add Member / First-Timer
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/live-bible')}
+                sx={{
+                  height: 38,
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  textTransform: 'none',
+                  px: 2,
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  bgcolor: 'transparent',
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), borderColor: 'var(--system-blue)' },
+                }}
+              >
+                Live Bible
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+      </motion.div>
+
       {/* 2. TABBED CONTENT CHUNKING */}
       <Box sx={{ maxWidth: { xs: '100%', md: 540 }, mx: 'auto', mb: 5 }}>
         <CupertinoSlidingSegmentedControl
@@ -934,8 +1041,8 @@ const Dashboard = () => {
                     </Box>
                   </Box>
                   
-                  <Box sx={{ height: 350, width: '100%' }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                  <Box sx={{ width: '100%', minWidth: 0, height: 350 }}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <BarChart data={campusAnalytics} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
                         <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: theme.palette.text.secondary, fontSize: 12, fontWeight: 700 }} />

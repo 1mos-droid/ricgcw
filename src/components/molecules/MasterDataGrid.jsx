@@ -85,15 +85,15 @@ const MasterDataGrid = ({
     <Box sx={{ width: '100%' }}>
       <Paper sx={{ width: '100%', mb: 2, overflow: 'hidden', boxShadow: 'none' }}>
         {(title || actions) && (
-          <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+          <Box sx={{ p: { xs: 2, sm: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
               {title}
             </Typography>
-            <Box>{actions}</Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>{actions}</Box>
           </Box>
         )}
-        <TableContainer>
-          <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle" size="medium">
+        <TableContainer sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <Table sx={{ minWidth: 650 }} aria-labelledby="tableTitle" size="medium">
             <TableHead>
               <TableRow sx={{ backgroundColor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.01)' }}>
                 {selectable && (

@@ -63,7 +63,7 @@ const getDesignTokens = (mode) => {
       button: { textTransform: 'none', fontWeight: 600, fontSize: '0.9rem' },
     },
     shape: {
-      borderRadius: 8,
+      borderRadius: 12,
     },
     components: {
       MuiButton: {
@@ -76,17 +76,39 @@ const getDesignTokens = (mode) => {
         },
       },
       MuiCard: {
+        defaultProps: {
+          elevation: 0,
+        },
         styleOverrides: {
           root: {
+            backgroundImage: 'none',
             borderRadius: '12px',
+            border: '1px solid var(--border-color)',
           },
         },
       },
       MuiPaper: {
+        defaultProps: {
+          elevation: 0,
+        },
         styleOverrides: {
           root: {
+            backgroundImage: 'none',
             borderRadius: '12px',
+            border: '1px solid var(--border-color)',
           },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: ({ theme }) => ({
+            borderRadius: '16px',
+            [theme.breakpoints.down('sm')]: {
+              margin: 12,
+              width: 'calc(100% - 24px)',
+              maxWidth: '100%',
+            },
+          }),
         },
       },
       MuiCssBaseline: {

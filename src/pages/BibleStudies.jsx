@@ -182,7 +182,7 @@ const BibleStudies = () => {
         py: { xs: 4, md: 6 }, 
         mb: 6, 
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: '12px',
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`
            : `linear-gradient(135deg, ${theme.palette.background.paper} 0%, #0B1120 100%)`,
@@ -306,7 +306,7 @@ const BibleStudies = () => {
                             <Grid container spacing={3}>
                                 {filteredStudies.length === 0 ? (
                                     <Grid size={{ xs: 12 }}>
-                                        <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 8 }}>
+                                        <Box sx={{ py: 10, textAlign: 'center', bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: '12px' }}>
                                             <BookOpen size={64} color={theme.palette.text.disabled} style={{ marginBottom: 16, opacity: 0.5 }} />
                                             <Typography variant="h6" fontWeight={800} color="text.secondary">No study modules found</Typography>
                                             <Typography variant="body2" color="text.secondary">Try a different search term or check back later.</Typography>

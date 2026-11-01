@@ -46,7 +46,7 @@ const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'ope
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
-  borderRadius: 8,
+  borderRadius: '8px',
   background: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
   border: '1px solid var(--border-color)',
   transition: 'border-color 0.15s ease, background-color 0.15s ease',
@@ -167,10 +167,10 @@ const TopAppBar = ({
   return (
     <>
       <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" className="neo-glass-navbar" sx={{ top: 0, border: 'none', borderBottom: '1px solid var(--border-color)', boxShadow: 'none' }}>
-        <Toolbar sx={{ height: { xs: 64, md: 72 }, justifyContent: 'space-between' }}>
+        <Toolbar sx={{ height: { xs: 64, md: 72 }, justifyContent: 'space-between', gap: 1, minWidth: 0, px: { xs: 1.5, sm: 2, md: 3 } }}>
             
           {/* Logo/Title */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, minWidth: 0, flexShrink: 1 }}>
             {isMobile && (
               <Box
                 component="img"
@@ -179,17 +179,18 @@ const TopAppBar = ({
                 sx={{
                   width: 32,
                   height: 32,
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  flexShrink: 0
                 }}
               />
             )}
 
-            <Typography variant="h6" component="h1" fontWeight={700} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontSize: '1.1rem' }}>
+            <Typography variant="h6" component="h1" fontWeight={700} sx={{ display: { xs: 'none', md: 'block' }, mr: 1, fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
               {workspace === 'main' ? 'Sanctuary' : currentDepartment}
             </Typography>
             
             {isMobile && (
-              <Typography variant="h6" component="h1" fontWeight={700} sx={{ display: { xs: 'block', md: 'none' }, fontSize: '1.05rem' }}>
+              <Typography variant="h6" component="h1" fontWeight={700} sx={{ display: { xs: 'block', md: 'none' }, fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
                 RICGCW
               </Typography>
             )}
@@ -208,6 +209,7 @@ const TopAppBar = ({
                 fontWeight: 600,
                 fontSize: '0.7rem',
                 letterSpacing: '0.02em',
+                flexShrink: 0
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 12 }} />
@@ -216,7 +218,7 @@ const TopAppBar = ({
           </Box>
 
           {/* Search Trigger box */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, alignItems: 'center', minWidth: 0 }}>
             <Search onClick={() => setPaletteOpen(true)} sx={{ cursor: 'pointer' }}>
               <SearchIconWrapper>
                 <SearchIcon fontSize="small" />
@@ -229,10 +231,10 @@ const TopAppBar = ({
             </Search>
           </Box>
 
-          <Stack direction="row" spacing={isMobile ? 1 : 1.5} alignItems="center">
+          <Stack direction="row" spacing={isMobile ? 0.5 : 1.5} alignItems="center" sx={{ minWidth: 0, flexShrink: 0 }}>
             {/* Campus / Site Switcher for Admin & Developer */}
             {(userRole === 'admin' || userRole === 'developer') && (
-              <FormControl size="small" variant="outlined" sx={{ minWidth: { xs: 90, sm: 140 } }}>
+              <FormControl size="small" variant="outlined" sx={{ minWidth: { xs: 80, sm: 140 }, maxWidth: { xs: 110, sm: 180 } }}>
                 <InputLabel id="campus-select-label" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Select Campus</InputLabel>
                 <Select
                   labelId="campus-select-label"
@@ -243,13 +245,13 @@ const TopAppBar = ({
                   inputProps={{ 'aria-label': 'Select Campus' }}
                   sx={{
                     borderRadius: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                     bgcolor: 'transparent',
                     border: '1px solid var(--border-color)',
                     boxShadow: 'none',
                     '& fieldset': { border: 'none' },
-                    '.MuiSelect-select': { py: 0.8 }
+                    '.MuiSelect-select': { py: 0.8, px: { xs: 1, sm: 1.5 } }
                   }}
                 >
                   <MenuItem value="all">All Campuses</MenuItem>

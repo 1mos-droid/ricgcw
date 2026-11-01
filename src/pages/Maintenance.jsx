@@ -25,7 +25,7 @@ const Maintenance = () => {
           sx={{ 
             p: 6, 
             textAlign: 'center', 
-            borderRadius: 8, 
+            borderRadius: '16px', 
             border: `1px solid ${theme.palette.divider}`,
             backdropFilter: 'blur(10px)',
             bgcolor: alpha(theme.palette.background.paper, 0.8)

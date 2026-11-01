@@ -11,6 +11,7 @@ describe('SidebarNav Collapsible Tree Navigation', () => {
     { text: 'Members', icon: <span>M</span>, path: '/members' },
     { text: 'Attendance', icon: <span>A</span>, path: '/attendance' },
     { text: 'Financials', icon: <span>F</span>, path: '/financials' },
+    { text: 'Events', icon: <span>E</span>, path: '/events' },
     { text: 'Settings', icon: <span>S</span>, path: '/settings' },
   ];
 
@@ -33,24 +34,21 @@ describe('SidebarNav Collapsible Tree Navigation', () => {
 
   it('renders all functional grouping categories', () => {
     renderSidebar();
-    expect(screen.getByText('Administration')).toBeInTheDocument();
-    expect(screen.getByText('Ministry')).toBeInTheDocument();
-    expect(screen.getByText('Finance')).toBeInTheDocument();
-    expect(screen.getByText('Configuration')).toBeInTheDocument();
+    expect(screen.getByText('Core Operations')).toBeInTheDocument();
+    expect(screen.getByText('Ministry & Media')).toBeInTheDocument();
+    expect(screen.getByText('Insights & Admin')).toBeInTheDocument();
   });
 
   it('collapses and expands groups when clicked', () => {
     renderSidebar();
 
     // Default state: click header to collapse/expand
-    const adminHeader = screen.getByText('Administration');
+    const coreOpsHeader = screen.getByText('Core Operations');
     
-    // Clicking Administration toggles the section collapse
-    fireEvent.click(adminHeader);
+    // Clicking Core Operations toggles the section collapse
+    fireEvent.click(coreOpsHeader);
     
-    // We can check if list elements inside are collapsed (e.g. height 0 or display none, or unrendered)
-    // We'll implement collapse using Collapse component from MUI.
-    // Let's click it again to verify expansion
-    fireEvent.click(adminHeader);
+    // Click it again to verify expansion
+    fireEvent.click(coreOpsHeader);
   });
 });

@@ -55,7 +55,12 @@ const drawerWidth = 280;
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }) => ({
     flexGrow: 1,
-    padding: theme.spacing(3, 2, 12, 2), // Mobile padding (extra bottom for nav)
+    minWidth: 0,
+    overflowX: 'hidden',
+    padding: theme.spacing(2, 1.5, 11, 1.5), // Mobile padding
+    [theme.breakpoints.up('sm')]: {
+      padding: theme.spacing(3, 2.5, 11, 2.5),
+    },
     transition: theme.transitions.create(['margin', 'width'], {
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
@@ -240,6 +245,7 @@ const AppLayout = ({ children }) => {
     ...(userRole === 'admin' || userRole === 'branch_admin' || userRole === 'developer' 
       ? [
           { text: 'Members', icon: <PeopleIcon />, path: '/members' },
+          { text: 'Attendance', icon: <EventNoteIcon />, path: '/attendance' },
           { text: 'Finance', icon: <AccountBalanceWalletIcon />, path: '/financials' }
         ]
       : [
@@ -247,7 +253,6 @@ const AppLayout = ({ children }) => {
           { text: 'Help', icon: <HelpCenterIcon />, path: '/help' }
         ]
     ),
-    { text: 'Events', icon: <EventIcon />, path: '/events' },
     { text: 'More', icon: <MenuIcon />, path: '/settings' }, 
   ], [userRole]);
 

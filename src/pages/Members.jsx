@@ -84,11 +84,17 @@ import { createMember, updateMember, deleteMember, getMembers } from '../service
 
 const Members = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { filterData, showNotification, showConfirmation, userBranch, isBranchRestricted } = useWorkspace();
   
   // --- STATE ---
   const [viewMode, setViewMode] = useState(isMobile ? 'grid' : 'table');
+
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode('grid');
+    }
+  }, [isMobile]);
   const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [dialogTab, setDialogTab] = useState(0);
@@ -626,7 +632,7 @@ const Members = () => {
         mb: 4, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: '12px',
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
@@ -663,16 +669,16 @@ const Members = () => {
       <Paper 
         elevation={0} 
         sx={{ 
-          p: 2, 
-          borderRadius: 6, 
-          mb: 5, 
-          border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, 
+          p: { xs: 1.5, sm: 2 }, 
+          borderRadius: '12px', 
+          mb: 4, 
+          border: '1px solid var(--border-color)', 
           bgcolor: alpha(theme.palette.background.paper, 0.8), 
           backdropFilter: 'blur(20px)',
           position: 'sticky',
           top: 20,
           zIndex: 10,
-          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.05)}`
+          boxShadow: 'var(--neo-shadow-out)'
         }}
       >
         <Grid container spacing={2} alignItems="center">
@@ -689,8 +695,8 @@ const Members = () => {
                   </InputAdornment>
                 ),
                 sx: { 
-                    borderRadius: 4, 
-                    height: 56,
+                    borderRadius: '8px', 
+                    height: 48,
                     bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
                     transition: 'all 0.3s',
                     '&.Mui-focused': { boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}` }
@@ -699,15 +705,15 @@ const Members = () => {
               variant="outlined"
             />
           </Grid>
-          <Grid size={{ xs: 6, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
              <FormControl fullWidth size="medium">
                 <Select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   displayEmpty
                   sx={{ 
-                    borderRadius: 4, 
-                    height: 56,
+                    borderRadius: '8px', 
+                    height: 48,
                     bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) 
                   }}
                 >
@@ -720,14 +726,14 @@ const Members = () => {
 
              </FormControl>
           </Grid>
-          <Grid size={{ xs: 6, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
              <FormControl fullWidth size="medium">
                 <Select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   sx={{ 
-                    borderRadius: 4, 
-                    height: 56,
+                    borderRadius: '8px', 
+                    height: 48,
                     bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) 
                   }}
                 >
@@ -737,7 +743,7 @@ const Members = () => {
                 </Select>
              </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', justifyContent: { xs: 'space-between', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
+          <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: { xs: 'stretch', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
               <ToggleButtonGroup
                 value={viewMode}
                 exclusive

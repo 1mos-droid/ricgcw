@@ -430,7 +430,7 @@ const Reports = () => {
         mb: 6, 
         textAlign: 'center',
         position: 'relative',
-        borderRadius: 8,
+        borderRadius: '12px',
         background: theme.palette.mode === 'light' 
            ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
            : alpha(theme.palette.primary.main, 0.05),
