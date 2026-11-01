@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@huggingface/hub', () => ({
   commit: vi.fn().mockResolvedValue({ commitOid: 'mock-commit-123' })
@@ -18,6 +18,12 @@ import { uploadToHuggingFace } from './huggingFaceApi';
 describe('huggingFaceApi uploadToHuggingFace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('VITE_HF_TOKEN', 'mock-hf-token-for-test');
+    vi.stubEnv('VITE_HF_REPO_ID', 'test-org/church-media');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('compresses image prior to committing to Hugging Face Hub', async () => {
@@ -41,5 +47,13 @@ describe('huggingFaceApi uploadToHuggingFace', () => {
 
     const file = new File(['data'], 'test.png', { type: 'image/png' });
     await expect(uploadToHuggingFace(file)).rejects.toThrow('Upload failed: Network failure');
+  });
+
+  it('throws an error if Hugging Face token is missing', async () => {
+    vi.stubEnv('VITE_HF_TOKEN', '');
+    vi.stubEnv('VITE_HF_WRITE_TOKEN', '');
+
+    const file = new File(['data'], 'test.png', { type: 'image/png' });
+    await expect(uploadToHuggingFace(file)).rejects.toThrow('Hugging Face token missing. Please check your .env file.');
   });
 });

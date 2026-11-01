@@ -1,8 +1,8 @@
 import { commit } from "@huggingface/hub";
 import { compressImage } from "./imageCompressor";
 
-const HF_TOKEN = import.meta.env.VITE_HF_TOKEN || import.meta.env.VITE_HF_WRITE_TOKEN;
-const HF_REPO_ID = import.meta.env.VITE_HF_REPO_ID || "1mos-droid/church-media";
+export const getHfToken = () => import.meta.env.VITE_HF_TOKEN || import.meta.env.VITE_HF_WRITE_TOKEN;
+export const getHfRepoId = () => import.meta.env.VITE_HF_REPO_ID || "1mos-droid/church-media";
 
 /**
  * Uploads a file to a Hugging Face Dataset repository using the @huggingface/hub library.
@@ -13,9 +13,12 @@ const HF_REPO_ID = import.meta.env.VITE_HF_REPO_ID || "1mos-droid/church-media";
  * @returns {Promise<string>} - The URL of the uploaded file.
  */
 export async function uploadToHuggingFace(file, filename) {
-  if (!HF_TOKEN) {
+  const token = getHfToken();
+  if (!token) {
     throw new Error(`Hugging Face token missing. Please check your .env file.`);
   }
+
+  const repoId = getHfRepoId();
 
   // Optimize and compress images client-side to keep under LFS threshold (<5MB)
   let uploadFile = file;
@@ -30,10 +33,10 @@ export async function uploadToHuggingFace(file, filename) {
 
   try {
     const result = await commit({
-      credentials: { accessToken: HF_TOKEN },
+      credentials: { accessToken: token },
       repo: {
         type: "dataset",
-        name: HF_REPO_ID
+        name: repoId
       },
       title: `CMS Upload: Added ${actualFilename}`, // Acts as the Git commit message
       operations: [
@@ -49,7 +52,7 @@ export async function uploadToHuggingFace(file, filename) {
 
     // Return the URL as expected by the application
     // Resolve URL format using /resolve/ with ?download=true to force LFS binary delivery
-    return `https://huggingface.co/datasets/${HF_REPO_ID}/resolve/main/${actualFilename}?download=true`;
+    return `https://huggingface.co/datasets/${repoId}/resolve/main/${actualFilename}?download=true`;
 
   } catch (error) {
     console.error("Hugging Face commit error:", error);

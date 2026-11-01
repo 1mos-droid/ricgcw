@@ -42,3 +42,17 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock scrollTo
 window.scrollTo = vi.fn();
+
+// Mock fallback environment variables for tests in CI environments without .env
+if (typeof import.meta !== 'undefined' && import.meta.env) {
+  if (!import.meta.env.VITE_HF_TOKEN) {
+    import.meta.env.VITE_HF_TOKEN = 'mock-test-hf-token';
+  }
+  if (!import.meta.env.VITE_HF_REPO_ID) {
+    import.meta.env.VITE_HF_REPO_ID = '1mos-droid/church-media';
+  }
+  if (!import.meta.env.VITE_PAYSTACK_PUBLIC_KEY) {
+    import.meta.env.VITE_PAYSTACK_PUBLIC_KEY = 'pk_test_dummy';
+  }
+}
+
