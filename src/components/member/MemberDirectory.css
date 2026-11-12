@@ -1,0 +1,76 @@
+.members-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 170px 150px; gap: 14px; padding: 18px; margin-bottom: 20px; background: var(--bg-paper); border: 1px solid var(--border-color); border-radius: 12px; }
+.members-toolbar-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); }
+.members-toolbar-actions > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.members-toolbar .MuiOutlinedInput-root { min-height: 46px; border-radius: 8px; }
+.members-toolbar-actions .MuiButton-root { font-size: 12px; white-space: nowrap; }
+.members-toolbar-actions > .MuiButton-root { flex-shrink: 0; min-width: 120px; align-self: center; }
+.members-directory-summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 20px 0 16px; }
+/* Keep the directory count quiet despite the legacy mobile h2 override. */
+.members-directory-summary h2 { font-size: 15px !important; font-weight: 600; margin: 0 0 5px; }
+.members-directory-summary p { font-size: 11px; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+.members-directory-summary .wm-tabs { min-width: 270px; }
+.directory-view-label { display: inline-flex; align-items: center; gap: 7px; }
+.members-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface-inset); border: 1px solid var(--border-color); border-radius: 9px; margin-bottom: 16px; font-size: 12px; }
+.members-selection > strong { margin-right: auto; font-weight: 600; }
+.member-directory { min-width: 0; }
+.directory-sr-heading { font-size: 0; margin: 0; padding: 0; height: 0; overflow: hidden; scroll-margin-top: calc(var(--workspace-header-height, 72px) + env(safe-area-inset-top) + 24px); }
+.directory-alphabet { display: flex; align-items: center; gap: 12px; position: sticky; top: calc(var(--workspace-header-height, 72px) + env(safe-area-inset-top) + 8px); z-index: 10; background: var(--bg-default); border-block: 1px solid var(--border-color); margin-bottom: 20px; padding: 8px 0; }
+.directory-alphabet-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.directory-letters { display: flex; flex: 1; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; gap: 2px; }
+.directory-letters > a, .directory-letters > span { display: grid; place-items: center; flex: 1 0 28px; min-height: 40px; font-size: 11px; border-radius: 6px; text-decoration: none; }
+.directory-letters > a { color: var(--text-primary); font-weight: 600; background: var(--bg-paper); border: 1px solid var(--border-color); }
+.directory-letters > a:hover { color: var(--brand-brass); border-color: var(--brand-brass); }
+.directory-letters > span { color: var(--text-secondary); opacity: .35; }
+.directory-group { margin-bottom: 26px; }
+.directory-group-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.directory-group-heading h3 { font-family: var(--font-editorial); font-size: 23px; line-height: 1.25; font-weight: 400; margin: 0; color: var(--text-primary); scroll-margin-top: calc(var(--workspace-header-height, 72px) + env(safe-area-inset-top) + 84px); }
+.directory-group-heading > span { font-size: 10px; color: var(--text-secondary); }
+.directory-group-rule { flex: 1; height: 1px; background: var(--border-color); }
+.directory-entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.directory-member { border: 1px solid var(--border-color); background: var(--bg-paper); border-radius: 12px; min-width: 0; overflow: hidden; content-visibility: auto; contain-intrinsic-size: auto 240px; }
+.directory-member:hover, .directory-member:focus-within { border-color: var(--brand-brass); }
+.directory-member[data-selected='true'] { border-color: var(--brand-brass); background: var(--surface-inset); }
+.directory-member-tools { display: flex; justify-content: space-between; align-items: center; padding: 3px 6px 0; }
+.directory-profile.MuiButtonBase-root { display: flex; justify-content: flex-start; text-align: left; width: 100%; padding: 8px 20px 18px; gap: 12px; border-radius: 0; }
+.directory-profile .MuiAvatar-root { flex-shrink: 0; }
+.directory-identity { min-width: 0; display: grid; gap: 6px; flex: 1; }
+.directory-identity > strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.5; overflow-wrap: anywhere; }
+.directory-identity > span { font-size: 10px; color: var(--text-secondary); line-height: 1.6; overflow-wrap: anywhere; }
+.directory-contacts { display: grid; gap: 0; padding: 0 20px 12px; }
+.directory-contacts a, .directory-contact-missing { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); min-height: 34px; text-decoration: none; }
+.directory-contacts svg { flex-shrink: 0; opacity: .7; }
+.directory-contacts a > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.directory-contacts a:hover { color: var(--text-primary); text-decoration: underline; }
+.directory-contact-missing { opacity: .6; }
+.directory-member-status { border-top: 1px solid var(--border-color); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.directory-status { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-secondary); text-transform: capitalize; white-space: nowrap; }
+.directory-status i { width: 5px; height: 5px; border-radius: 50%; background: #8b929c; }
+.directory-status[data-status='active'] i { background: #328063; }
+.directory-status[data-status='inactive'] i { background: #ae7737; }
+.directory-status[data-status='discontinued'] i { background: #b55750; }
+.directory-ministry { font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-directory--pills .directory-entries { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 8px; }
+.directory-member--pills { display: flex; align-items: center; border-radius: 16px; contain-intrinsic-size: auto 90px; }
+.directory-member--pills .directory-member-tools { display: contents; }
+.directory-member--pills .directory-member-tools .MuiCheckbox-root { margin-left: 4px; }
+.directory-member--pills .directory-member-tools .MuiIconButton-root { order: 4; margin-right: 5px; }
+.directory-member--pills .directory-profile.MuiButtonBase-root { flex: 1; min-width: 0; width: auto; padding: 14px 4px; gap: 10px; }
+.directory-member--pills .directory-identity > strong { font-size: 13px; }
+.directory-member--pills .directory-member-status { border: 0; padding: 0 4px; }
+.directory-open-icon { display: none; color: var(--text-secondary); }
+.directory-end { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border-color); padding-top: 20px; font-size: 11px; color: var(--text-secondary); }
+.directory-end > a { display: inline-flex; min-height: 44px; align-items: center; gap: 7px; text-decoration: none; }
+@media (max-width: 760px) {
+  .members-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 14px; }
+  .members-toolbar > .MuiTextField-root:first-child { grid-column: 1 / -1; }
+  .members-toolbar-actions { align-items: stretch; }
+  .members-toolbar-actions > div { gap: 4px; }
+  .members-toolbar-actions .MuiButton-root { padding-inline: 8px; font-size: 10px; min-width: 0; }
+  .members-toolbar-actions > .MuiButton-root { min-width: 120px; }
+  .members-toolbar-actions > div .MuiButton-startIcon { display: none; }
+  .members-directory-summary { flex-direction: column; align-items: stretch; gap: 12px; }
+  .members-directory-summary .wm-tabs { min-width: 0; width: 100%; }
+  .directory-alphabet { gap: 6px; }
+  .directory-letters > a, .directory-letters > span { flex-basis: 34px; min-height: 44px; }
+  .directory-alphabet-label { font-size: 9px; }
+}

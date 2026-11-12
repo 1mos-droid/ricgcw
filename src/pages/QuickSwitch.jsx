@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 

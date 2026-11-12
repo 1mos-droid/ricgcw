@@ -1,12 +1,12 @@
+import Button from '../components/ui/kokonut/SlideTextButton';
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
   Grid, 
   Card, 
-  Button, 
   Chip, 
   Avatar, 
   useTheme, 

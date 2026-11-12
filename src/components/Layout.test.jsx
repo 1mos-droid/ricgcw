@@ -73,15 +73,13 @@ describe('AppLayout Responsiveness and Styling', () => {
     expect(screen.queryByText('Home')).not.toBeInTheDocument();
   });
 
-  it('applies premium glassmorphism styling to bottom navigation on mobile', () => {
+  it('uses a solid surface for readable mobile navigation', () => {
     vi.mocked(useMediaQuery).mockReturnValue(true);
     renderLayout();
 
     const bottomNav = screen.getByText('Home').closest('.MuiBottomNavigation-root');
     expect(bottomNav).toBeInTheDocument();
-    expect(bottomNav).toHaveStyle({
-      backdropFilter: 'blur(30px) saturate(180%)',
-    });
+    expect(bottomNav.style.backdropFilter || '').toBe('');
   });
 
   it('opens mobile more menu when clicking More tab', () => {

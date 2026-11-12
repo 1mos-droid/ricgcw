@@ -1,3 +1,4 @@
+import Button from '../components/ui/kokonut/SlideTextButton';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, subDays, isSameDay } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -6,7 +7,6 @@ import {
   Typography, 
   Grid, 
   Card, 
-  Button, 
   List, 
   ListItem,
   ListItemButton, 
@@ -54,7 +54,7 @@ import {
   Camera,
   Download
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import QRCode from 'react-qr-code';
 

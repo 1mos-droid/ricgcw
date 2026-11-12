@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// jsdom has no layout engine; Sileo observes its content to size the toast.
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store = {};

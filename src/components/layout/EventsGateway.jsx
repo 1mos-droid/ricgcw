@@ -10,7 +10,7 @@ import {
   Avatar,
   Button
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Clock, MapPin, ArrowRight, ShieldAlert } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -59,53 +59,27 @@ const EventsGateway = ({ open, onProceed }) => {
         sx={{
           position: 'fixed',
           inset: 0,
-          zIndex: 9999,
+          zIndex: theme.zIndex.modal,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: theme.palette.mode === 'dark' ? 'rgba(8, 8, 12, 0.96)' : 'rgba(242, 242, 247, 0.96)',
-          backdropFilter: 'blur(40px)',
+          background: theme.palette.background.default,
           p: { xs: 2, sm: 4 },
           overflowY: 'auto'
         }}
       >
-        {/* Background Decorative Glow Orbs */}
-        <Box sx={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
-          <Box sx={{
-            position: 'absolute',
-            top: '-10%',
-            right: '-10%',
-            width: '500px',
-            height: '500px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0, 122, 255, 0.12) 0%, transparent 70%)',
-            filter: 'blur(100px)',
-          }} />
-          <Box sx={{
-            position: 'absolute',
-            bottom: '-10%',
-            left: '-10%',
-            width: '550px',
-            height: '550px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(88, 86, 214, 0.1) 0%, transparent 70%)',
-            filter: 'blur(100px)',
-          }} />
-        </Box>
-
         {/* Central Modal Container */}
         <Box
           component={motion.div}
           initial={{ opacity: 0, y: 25, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
           sx={{
             width: '100%',
             maxWidth: '540px',
             position: 'relative',
             zIndex: 1,
-            background: theme.palette.mode === 'dark' ? 'rgba(28, 28, 30, 0.45)' : 'rgba(255, 255, 255, 0.45)',
-            backdropFilter: 'blur(30px) saturate(180%)',
+            background: theme.palette.background.paper,
             border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.5)'}`,
             borderRadius: '16px',
             boxShadow: theme.palette.mode === 'dark'

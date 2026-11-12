@@ -20,6 +20,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import UserAvatar from '../atoms/UserAvatar';
+import MobileWorkspaceHeader from './MobileWorkspaceHeader';
 import CommandPalette from '../CommandPalette';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useAuth } from '../../context/AuthContext';
@@ -166,8 +167,20 @@ const TopAppBar = ({
 
   return (
     <>
-      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" className="neo-glass-navbar" sx={{ top: 0, border: 'none', borderBottom: '1px solid var(--border-color)', boxShadow: 'none' }}>
-        <Toolbar sx={{ height: { xs: 64, md: 72 }, justifyContent: 'space-between', gap: 1, minWidth: 0, px: { xs: 1.5, sm: 2, md: 3 } }}>
+      <AppBarStyled position="fixed" open={open} elevation={0} color="inherit" className="neo-glass-navbar" sx={{ top: 0, pt: isMobile ? 'env(safe-area-inset-top)' : 0, border: 'none', borderBottom: '1px solid var(--border-color)', boxShadow: 'none' }}>
+        {isMobile ? <MobileWorkspaceHeader
+          department={workspace === 'main' ? 'Main Sanctuary' : currentDepartment}
+          branch={userBranch}
+          canSwitchCampus={userRole === 'admin' || userRole === 'developer'}
+          onCampusChange={handleCampusChange}
+          user={user}
+          onSearch={() => setPaletteOpen(true)}
+          onProfileClick={onProfileClick}
+          mode={mode}
+          onToggleTheme={toggleColorMode}
+          onUpdates={() => navigate('/events')}
+          notificationCount={notificationCount}
+        /> : <Toolbar sx={{ height: { xs: 64, md: 72 }, justifyContent: 'space-between', gap: 1, minWidth: 0, px: { xs: 1.5, sm: 2, md: 3 } }}>
             
           {/* Logo/Title */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, minWidth: 0, flexShrink: 1 }}>
@@ -213,7 +226,7 @@ const TopAppBar = ({
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 12 }} />
-              {!isMobile && 'System: Healthy'}
+              {!isMobile && 'Church workspace'}
             </Box>
           </Box>
 
@@ -281,13 +294,13 @@ const TopAppBar = ({
               {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
             </IconButton>
 
-            <IconButton sx={{ color: 'text.secondary' }}>
+            <IconButton aria-label="Notifications" sx={{ color: 'text.secondary' }}>
               <Badge badgeContent={notificationCount} color="error">
                 <NotificationsNoneIcon />
               </Badge>
             </IconButton>
             
-            <Box 
+            <IconButton aria-label="Open account menu"
               sx={{ 
                 ml: 1,
                 cursor: 'pointer',
@@ -297,9 +310,9 @@ const TopAppBar = ({
               onClick={onProfileClick}
             >
               <UserAvatar name={user?.name || user?.email || 'User'} size={36} />
-            </Box>
+            </IconButton>
           </Stack>
-        </Toolbar>
+        </Toolbar>}
       </AppBarStyled>
 
       {/* Global Universal Search Palette */}

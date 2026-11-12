@@ -1,93 +1,18 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Switch } from '@mui/material';
+import SlideTextButton from './ui/kokonut/SlideTextButton';
+import ContinuousTabs from './ui/watermelon/ContinuousTabs';
+import { cn } from '../utils/cn';
 
 // 1. Clean Button
-export const CupertinoButton = ({ 
-  children, 
-  onClick, 
-  disabled = false, 
-  variant = 'filled', // 'filled' | 'plain'
-  color = 'primary', // 'primary' | 'destructive'
-  sx = {}, 
-  ...props 
-}) => {
-  let className = "neo-glass-button";
-  if (variant === 'filled') {
-    className = color === 'destructive' ? "neo-glass-button-primary neo-glass-button-destructive" : "neo-glass-button-primary";
-  }
-
-  return (
-    <Box
-      component="button"
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      className={className}
-      sx={{
-        border: 'none',
-        outline: 'none',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textDecoration: 'none',
-        ...sx,
-      }}
-      {...props}
-    >
-      {children}
-    </Box>
-  );
-};
+export const CupertinoButton = ({ children, variant = 'filled', color = 'primary', sx = {}, ...props }) => (
+  <SlideTextButton variant={variant === 'filled' ? 'contained' : 'text'} color={color === 'destructive' ? 'error' : color} sx={{ gap: 1, ...sx }} {...props}>{children}</SlideTextButton>
+);
 
 // 2. Sliding Segmented Control (Clean modern tabs)
-export const CupertinoSlidingSegmentedControl = ({ 
-  options = [], 
-  value, 
-  onChange, 
-  sx = {}, 
-  ...props 
-}) => {
-  return (
-    <Box
-      role="tablist"
-      className="neo-glass-segmented"
-      sx={{
-        width: '100%',
-        ...sx,
-      }}
-      {...props}
-    >
-      {options.map((option, idx) => {
-        const isSelected = value === idx;
-        return (
-          <Box
-            key={idx}
-            onClick={() => onChange(idx)}
-            role="tab"
-            aria-selected={isSelected}
-            tabIndex={0}
-            className={`neo-glass-segmented-item ${isSelected ? 'active' : ''}`}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: isSelected ? 600 : 500,
-                fontSize: '0.8rem',
-                fontFamily: 'var(--font-stack)',
-              }}
-            >
-              {option.label}
-            </Typography>
-          </Box>
-        );
-      })}
-    </Box>
-  );
-};
+export const CupertinoSlidingSegmentedControl = ({ options = [], value, onChange, sx = {}, ...props }) => (
+  <Box sx={sx} {...props}><ContinuousTabs value={value} onChange={onChange} tabs={options.map((option, index) => ({ id: index, label: option.label }))} /></Box>
+);
 
 // 3. Grouped List Section
 export const CupertinoListSection = ({ header, children, footer, sx = {} }) => {
@@ -200,10 +125,10 @@ export const CupertinoListTile = ({
 };
 
 // 5. Clean Card
-export const CupertinoCard = ({ children, sx = {}, ...props }) => {
+export const CupertinoCard = ({ children, className, sx = {}, ...props }) => {
   return (
     <Box
-      className="neo-glass-card"
+      className={cn('neo-glass-card', className)}
       sx={{
         ...sx,
       }}
@@ -215,19 +140,9 @@ export const CupertinoCard = ({ children, sx = {}, ...props }) => {
 };
 
 // 6. Switch
-export const CupertinoSwitch = ({ checked, onChange, disabled = false }) => {
-  return (
-    <Box
-      onClick={disabled ? undefined : () => onChange(!checked)}
-      className={`neo-glass-switch ${checked ? 'active' : ''}`}
-      sx={{
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <Box className="neo-glass-switch-handle" />
-    </Box>
-  );
-};
+export const CupertinoSwitch = ({ checked, onChange, disabled = false, ...props }) => (
+  <Switch checked={checked} onChange={(_, nextChecked) => onChange(nextChecked)} disabled={disabled} {...props} />
+);
 
 // 7. Input Field
 export const CupertinoInput = ({ 

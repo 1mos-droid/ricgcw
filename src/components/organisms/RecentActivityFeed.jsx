@@ -6,10 +6,10 @@ import { CupertinoCard } from '../Cupertino';
 const RecentActivityFeed = ({ activities = [] }) => {
 
   return (
-    <CupertinoCard sx={{ height: '100%' }}>
+    <CupertinoCard sx={{ height: '100%', p: 0 }}>
       <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
         <Box sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 900 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
             Recent Activity
           </Typography>
         </Box>
@@ -33,7 +33,7 @@ const RecentActivityFeed = ({ activities = [] }) => {
                     <Box component="span" sx={{ color: 'text.primary', fontWeight: 800 }}>
                       {activity.userName}
                     </Box>
-                    {' '}{activity.action}{' '}
+                    {'\u00a0'}{activity.action}{'\u00a0'}
                     <Box component="span" sx={{ color: 'primary.main', fontWeight: 800 }}>
                       {activity.target}
                     </Box>

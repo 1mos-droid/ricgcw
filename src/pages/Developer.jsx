@@ -38,7 +38,7 @@ import { useWorkspace } from '../context/WorkspaceContext';
 import { useAuth } from '../context/AuthContext';
 import { collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { syncMemberDepartments } from '../utils/syncDepartments';
 
 const Developer = () => {

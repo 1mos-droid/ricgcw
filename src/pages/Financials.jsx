@@ -1,12 +1,13 @@
+import Button from '../components/ui/kokonut/SlideTextButton';
+import WorkspacePageHeader from '../components/organisms/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
   Grid, 
   Card, 
-  Button, 
   IconButton, 
   useTheme, 
   Avatar, 
@@ -381,29 +382,7 @@ const Financials = () => {
   return (
     <Box sx={{ pb: 8 }}>
       
-      {/* --- HERO HEADER --- */}
-      <Box sx={{ 
-        py: { xs: 4, md: 5 }, 
-        mb: 4, 
-        textAlign: 'center',
-        position: 'relative',
-        borderRadius: '12px',
-        background: theme.palette.mode === 'light' 
-           ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
-           : alpha(theme.palette.primary.main, 0.05),
-      }}>
-        <Container maxWidth="md">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-                <Chip icon={<TrendingUp size={14} />} label="Financial Registry" size="small" sx={{ mb: 2, fontWeight: 800, bgcolor: theme.palette.background.paper }} />
-                <Typography variant="h2" sx={{ fontWeight: 900, letterSpacing: '-0.03em', mb: 1 }}>
-                    Church Treasury
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-                    Track contributions, manage expenses, and generate detailed financial reports for the ministry.
-                </Typography>
-            </motion.div>
-        </Container>
-      </Box>
+      <WorkspacePageHeader section="Stewardship & giving" title="Church Treasury" description="Contributions, expenses, and a clear record of every transaction." />
 
       {/* --- COMMAND BAR (Sticky) --- */}
       <Paper 

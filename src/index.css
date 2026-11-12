@@ -1,13 +1,39 @@
-/* --- Quiet Confidence Design System --- */
+/* Shared church workspace design system */
+
+:focus-visible { outline: 3px solid var(--system-blue) !important; outline-offset: 3px; }
+h1, h2, h3, h4 { text-wrap: balance; }
+p { text-wrap: pretty; }
+button, input, select { font: inherit; }
+a { color: inherit; text-underline-offset: 3px; }
+.brand-loader {
+  width: 76px; height: 76px; display: grid; place-items: center;
+  position: relative; border-radius: 24px; background: var(--bg-paper);
+  border: 1px solid var(--border-color);
+}
+.brand-loader img { object-fit: contain; }
+.brand-loader::after {
+  content: ''; position: absolute; inset: -7px; border-radius: 30px;
+  border: 2px solid transparent; border-top-color: var(--system-blue);
+  border-bottom-color: var(--system-blue); animation: brand-orbit 1.8s linear infinite;
+}
+@keyframes brand-orbit { to { transform: rotate(360deg); } }
+.auth-emblem { display: flex; align-items: end; gap: 12px; height: 130px; margin-bottom: 48px; }
+.auth-emblem span { display: block; width: 54px; height: 100%; border: 1px solid #82a396; border-radius: 40px 40px 4px 4px; }
+.auth-emblem span:first-child, .auth-emblem span:last-child { height: 72%; }
+.auth-emblem span:nth-child(2) { background: #365e50; }
+.dark-theme .neo-glass-button-primary:not(.neo-glass-button-destructive) { color: #1D2631; }
+.neo-glass-button, .neo-glass-button-primary { min-height: 44px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
 
 /* 1. Global Imports & Font Stack */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* System Brand Colors */
-  --system-blue: #2563EB;
-  --system-blue-rgb: 37, 99, 235;
-  --system-purple: #4F46E5;
+  --system-blue: #283B50;
+  --system-blue-rgb: 40, 59, 80;
+  --system-purple: #9B743C;
   --system-green: #10B981;
   --system-red: #EF4444;
   --system-orange: #F59E0B;
@@ -16,13 +42,13 @@
   --font-stack: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Theme Tokens: Light Mode (Clean neutral base) */
-  --bg-default: #F8FAFC;
+  --bg-default: #F8F7F4;
   --bg-paper: #FFFFFF;
   --bg-paper-flat: #FFFFFF;
   --border-color: rgba(0, 0, 0, 0.08);
   --border-color-darker: rgba(0, 0, 0, 0.05);
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
+  --text-primary: #202B38;
+  --text-secondary: #69717B;
 
   /* Subtle Clean Shadows */
   --neo-shadow-out: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
@@ -33,9 +59,11 @@
 
 /* Dark Mode Tokens override */
 .dark-theme {
-  --bg-default: #090A0F;
-  --bg-paper: #111318;
-  --bg-paper-flat: #111318;
+  --system-blue: #DEC28D;
+  --system-blue-rgb: 222, 194, 141;
+  --bg-default: #151B23;
+  --bg-paper: #1E2631;
+  --bg-paper-flat: #1E2631;
   --border-color: rgba(255, 255, 255, 0.08);
   --border-color-darker: rgba(255, 255, 255, 0.05);
   --text-primary: #F8FAFC;

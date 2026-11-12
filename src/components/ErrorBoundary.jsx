@@ -18,7 +18,7 @@ import {
   Heart,
   MessageCircle
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import * as Sentry from '@sentry/react';
 
 class ErrorBoundary extends React.Component {

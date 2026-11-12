@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Box, CircularProgress, Skeleton } from '@mui/material';
+import { AnimatePresence, motion } from 'motion/react';
+import BrandLoader from '../components/BrandLoader';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
 
@@ -55,31 +55,7 @@ const MotionWrap = ({ children }) => (
   </motion.div>
 );
 
-const PageLoader = () => (
-  <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
-    {/* Welcome Banner Skeleton */}
-    <Skeleton variant="rectangular" height={140} sx={{ borderRadius: '12px', width: '100%' }} />
-
-    {/* Cards Row Skeleton */}
-    <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
-      {Array.from({ length: 3 }).map((_, idx) => (
-        <Box key={idx} sx={{ flex: 1 }}>
-          <Skeleton variant="rectangular" height={160} sx={{ borderRadius: '12px', width: '100%' }} />
-        </Box>
-      ))}
-    </Box>
-
-    {/* Activity/Feed Row Skeleton */}
-    <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
-      <Box sx={{ flex: { xs: 1, md: 2 } }}>
-        <Skeleton variant="rectangular" height={260} sx={{ borderRadius: '12px', width: '100%' }} />
-      </Box>
-      <Box sx={{ flex: 1 }}>
-        <Skeleton variant="rectangular" height={260} sx={{ borderRadius: '12px', width: '100%' }} />
-      </Box>
-    </Box>
-  </Box>
-);
+const PageLoader = BrandLoader;
 
 // 🟢 Unified Authentication & Authorization Guards
 const RequireAuth = ({ children }) => {

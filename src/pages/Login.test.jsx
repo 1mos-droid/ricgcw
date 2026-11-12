@@ -45,6 +45,35 @@ const renderLogin = () => {
 };
 
 describe('Login Page', () => {
+  it('keeps the password native and toggles visibility with the Rare UI control', () => {
+    renderLogin();
+    const input = screen.getByPlaceholderText('Password');
+    expect(input).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(input).toHaveAttribute('type', 'text');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(input).toHaveAttribute('type', 'password');
+  });
+  it('submits a new member account with the selected branch', async () => {
+    mockSignup.mockResolvedValueOnce({ email: 'new@example.com' });
+    renderLogin();
+    fireEvent.click(screen.getByRole('tab', { name: 'Create account' }));
+    fireEvent.change(screen.getByLabelText(/Full name/i), { target: { value: 'New Member' } });
+    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'new@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Secret123!' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    await waitFor(() => expect(mockSignup).toHaveBeenCalledWith('new@example.com', 'Secret123!', 'New Member', 'Mallam'));
+  });
+
+  it('shows a failed reset response as an error', async () => {
+    mockResetPassword.mockResolvedValueOnce({ success: false, error: 'Please try again later.' });
+    renderLogin();
+    fireEvent.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'member@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send Reset Link' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please try again later.');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

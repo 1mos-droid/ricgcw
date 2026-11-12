@@ -20,11 +20,11 @@
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/ricgcw.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="canonical" href="https://ricgcw.web.app/" />
     <meta name="robots" content="index, follow" />
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-    <meta name="theme-color" content="#1976D2" />
+    <meta name="theme-color" content="#283B50" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="description" content="Official management system for Rhema Inner Court Gospel Church Worldwide (RICGCW). Streamlining administration, member engagement, and worship across all campuses." />
     <meta name="keywords" content="RICGCW, Rhema Inner Court Gospel Church Worldwide, Church Management System, CMS, Mallam Church, Kokrobitey Church, Langma Church, Ghana Church Administration, Bible Studies, Digital Giving, Worship Sanctuary, Christian Community Platform" />
@@ -62,7 +62,13 @@
     <title>Rhema Inner Court Gospel Church Worldwide | Church Management System</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div role="status" style="min-height:100dvh;display:grid;place-content:center;justify-items:center;gap:20px;background:#F8F7F4;color:#202b38;font:14px system-ui,sans-serif">
+        <img src="/ricgcw.png" width="56" height="56" alt="" />
+        <strong>RICGCW</strong>
+        <span>Preparing your workspace…</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

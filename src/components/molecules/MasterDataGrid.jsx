@@ -25,6 +25,8 @@ const MasterDataGrid = ({
   selectable = true,
   selected = [],
   onSelectionChange,
+  pagination = true,
+  sortable = true,
 }) => {
   const theme = useTheme();
   const [localSelected, setLocalSelected] = useState([]);
@@ -80,6 +82,15 @@ const MasterDataGrid = ({
   };
 
   const isSelected = (id) => activeSelected.indexOf(id) !== -1;
+  const sortedRows = orderBy ? [...rows].sort((first, second) => {
+    const left = first[orderBy] ?? '';
+    const right = second[orderBy] ?? '';
+    const comparison = typeof left === 'number' && typeof right === 'number'
+      ? left - right
+      : String(left).localeCompare(String(right), undefined, { numeric: true });
+    return order === 'asc' ? comparison : -comparison;
+  }) : rows;
+  const safePage = Math.min(page, Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1));
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -93,7 +104,7 @@ const MasterDataGrid = ({
           </Box>
         )}
         <TableContainer sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <Table sx={{ minWidth: 650 }} aria-labelledby="tableTitle" size="medium">
+          <Table sx={{ minWidth: 650 }} aria-label={title || 'Records'} size="medium">
             <TableHead>
               <TableRow sx={{ backgroundColor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.01)' }}>
                 {selectable && (
@@ -113,25 +124,23 @@ const MasterDataGrid = ({
                     align={column.align || 'left'}
                     padding={column.disablePadding ? 'none' : 'normal'}
                     sortDirection={orderBy === column.id ? order : false}
-                    sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                    sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem' }}
                   >
-                    <TableSortLabel
+                    {sortable ? <TableSortLabel
                       active={orderBy === column.id}
                       direction={orderBy === column.id ? order : 'asc'}
                       onClick={() => handleRequestSort(column.id)}
                     >
                       {column.label}
-                    </TableSortLabel>
+                    </TableSortLabel> : column.label}
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row, index) => {
+              {(pagination ? sortedRows.slice(safePage * rowsPerPage, safePage * rowsPerPage + rowsPerPage) : sortedRows)
+                .map((row) => {
                   const isItemSelected = isSelected(row.id);
-                  const labelId = `enhanced-table-checkbox-${index}`;
 
                   return (
                     <TableRow
@@ -139,9 +148,14 @@ const MasterDataGrid = ({
                       onClick={() => {
                         if (onRowClick) onRowClick(row.id);
                       }}
-                      role="checkbox"
-                      aria-checked={isItemSelected}
-                      tabIndex={-1}
+                      aria-selected={isItemSelected}
+                      tabIndex={onRowClick ? 0 : undefined}
+                      onKeyDown={(event) => {
+                        if (event.target === event.currentTarget && onRowClick && (event.key === 'Enter' || event.key === ' ')) {
+                          event.preventDefault();
+                          onRowClick(row.id);
+                        }
+                      }}
                       key={row.id}
                       selected={isItemSelected}
                       sx={{ 
@@ -166,7 +180,7 @@ const MasterDataGrid = ({
                             color="primary"
                             checked={isItemSelected}
                             onChange={() => {}}
-                            inputProps={{ 'aria-labelledby': labelId }}
+                            inputProps={{ 'aria-label': `Select ${row.name || row.id}` }}
                           />
                         </TableCell>
                       )}
@@ -188,12 +202,12 @@ const MasterDataGrid = ({
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
+        {pagination && <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
           count={rows.length}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={safePage}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           sx={{
@@ -203,7 +217,7 @@ const MasterDataGrid = ({
               fontSize: '0.8rem',
             }
           }}
-        />
+        />}
       </Paper>
     </Box>
   );

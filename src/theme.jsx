@@ -12,17 +12,17 @@ export const useColorMode = () => useContext(ColorModeContext);
 const getDesignTokens = (mode) => {
   const isLight = mode === 'light';
   
-  const systemBlue = isLight ? '#2563EB' : '#3B82F6';
-  const systemPurple = isLight ? '#4F46E5' : '#6366F1';
+  const systemBlue = isLight ? '#283B50' : '#DEC28D';
+  const systemPurple = isLight ? '#9B743C' : '#D3B783';
   
-  const backgroundDefault = isLight ? '#F8FAFC' : '#090A0F';
-  const backgroundPaper = isLight ? '#FFFFFF' : '#111318';
+  const backgroundDefault = isLight ? '#F8F7F4' : '#151B23';
+  const backgroundPaper = isLight ? '#FFFFFF' : '#1E2631';
   
   return {
     palette: {
       mode,
-      primary: { main: systemBlue, light: '#60A5FA', dark: '#1D4ED8', contrastText: '#FFFFFF' },
-      secondary: { main: systemPurple, light: '#818CF8', dark: '#3730A3', contrastText: '#FFFFFF' },
+      primary: { main: systemBlue, light: '#60778F', dark: '#1B2B3D', contrastText: isLight ? '#FFFFFF' : '#1D2631' },
+      secondary: { main: systemPurple, light: '#D9C398', dark: '#72542B', contrastText: '#FFFFFF' },
       accent: { main: '#D97706' },
       success: { main: '#10B981' },
       error: { main: '#EF4444' },
@@ -34,8 +34,8 @@ const getDesignTokens = (mode) => {
         glassBorder: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
       },
       text: {
-        primary: isLight ? '#0F172A' : '#F8FAFC',
-        secondary: isLight ? '#64748B' : '#94A3B8',
+        primary: isLight ? '#202B38' : '#F1F2F4',
+        secondary: isLight ? '#69717B' : '#A0ACBC',
       },
       divider: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
     },
@@ -66,10 +66,17 @@ const getDesignTokens = (mode) => {
       borderRadius: 12,
     },
     components: {
+      MuiTextField: { defaultProps: { fullWidth: true, variant: 'outlined' } },
+      MuiOutlinedInput: { styleOverrides: { root: { borderRadius: 10, minHeight: 48 } } },
+      MuiIconButton: { styleOverrides: { root: { minWidth: 44, minHeight: 44 } } },
+      MuiTableCell: { styleOverrides: { head: { backgroundColor: isLight ? '#F4F2ED' : '#252F3B', fontWeight: 600 }, body: { fontVariantNumeric: 'tabular-nums' } } },
       MuiButton: {
         styleOverrides: {
           root: {
             borderRadius: '8px',
+            minHeight: 44,
+            boxShadow: 'none',
+            '&:hover': { boxShadow: 'none' },
             textTransform: 'none',
             fontWeight: 600,
           },

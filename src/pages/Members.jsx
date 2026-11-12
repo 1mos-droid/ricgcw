@@ -1,70 +1,52 @@
+import Button from '../components/ui/kokonut/SlideTextButton';
+import WorkspacePageHeader from '../components/organisms/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { safeParseDate, calculateAge } from '../utils/dateUtils';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
   Box, 
   Typography, 
-  Card, 
-  Button, 
   TextField, 
   InputAdornment, 
-  Avatar, 
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   IconButton,
   useTheme,
-  Tooltip,
   Grid,
   useMediaQuery,
   Skeleton,
-  CircularProgress,
-  FormControl, 
-  Select, 
   MenuItem,
   alpha,
   Paper,
   Stack,
-  Divider,
-  ToggleButton,
-  ToggleButtonGroup,
-  Container,
   Menu,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TablePagination
 } from '@mui/material';
 import { 
   UserPlus, 
-  Printer, 
   Search, 
   MoreVertical, 
   Mail, 
-  Phone, 
-  MapPin,
   UserX,
-  Sparkles,
   LayoutGrid,
   Table as TableIcon,
   Download,
-  CalendarDays,
-  Building2,
-  Filter,
   FileText,
   FileSpreadsheet,
   Clock,
-  QrCode
+  QrCode,
+  Rows3
 } from 'lucide-react';
 import AddMemberDialog from '../components/AddMemberDialog';
 import MemberDetailsDialog from '../components/MemberDetailsDialog';
+import MemberDirectory from '../components/member/MemberDirectory';
+import ContinuousTabs from '../components/ui/watermelon/ContinuousTabs';
+import { normalizeDirectoryText, sortMembersAlphabetically } from '../utils/memberDirectory';
 import QRCode from 'react-qr-code';
 
 import { db } from '../firebase';
@@ -77,25 +59,26 @@ import * as XLSX from 'xlsx';
 import StatusBadge from '../components/atoms/StatusBadge';
 import UserAvatar from '../components/atoms/UserAvatar';
 import MasterDataGrid from '../components/molecules/MasterDataGrid';
-import DetailDrawer from '../components/molecules/DetailDrawer';
 import TableSkeleton from '../components/molecules/TableSkeleton';
 import EmptyState from '../components/molecules/EmptyState';
 import { createMember, updateMember, deleteMember, getMembers } from '../services/memberService';
 
 const Members = () => {
+  const [searchParams] = useSearchParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { filterData, showNotification, showConfirmation, userBranch, isBranchRestricted } = useWorkspace();
   
   // --- STATE ---
-  const [viewMode, setViewMode] = useState(isMobile ? 'grid' : 'table');
-
-  useEffect(() => {
-    if (isMobile) {
-      setViewMode('grid');
-    }
-  }, [isMobile]);
-  const [openAddMemberDialog, setOpenAddMemberDialog] = useState(false);
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('ricgcw.members.view');
+    return ['pills', 'grid', 'table'].includes(saved) ? saved : isMobile ? 'pills' : 'table';
+  });
+  const changeView = (value) => {
+    setViewMode(value);
+    localStorage.setItem('ricgcw.members.view', value);
+  };
+  const [openAddMemberDialog, setOpenAddMemberDialog] = useState(() => searchParams.get('action') === 'new');
   const [selectedMember, setSelectedMember] = useState(null);
   const [dialogTab, setDialogTab] = useState(0);
   const [members, setMembers] = useState([]);
@@ -109,28 +92,10 @@ const Members = () => {
   const [rowMenuAnchor, setRowMenuAnchor] = useState(null);
   const [rowMenuMember, setRowMenuMember] = useState(null);
 
-  // Grid view pagination states
-  const [gridPage, setGridPage] = useState(0);
-  const [gridRowsPerPage, setGridRowsPerPage] = useState(12);
-
-  const handleGridPageChange = (event, newPage) => {
-    setGridPage(newPage);
-  };
-
-  const handleGridRowsPerPageChange = (event) => {
-    setGridRowsPerPage(parseInt(event.target.value, 10));
-    setGridPage(0);
-  };
-
   // Page Title
   useEffect(() => {
     document.title = 'Member Directory | RICGCW';
   }, []);
-
-  // Reset grid page on filter changes
-  useEffect(() => {
-    setGridPage(0);
-  }, [searchTerm, selectedBranch, selectedStatus]);
 
   const handleRowMenuOpen = (event, member) => {
     event.stopPropagation();
@@ -391,154 +356,27 @@ const Members = () => {
   };
 
   const filteredMembers = useMemo(() => {
-    const environmentFiltered = filterData(members) || [];
-    const search = searchTerm.trim().toLowerCase();
-    const branch = selectedBranch ? selectedBranch.toLowerCase() : '';
-    const status = selectedStatus !== 'all' ? selectedStatus.toLowerCase() : '';
-
-    if (!search && !branch && !status) {
-      return environmentFiltered;
-    }
-
-    return environmentFiltered.filter(m => {
-      if (branch) {
-        const mBranch = m.branch ? m.branch.toLowerCase() : '';
-        if (mBranch !== branch) return false;
-      }
-      if (status) {
-        const mStatus = (m.status || 'active').toLowerCase();
-        if (mStatus !== status) return false;
-      }
-      if (search) {
-        const name = (m.name || '').toLowerCase();
-        const email = (m.email || '').toLowerCase();
-        const memberId = (m.memberId || '').toLowerCase();
-        return name.includes(search) || email.includes(search) || memberId.includes(search);
-      }
-      return true;
-    });
+    const search = normalizeDirectoryText(searchTerm);
+    const branch = normalizeDirectoryText(selectedBranch);
+    const status = selectedStatus === 'all' ? '' : normalizeDirectoryText(selectedStatus);
+    const authorized = filterData(members) || [];
+    return sortMembersAlphabetically(authorized.filter((member) => {
+      if (!member) return false;
+      if (branch && normalizeDirectoryText(member.branch) !== branch) return false;
+      if (status && normalizeDirectoryText(member.status || 'active') !== status) return false;
+      return !search || [member.name, member.email, member.memberId, member.phone]
+        .some((value) => normalizeDirectoryText(value).includes(search));
+    }));
   }, [members, searchTerm, selectedBranch, selectedStatus, filterData]);
-
-  const getStatusChip = (status = 'active') => {
-    const colors = {
-      active: { main: '#10B981', bg: alpha('#10B981', 0.08) },
-      inactive: { main: '#F59E0B', bg: alpha('#F59E0B', 0.08) },
-      discontinued: { main: '#EF4444', bg: alpha('#EF4444', 0.08) },
-    };
-    const color = colors[status.toLowerCase()] || colors.active;
-    return (
-      <Chip 
-        label={status} size="small"
-        sx={{ 
-          bgcolor: color.bg, color: color.main, fontWeight: 900, 
-          textTransform: 'uppercase', fontSize: '0.6rem', borderRadius: 1.5,
-          letterSpacing: 0.5, border: `1px solid ${alpha(color.main, 0.2)}`
-        }} 
-      />
-    );
+  const hasFilters = Boolean(searchTerm.trim() || (!isBranchRestricted && selectedBranch) || selectedStatus !== 'all');
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedBranch(isBranchRestricted ? userBranch : '');
+    setSelectedStatus('all');
   };
-
-  const renderMemberCard = (member, index) => (
-    <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={member.id}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: index * 0.05 }}
-      >
-        <Card 
-          onClick={() => handleOpenDetails(member)}
-          sx={{ 
-            p: 3, 
-            borderRadius: 6, 
-            cursor: 'pointer',
-            height: '100%',
-            position: 'relative',
-            overflow: 'hidden',
-            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-            background: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.paper, 0.8),
-            '&:hover': { 
-              transform: 'translateY(-10px)',
-              boxShadow: `0 20px 40px -12px ${alpha(theme.palette.primary.main, 0.15)}`,
-              borderColor: theme.palette.primary.main,
-              '& .member-avatar-container': { transform: 'scale(1.05) rotate(2deg)' }
-            }
-          }}
-        >
-          {/* Decorative Top Gradient */}
-          <Box sx={{ 
-            position: 'absolute', top: 0, left: 0, right: 0, height: 4, 
-            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-            opacity: 0.8
-          }} />
-
-          <Stack alignItems="center" spacing={2} sx={{ mb: 2.5 }}>
-            <Box className="member-avatar-container" sx={{ transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-                <Avatar 
-                sx={{ 
-                    width: 72, height: 72, 
-                    borderRadius: 4, 
-                    bgcolor: alpha(theme.palette.primary.main, 0.1), 
-                    color: theme.palette.primary.main,
-                    fontWeight: 900,
-                    fontSize: '1.75rem',
-                    boxShadow: `0 8px 20px -6px ${alpha(theme.palette.primary.main, 0.3)}`
-                }}
-                >
-                {member.name?.charAt(0).toUpperCase()}
-                </Avatar>
-            </Box>
-            <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: '-0.01em', mb: 0.5 }}>{member.name}</Typography>
-                <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                    <Typography variant="caption" color="primary" fontWeight={900} sx={{ letterSpacing: 1 }}>
-                    {member.memberId || 'NO ID'}
-                    </Typography>
-                    <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
-                    <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {member.branch || 'Main'}
-                    </Typography>
-                    {member.dob && (
-                      <>
-                        <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
-                        <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          {calculateAge(member.dob)} yrs
-                        </Typography>
-                      </>
-                    )}
-                </Stack>
-            </Box>
-            {getStatusChip(member.status)}
-          </Stack>
-
-          <Divider sx={{ my: 2, opacity: 0.3, borderStyle: 'dashed' }} />
-          
-          <Stack spacing={2}>
-             <Box 
-                onClick={(e) => { e.stopPropagation(); handleOpenDetails(member, 2); }}
-                sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1.5, 
-                    color: theme.palette.text.secondary,
-                    p: 1,
-                    borderRadius: 2,
-                    transition: 'all 0.2s',
-                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main } 
-                }}
-             >
-                <Mail size={16} />
-                <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: '0.8rem' }}>{member.email || 'No email'}</Typography>
-             </Box>
-             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary, px: 1 }}>
-                <Phone size={16} />
-                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8rem' }}>{member.phone || 'N/A'}</Typography>
-             </Box>
-          </Stack>
-        </Card>
-      </motion.div>
-    </Grid>
-  );
+  const visibleIds = new Set(filteredMembers.map((member) => member.id));
+  const selectedVisibleCount = selectedMemberIds.filter((id) => visibleIds.has(id)).length;
+  const selectAllVisible = () => setSelectedMemberIds((previous) => Array.from(new Set([...previous, ...filteredMembers.map((member) => member.id)])));
 
   // --- COLUMNS ---
   const columns = [
@@ -558,7 +396,7 @@ const Members = () => {
         <Stack direction="row" spacing={2} alignItems="center">
           <UserAvatar name={val} size={40} />
           <Box>
-            <Typography variant="subtitle2" fontWeight={800}>{val}</Typography>
+            <Typography variant="body2" fontWeight={600}>{val}</Typography>
             <Typography variant="caption" color="text.secondary">
               #{row.id?.toString().slice(-4)}
               {row.dob && ` • ${calculateAge(row.dob)} yrs old`}
@@ -626,241 +464,37 @@ const Members = () => {
   return (
     <Box sx={{ pb: 8 }}>
       
-      {/* --- HERO HEADER --- */}
-      <Box sx={{ 
-        py: { xs: 4, md: 6 }, 
-        mb: 4, 
-        textAlign: 'center',
-        position: 'relative',
-        borderRadius: '12px',
-        background: theme.palette.mode === 'light' 
-           ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
-           : alpha(theme.palette.primary.main, 0.05),
-        overflow: 'hidden'
-      }}>
-        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2 }}>
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-                <Chip icon={<Sparkles size={14} />} label="Global Directory" size="small" sx={{ mb: 2, fontWeight: 700, bgcolor: theme.palette.background.paper }} />
-                <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: '-0.03em', mb: 1 }}>
-                    Church Members
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-                    Manage and connect with the congregation. View profiles, track attendance eligibility, and update contact information.
-                </Typography>
-                
-                <Button 
-                  size="small" 
-                  startIcon={<Clock size={14} />} 
-                  onClick={syncMemberIds}
-                  sx={{ mt: 3, fontWeight: 700, borderRadius: 2 }}
-                  color="inherit"
-                >
-                  Sync Member IDs
-                </Button>
-            </motion.div>
-        </Container>
-        
-        {/* Background blobs */}
-        <Box sx={{ position: 'absolute', top: -100, left: '10%', width: 300, height: 300, borderRadius: '50%', background: alpha(theme.palette.primary.main, 0.05), filter: 'blur(60px)' }} />
-        <Box sx={{ position: 'absolute', top: 50, right: '10%', width: 200, height: 200, borderRadius: '50%', background: alpha(theme.palette.secondary.main, 0.05), filter: 'blur(40px)' }} />
-      </Box>
+      <WorkspacePageHeader section="People & community" title="Church Members" description="Manage profiles, stay connected, and care for every member." actions={<Button startIcon={<Clock size={14} />} onClick={syncMemberIds}>Sync Member IDs</Button>} />
 
-      {/* --- COMMAND BAR (Sticky) --- */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: { xs: 1.5, sm: 2 }, 
-          borderRadius: '12px', 
-          mb: 4, 
-          border: '1px solid var(--border-color)', 
-          bgcolor: alpha(theme.palette.background.paper, 0.8), 
-          backdropFilter: 'blur(20px)',
-          position: 'sticky',
-          top: 20,
-          zIndex: 10,
-          boxShadow: 'var(--neo-shadow-out)'
-        }}
-      >
-        <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, md: 3 }}>
-            <TextField
-              fullWidth
-              placeholder="Search directory..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={18} strokeWidth={2.5} color={theme.palette.primary.main} />
-                  </InputAdornment>
-                ),
-                sx: { 
-                    borderRadius: '8px', 
-                    height: 48,
-                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5),
-                    transition: 'all 0.3s',
-                    '&.Mui-focused': { boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.1)}` }
-                }
-              }}
-              variant="outlined"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-             <FormControl fullWidth size="medium">
-                <Select
-                  value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                  displayEmpty
-                  sx={{ 
-                    borderRadius: '8px', 
-                    height: 48,
-                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) 
-                  }}
-                >
-                  <MenuItem value="">All Branches</MenuItem>
-                  <MenuItem value="Langma">Langma</MenuItem>
-                  <MenuItem value="Mallam">Mallam</MenuItem>
-                  <MenuItem value="Kokrobitey">Kokrobitey</MenuItem>
-                  <MenuItem value="Diaspora">Diaspora</MenuItem>
-                </Select>
-
-             </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-             <FormControl fullWidth size="medium">
-                <Select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  sx={{ 
-                    borderRadius: '8px', 
-                    height: 48,
-                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5) 
-                  }}
-                >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </Select>
-             </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: { xs: 'stretch', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
-              <ToggleButtonGroup
-                value={viewMode}
-                exclusive
-                onChange={(e, v) => v && setViewMode(v)}
-                sx={{ 
-                    bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.5), 
-                    borderRadius: 4, 
-                    p: 0.5,
-                    height: 56,
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    flexGrow: { xs: 1, sm: 0 },
-                    display: 'flex',
-                    justifyContent: 'center'
-                }}
-              >
-                <ToggleButton value="grid" sx={{ px: 2, border: 'none', borderRadius: '12px !important', flexGrow: 1 }}><LayoutGrid size={18} /></ToggleButton>
-                <ToggleButton value="table" sx={{ px: 2, border: 'none', borderRadius: '12px !important', flexGrow: 1 }}><TableIcon size={18} /></ToggleButton>
-              </ToggleButtonGroup>
-
-              <Button 
-                variant="outlined" 
-                startIcon={<Download size={18} />}
-                onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                sx={{ 
-                    borderRadius: 4, 
-                    px: { xs: 2, lg: 3 }, 
-                    height: 56,
-                    fontWeight: 800, 
-                    borderWidth: 2, 
-                    borderColor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
-                    '&:hover': { 
-                        borderWidth: 2, 
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        borderColor: theme.palette.primary.main
-                    },
-                    flexGrow: { xs: 1, sm: 0 }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Export</Box>
-              </Button>
-              <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                  <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1.5, fontWeight: 600 }}><FileText size={18} /> Export as PDF</MenuItem>
-                  <MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1.5, fontWeight: 600 }}><FileSpreadsheet size={18} /> Export as Excel</MenuItem>
-              </Menu>
-
-              <Button 
-                onClick={() => setRegistrationQrOpen(true)}
-                startIcon={<QrCode size={20} />}
-                sx={{ 
-                    borderRadius: 4, 
-                    height: 56,
-                    px: { xs: 2, lg: 3 },
-                    fontWeight: 800,
-                    bgcolor: alpha(theme.palette.secondary.main, 0.08), 
-                    color: theme.palette.secondary.main,
-                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
-                    '&:hover': { 
-                        bgcolor: alpha(theme.palette.secondary.main, 0.15),
-                        transform: 'translateY(-2px)',
-                        boxShadow: `0 8px 16px -4px ${alpha(theme.palette.secondary.main, 0.2)}`
-                    },
-                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    flexGrow: { xs: 1, sm: 0 }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Join QR</Box>
-              </Button>
-
-              {selectedMemberIds.length > 0 && (
-                <Button 
-                  variant="contained" 
-                  color="error"
-                  startIcon={<UserX size={20} />}
-                  onClick={handleDeleteSelected}
-                  sx={{ 
-                      borderRadius: 4, 
-                      height: 56,
-                      px: { xs: 2, lg: 3 },
-                      fontWeight: 800,
-                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.error.main, 0.4)}`,
-                      '&:hover': { 
-                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.error.main, 0.5)}`,
-                          transform: 'translateY(-2px)'
-                      },
-                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      flexGrow: { xs: 1, sm: 0 }
-                  }}
-                >
-                  Delete ({selectedMemberIds.length})
-                </Button>
-              )}
-
-              <Button 
-                  variant="contained" 
-                  startIcon={<UserPlus size={22} />}
-                  onClick={() => setOpenAddMemberDialog(true)}
-                  sx={{ 
-                      borderRadius: 4, 
-                      height: 56, 
-                      px: { xs: 2, lg: 4 },
-                      fontWeight: 800,
-                      boxShadow: `0 12px 24px -6px ${alpha(theme.palette.primary.main, 0.4)}`,
-                      '&:hover': { 
-                          boxShadow: `0 16px 32px -8px ${alpha(theme.palette.primary.main, 0.5)}`,
-                          transform: 'translateY(-2px)'
-                      },
-                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      flexGrow: { xs: 2, sm: 0 }
-                  }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', lg: 'inline' } }}>Add Member</Box>
-                <Box component="span" sx={{ display: { xs: 'inline', lg: 'none' } }}>Add</Box>
-              </Button>
-          </Grid>
-        </Grid>
+      <Paper elevation={0} className="members-toolbar">
+        <TextField placeholder="Search directory..." label="Find a member" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search size={17} /></InputAdornment> } }} />
+        <TextField select label="Branch" value={selectedBranch} disabled={isBranchRestricted} onChange={(event) => setSelectedBranch(event.target.value)} slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true, renderValue: (value) => value || (isMobile ? 'All' : 'All branches') } }}>
+          <MenuItem value="">All branches</MenuItem>{['Langma', 'Mallam', 'Kokrobitey', 'Diaspora'].map((branch) => <MenuItem key={branch} value={branch}>{branch}</MenuItem>)}
+        </TextField>
+        <TextField select label="Status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)} slotProps={{ select: { renderValue: (value) => value === 'all' ? (isMobile ? 'All' : 'All statuses') : value.charAt(0).toUpperCase() + value.slice(1) } }}>
+          <MenuItem value="all">All statuses</MenuItem><MenuItem value="active">Active</MenuItem><MenuItem value="inactive">Inactive</MenuItem><MenuItem value="discontinued">Discontinued</MenuItem>
+        </TextField>
+        <div className="members-toolbar-actions">
+          <div><Button variant="text" startIcon={<Download size={15} />} onClick={(event) => setExportAnchorEl(event.currentTarget)}>Export</Button><Button variant="text" startIcon={<QrCode size={15} />} onClick={() => setRegistrationQrOpen(true)}>Join QR</Button>{hasFilters && <Button variant="text" onClick={clearFilters}>Clear filters</Button>}</div>
+          <Button variant="contained" startIcon={<UserPlus size={16} />} onClick={() => setOpenAddMemberDialog(true)}>Add Member</Button>
+        </div>
       </Paper>
+      <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+        <MenuItem onClick={() => handleExport('pdf')} sx={{ gap: 1.5 }}><FileText size={17} />Export as PDF</MenuItem><MenuItem onClick={() => handleExport('excel')} sx={{ gap: 1.5 }}><FileSpreadsheet size={17} />Export as Excel</MenuItem>
+      </Menu>
+      <div className="members-directory-summary">
+        <div><h2 aria-live="polite">{loading ? 'Loading directory…' : filteredMembers.length + (filteredMembers.length === 1 ? ' member' : ' members')}</h2><p>{hasFilters ? 'All matching members shown' : 'All members shown'} · A–Z by name{viewMode !== 'table' && ' · Jump to a letter below'}</p></div>
+        <ContinuousTabs label="Directory layout" value={viewMode} onChange={changeView} tabs={[
+          { id: 'pills', label: <span className="directory-view-label"><Rows3 size={15} aria-hidden="true" />Pills</span> },
+          { id: 'grid', label: <span className="directory-view-label"><LayoutGrid size={15} aria-hidden="true" />Grid</span> },
+          { id: 'table', label: <span className="directory-view-label"><TableIcon size={15} aria-hidden="true" />List</span> },
+        ]} />
+      </div>
+      {!loading && filteredMembers.length > 0 && <div className="members-selection">
+        <strong>{selectedMemberIds.length ? selectedMemberIds.length + ' selected' : 'Directory'}{selectedMemberIds.length > selectedVisibleCount ? ' · ' + (selectedMemberIds.length - selectedVisibleCount) + ' outside current filters' : ''}</strong>
+        <Button variant="text" size="small" onClick={selectAllVisible} disabled={selectedVisibleCount === filteredMembers.length}>Select all {hasFilters ? 'results' : 'members'}</Button>
+        {selectedMemberIds.length > 0 && <><Button variant="text" size="small" onClick={() => setSelectedMemberIds([])}>Clear selection</Button><Button variant="outlined" color="error" size="small" startIcon={<UserX size={15} />} onClick={handleDeleteSelected}>Delete ({selectedMemberIds.length})</Button></>}
+      </div>}
       {/* --- CONTENT AREA --- */}
       <AnimatePresence mode="wait">
         {loading ? (
@@ -878,40 +512,19 @@ const Members = () => {
             <EmptyState 
               icon={<UserX size={40} />}
               title="No members found"
-              description={searchTerm || selectedBranch || selectedStatus !== 'all' ? "No members match your active filters. Try adjusting your query or clear filters." : "Your congregation registry is empty. Add your first member to begin tracking attendance and engagement."}
-              actionLabel={searchTerm || selectedBranch || selectedStatus !== 'all' ? "Clear Filters" : "Add New Member"}
-              onAction={searchTerm || selectedBranch || selectedStatus !== 'all' ? () => { setSearchTerm(''); setSelectedBranch(''); setSelectedStatus('all'); } : () => setOpenAddMemberDialog(true)}
+              description={hasFilters ? "No members match your active filters. Try adjusting your query or clear filters." : "Your congregation registry is empty. Add your first member to begin tracking attendance and engagement."}
+              actionLabel={hasFilters ? "Clear Filters" : "Add New Member"}
+              onAction={hasFilters ? clearFilters : () => setOpenAddMemberDialog(true)}
             />
           </motion.div>
-        ) : viewMode === 'grid' ? (
-          <Box>
-            <Grid container spacing={3}>
-               {filteredMembers
-                 .slice(gridPage * gridRowsPerPage, gridPage * gridRowsPerPage + gridRowsPerPage)
-                 .map((member, idx) => renderMemberCard(member, idx))}
-            </Grid>
-            <TablePagination
-              rowsPerPageOptions={[12, 24, 48]}
-              component="div"
-              count={filteredMembers.length}
-              rowsPerPage={gridRowsPerPage}
-              page={gridPage}
-              onPageChange={handleGridPageChange}
-              onRowsPerPageChange={handleGridRowsPerPageChange}
-              sx={{
-                mt: 4,
-                borderTop: `1px solid ${theme.palette.divider}`,
-                '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                }
-              }}
-            />
-          </Box>
+        ) : viewMode !== 'table' ? (
+          <MemberDirectory members={filteredMembers} mode={viewMode} selectedIds={selectedMemberIds} onSelectionChange={setSelectedMemberIds} onOpen={handleOpenDetails} onMenu={handleRowMenuOpen} />
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <MasterDataGrid 
               columns={columns}
+              pagination={false}
+              sortable={false}
               rows={filteredMembers}
               selected={selectedMemberIds}
               onSelectionChange={setSelectedMemberIds}

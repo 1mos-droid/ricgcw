@@ -50,7 +50,7 @@ const DetailDrawer = ({
               </Typography>
             )}
           </Box>
-          <IconButton onClick={onClose} sx={{ color: 'text.secondary' }}>
+          <IconButton aria-label="Close details" onClick={onClose} sx={{ color: 'text.secondary' }}>
             <X size={20} />
           </IconButton>
         </Box>

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThemeProvider, createTheme } from '@mui/material';
 import Members from './Members';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock AuthContext (required by sub-components like MemberDetailsDialog)
 vi.mock('../context/AuthContext', () => ({
@@ -93,6 +94,7 @@ describe('Members Page - List View Details, Selection and Deletion', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockMembers = [
       { id: 'm1', memberId: 'M001', name: 'Kwame Mensah', email: 'kwame@example.com', phone: '1234567890', branch: 'Mallam', status: 'Active', createdAt: '2026-06-01T00:00:00Z', dob: '1990-01-01' },
       { id: 'm2', memberId: 'K002', name: 'Ama Osei', email: 'ama@example.com', phone: '0987654321', branch: 'Kokrobitey', status: 'Active', createdAt: '2026-06-02T00:00:00Z', dob: '1995-05-15' }
@@ -102,10 +104,49 @@ describe('Members Page - List View Details, Selection and Deletion', () => {
   const renderPage = () => {
     return render(
       <ThemeProvider theme={theme}>
-        <Members />
+        <MemoryRouter><Members /></MemoryRouter>
       </ThemeProvider>
     );
   };
+
+  it('shows every member in A–Z order without list pagination', async () => {
+    mockMembers = Array.from({ length: 30 }, (_, index) => ({ id: `m${index}`, name: `Member ${String(30 - index).padStart(2, '0')}`, status: 'Active' }));
+    renderPage();
+    await screen.findByText('Member 01');
+    expect(screen.getByText('Member 30')).toBeInTheDocument();
+    const rows = screen.getAllByRole('row');
+    expect(rows).toHaveLength(31);
+    expect(rows[1]).toHaveTextContent('Member 01');
+    expect(rows[30]).toHaveTextContent('Member 30');
+    expect(screen.queryByRole('button', { name: 'Go to next page' })).not.toBeInTheDocument();
+  }, 20000);
+
+  it('keeps all members visible in grid and pill modes and remembers the choice', async () => {
+    mockMembers = Array.from({ length: 26 }, (_, index) => ({ id: `m${index}`, name: `Member ${String(index + 1).padStart(2, '0')}`, branch: 'Mallam', status: 'Active' }));
+    renderPage();
+    await screen.findByText('Member 01');
+    fireEvent.click(screen.getByRole('tab', { name: 'Grid' }));
+    expect(screen.getAllByRole('button', { name: /^View Member/ })).toHaveLength(26);
+    expect(screen.getByText(/End of directory · 26 members/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Pills' }));
+    expect(screen.getAllByRole('button', { name: /^View Member/ })).toHaveLength(26);
+    expect(localStorage.setItem).toHaveBeenCalledWith('ricgcw.members.view', 'pills');
+    fireEvent.change(screen.getByPlaceholderText('Search directory...'), { target: { value: 'Member 26' } });
+    expect(screen.getAllByRole('button', { name: /^View Member/ })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('tab', { name: 'Grid' }));
+    expect(screen.getByRole('button', { name: 'View Member 26' })).toBeInTheDocument();
+  }, 20000);
+
+  it('opens a profile and keeps selection independent in pill view', async () => {
+    renderPage();
+    await screen.findByText('Ama Osei');
+    fireEvent.click(screen.getByRole('tab', { name: 'Pills' }));
+    fireEvent.click(screen.getByLabelText('Select Ama Osei'));
+    expect(screen.getByRole('button', { name: /Delete \(1\)/ })).toBeInTheDocument();
+    expect(screen.queryByText('Bio')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View Ama Osei' }));
+    await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('Ama Osei'));
+  }, 15000);
 
   it('renders in list view (table) by default on desktop', async () => {
     renderPage();

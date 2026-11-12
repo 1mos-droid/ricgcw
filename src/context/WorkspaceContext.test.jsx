@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WorkspaceProvider, useWorkspace } from './WorkspaceContext';
+import { sileo } from 'sileo';
 
 vi.mock('./AuthContext', () => ({
   useAuth: () => ({
@@ -47,6 +48,7 @@ const TestConsumer = () => {
 describe('WorkspaceContext notification & confirmation queue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sileo.clear();
   });
 
   it('renders children and provides showNotification', () => {

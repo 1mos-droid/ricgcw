@@ -35,7 +35,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { 
   ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis, BarChart, Bar, Legend
 } from 'recharts';
@@ -50,6 +50,7 @@ import { CupertinoSlidingSegmentedControl, CupertinoButton, CupertinoCard } from
 // Sub-components
 import MemberDashboardView from '../components/organisms/MemberDashboardView';
 import MetricCard from '../components/organisms/MetricCard';
+import WorkspaceOverviewHeader from '../components/organisms/WorkspaceOverviewHeader';
 import TrendChartCard from '../components/organisms/TrendChartCard';
 import UpcomingEventsWidget from '../components/organisms/UpcomingEventsWidget';
 import RecentActivityFeed from '../components/organisms/RecentActivityFeed';
@@ -560,70 +561,14 @@ const Dashboard = () => {
       animate="show"
       style={{ paddingBottom: '3rem' }}
     >
-      {/* 1. WELCOME BANNER */}
-      <motion.div variants={itemVariants}>
-        <Paper elevation={0} className="dashboard-welcome-banner">
-          <Box sx={{ position: 'relative', zIndex: 2, maxWidth: { md: '70%' } }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-              <Box sx={{ bgcolor: 'var(--system-blue)', color: '#fff', px: 1, py: 0.25, borderRadius: 1, fontWeight: 900, fontSize: '0.6rem', letterSpacing: 1 }}>
-                OFFICIAL PORTAL
-              </Box>
-              <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase' }}>
-                {format(new Date(), 'EEEE, MMMM do')}
-              </Typography>
-            </Stack>
-            
-            <Typography variant="h5" component="h2" sx={{
-                fontWeight: 900,
-                mb: 1,
-                letterSpacing: '-0.02em',
-                fontSize: { xs: '1.4rem', md: '1.8rem' },
-                lineHeight: 1.2,
-                color: 'var(--text-primary)'
-            }}>
-              {dynamicGreeting.timeGreeting}, {workspaceContext?.userRole === 'admin' ? 'Administrator' : 'Minister'}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'var(--text-secondary)', fontSize: { xs: '0.85rem', md: '0.9rem' }, fontWeight: 650, lineHeight: 1.4 }}>
-              Governing the <Box component="span" sx={{ fontWeight: 800, color: 'var(--system-blue)' }}>{workspace === 'main' ? 'Rhema Global Sanctuary' : workspace}</Box> with excellence. ({dynamicGreeting.randomMsg})
-            </Typography>
-          </Box>
-
-          <Box sx={{ mt: { xs: 3, md: 0 }, display: 'flex', gap: 2, position: 'relative', zIndex: 2, width: { xs: '100%', md: 'auto' }, alignItems: 'center' }}>
-            <Chip 
-              icon={<Activity size={14} color="var(--system-green)" />} 
-              label="SYSTEM ONLINE" 
-              sx={{ 
-                display: { xs: 'none', lg: 'flex' }, 
-                bgcolor: 'rgba(52, 199, 89, 0.08)', 
-                color: 'var(--system-green)', 
-                fontWeight: 800, 
-                fontSize: '0.7rem',
-                border: '1px solid rgba(52, 199, 89, 0.15)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: 1.5
-              }} 
-            />
-            <CupertinoButton 
-              onClick={() => navigate('/members')} 
-              variant="filled" 
-              color="primary"
-              sx={{ 
-                px: { md: 4 },
-                py: 1.25,
-                borderRadius: 2,
-                fontSize: '0.9rem',
-                height: 40
-              }}
-            >
-              <Plus size={16} strokeWidth={3} /> Add Member
-            </CupertinoButton>
-          </Box>
-
-          {/* Abstract Decorations */}
-          <Box className="glow-decor-1" />
-          <Box className="glow-decor-2" />
-        </Paper>
-      </motion.div>
+      <WorkspaceOverviewHeader
+        greeting={dynamicGreeting.timeGreeting}
+        name={user?.name?.split(' ')[0] || (workspaceContext?.userRole === 'admin' ? 'Administrator' : 'Minister')}
+        department={workspace === 'main' ? 'Main Sanctuary' : workspace}
+        date={format(new Date(), 'EEEE, d MMMM')}
+        onAddMember={() => navigate('/members?action=new')}
+        onAttendance={() => navigate('/attendance')}
+      />
 
       {/* 1.5 SUNDAY SERVICE QUICK ACTIONS BAR */}
       <motion.div variants={itemVariants}>

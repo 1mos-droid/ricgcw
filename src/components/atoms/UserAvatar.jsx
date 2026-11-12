@@ -19,8 +19,8 @@ const UserAvatar = ({ name = '', src = '', size = 40, ...props }) => {
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const hue = hash % 360;
-    return `hsl(${hue}, 60%, ${theme.palette.mode === 'light' ? '45%' : '65%'})`;
+    const tones = theme.palette.mode === 'light' ? ['#EAE3D6', '#E1E6EA', '#E7E8E4'] : ['#3E4652', '#464036', '#374747'];
+    return tones[Math.abs(hash) % tones.length];
   };
 
   const backgroundColor = src ? 'transparent' : getColorFromName(name);
@@ -33,11 +33,11 @@ const UserAvatar = ({ name = '', src = '', size = 40, ...props }) => {
         width: size,
         height: size,
         fontSize: size * 0.4,
-        fontWeight: 800,
+        fontWeight: 600,
         bgcolor: backgroundColor,
-        color: '#FFFFFF',
+        color: theme.palette.text.primary,
         border: `2px solid ${theme.palette.background.glassBorder}`,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        boxShadow: 'none',
         ...props.sx,
       }}
       {...props}

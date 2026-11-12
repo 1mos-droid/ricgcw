@@ -1,0 +1,13 @@
+.mobile-workspace-header { width: 100%; min-width: 0; background: var(--bg-paper); color: var(--text-primary); }
+.mobile-header-primary { height: 64px; padding-inline: 16px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mobile-header-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mobile-header-brand img { flex-shrink: 0; object-fit: contain; }
+.mobile-header-brand > div { display: grid; gap: 3px; min-width: 0; }
+.mobile-header-brand strong { font-size: 14px; font-weight: 700; line-height: 1.2; }
+.mobile-header-brand span { font-size: 10px; line-height: 1.4; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mobile-header-actions { display: flex; align-items: center; flex-shrink: 0; gap: 0; }
+.mobile-header-actions .MuiIconButton-root { width: 44px; height: 44px; padding: 6px; color: var(--text-secondary); }
+.mobile-header-campus { height: 48px; display: flex; align-items: center; gap: 12px; padding-inline: 18px 16px; border-top: 1px solid var(--border-color); background: var(--surface-inset, var(--bg-default)); }
+.mobile-header-campus > span { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+.mobile-header-campus .MuiInputBase-root { flex: 1; min-width: 0; min-height: 36px; height: 36px; font-size: 11px; background: var(--bg-paper); border-radius: 6px; }
+.mobile-header-campus .MuiSelect-select { padding: 7px 32px 7px 10px; }

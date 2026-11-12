@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, Stack, Link as MuiLink, useTheme, alpha } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ShieldCheck, Cookie, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -35,18 +35,19 @@ const CookieConsent = () => {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
           sx={{
-            position: 'fixed',
-            bottom: { xs: 16, sm: 24 },
-            left: { xs: 16, sm: 24 },
-            right: { xs: 16, sm: 'auto' },
+            position: { xs: 'relative', sm: 'fixed' },
+            m: { xs: 2, sm: 0 },
+            mb: { xs: 'max(24px, env(safe-area-inset-bottom))', sm: 0 },
+            bottom: { xs: 'auto', sm: 24 },
+            left: { xs: 'auto', sm: 24 },
+            right: 'auto',
             maxWidth: { sm: 520 },
-            zIndex: 9999,
+            zIndex: theme.zIndex.snackbar,
             p: { xs: 2.5, sm: 3 },
             borderRadius: '12px',
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(28, 28, 30, 0.95)' : 'rgba(255, 255, 255, 0.96)',
-            backdropFilter: 'blur(20px)',
+            bgcolor: 'background.paper',
             border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
             boxShadow: theme.palette.mode === 'dark'
               ? '0 16px 36px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4)'
@@ -85,6 +86,8 @@ const CookieConsent = () => {
                   cursor: 'pointer',
                   color: 'text.secondary',
                   p: 0.5,
+                  minWidth: 44,
+                  minHeight: 44,
                   display: 'flex',
                   alignItems: 'center',
                   '&:hover': { color: 'text.primary' }

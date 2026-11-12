@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { Box, Typography, Card, useTheme, Skeleton, Grid, alpha, Stack, Chip, Container } from '@mui/material';
 import { 

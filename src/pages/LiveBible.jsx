@@ -23,7 +23,7 @@ import {
   Chip,
   Button
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
   ChevronRight, 

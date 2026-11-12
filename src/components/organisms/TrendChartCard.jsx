@@ -27,10 +27,10 @@ const TrendChartCard = ({
   const theme = useTheme();
 
   return (
-    <CupertinoCard sx={{ height: '100%' }}>
+    <CupertinoCard sx={{ height: '100%', p: 0 }}>
       <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 900 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
             {title}
           </Typography>
           <Select

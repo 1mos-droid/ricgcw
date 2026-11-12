@@ -60,7 +60,7 @@ describe('TopAppBar Upgrades', () => {
 
   it('renders system health operational indicator', () => {
     renderTopAppBar();
-    expect(screen.getByText(/System: Healthy/i)).toBeInTheDocument();
+    expect(screen.getByText(/Church workspace/i)).toBeInTheDocument();
   });
 
   it('renders campus switcher dropdown and handles change', () => {
@@ -85,6 +85,22 @@ describe('TopAppBar Upgrades', () => {
     expect(searchButton).toBeInTheDocument();
   });
 
+  it('moves secondary controls into an overflow menu on mobile', () => {
+    renderTopAppBar({ isMobile: true });
+    expect(screen.queryByRole('button', { name: /toggle theme mode/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open account menu' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More header actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Toggle theme mode' }));
+    expect(mockToggleColorMode).toHaveBeenCalled();
+  });
+
+  it('retains the mobile campus selector on its own row', () => {
+    renderTopAppBar({ isMobile: true });
+    const selector = screen.getByLabelText('Select Campus');
+    expect(selector.closest('.mobile-header-campus')).toBeInTheDocument();
+    expect(selector.closest('.mobile-header-primary')).toBeNull();
+  });
+
   it('does not render search icon button on desktop screen', () => {
     renderTopAppBar({ isMobile: false });
     const searchButton = screen.queryByRole('button', { name: /open search/i });
@@ -93,7 +109,7 @@ describe('TopAppBar Upgrades', () => {
 
   it('does not render system health text on mobile screen', () => {
     renderTopAppBar({ isMobile: true });
-    expect(screen.queryByText(/System: Healthy/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Church workspace/i)).not.toBeInTheDocument();
   });
 
   it('opens search command palette on Cmd+K keyboard shortcut', () => {

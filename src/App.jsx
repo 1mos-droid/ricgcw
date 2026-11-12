@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import './design-system.css';
+import { MotionConfig } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 
 // Component Imports
@@ -20,12 +22,14 @@ const ScrollToTop = () => {
 function App() {
   return (
     <ThemeConfig>
+      <MotionConfig reducedMotion="user">
       <ScrollToTop />
       <AppLayout>
         <AppRouter />
       </AppLayout>
       <PWAPrompt />
       <CookieConsent />
+      </MotionConfig>
     </ThemeConfig>
   );
 }

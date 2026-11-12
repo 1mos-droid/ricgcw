@@ -137,7 +137,7 @@ describe('Dashboard Component TDD Checks', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/OFFICIAL PORTAL/i)).toBeInTheDocument();
+      expect(screen.getByText(/Church overview/i)).toBeInTheDocument();
     });
 
     // Check greeting

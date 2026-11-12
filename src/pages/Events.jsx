@@ -1,5 +1,7 @@
+import Button from '../components/ui/kokonut/SlideTextButton';
+import WorkspacePageHeader from '../components/organisms/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { format } from 'date-fns';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { 
@@ -7,7 +9,6 @@ import {
   Typography, 
   Grid, 
   Card, 
-  Button, 
   TextField, 
   Chip,
   IconButton,
@@ -240,28 +241,7 @@ const Events = () => {
   return (
     <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible" sx={{ pb: 8 }}>
       
-      {/* --- HERO HEADER --- */}
-      <Box sx={{ 
-        py: { xs: 4, md: 6 }, 
-        mb: 6, 
-        textAlign: 'center',
-        position: 'relative',
-        borderRadius: '12px',
-        background: theme.palette.mode === 'light' 
-           ? `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.default, 0)} 100%)`
-           : alpha(theme.palette.primary.main, 0.05),
-        overflow: 'hidden'
-      }}>
-        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2 }}>
-            <Chip icon={<CalendarIcon size={14} />} label={format(new Date(), 'MMMM yyyy')} size="small" sx={{ mb: 2, fontWeight: 700, bgcolor: theme.palette.background.paper }} />
-            <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: '-0.03em', mb: 1 }}>
-                Event Schedule
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-                Plan, manage, and track upcoming church activities and services.
-            </Typography>
-        </Container>
-      </Box>
+      <WorkspacePageHeader section="Gatherings & ministry" title="Event Schedule" description="Plan the services, gatherings, and moments that bring us together." />
 
       <Grid container spacing={4}>
         

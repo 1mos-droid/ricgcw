@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, useTheme } from '@mui/material';
+import SlideTextButton from '../ui/kokonut/SlideTextButton';
 
 const ActionButton = ({ variant = 'primary', size = 'medium', children, sx = {}, ...props }) => {
   const theme = useTheme();
@@ -53,14 +54,15 @@ const ActionButton = ({ variant = 'primary', size = 'medium', children, sx = {},
   };
 
   const { variant: muiVariant, color, sx: variantSx } = getVariantStyles();
+  const Component = variant === 'primary' || variant === 'secondary' ? SlideTextButton : Button;
 
   return (
-    <Button
+    <Component
       variant={muiVariant}
       color={color}
       size={size}
       sx={{
-        fontWeight: 800,
+        fontWeight: 600,
         textTransform: 'none',
         borderRadius: '10px',
         ...variantSx,
@@ -69,7 +71,7 @@ const ActionButton = ({ variant = 'primary', size = 'medium', children, sx = {},
       {...props}
     >
       {children}
-    </Button>
+    </Component>
   );
 };
 

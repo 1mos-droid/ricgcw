@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import UserAvatar from '../atoms/UserAvatar';
 
@@ -75,7 +75,7 @@ const SidebarNav = ({
   }, [navItems]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'transparent' }}>
+    <Box className="workspace-sidebar" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header Logo */}
       <Box sx={{ display: 'flex', alignItems: 'center', padding: theme.spacing(0, 3), height: 72, borderBottom: '1px solid var(--border-color)', justifyContent: 'space-between' }}>
         <Stack direction="row" alignItems="center" spacing={2}>
@@ -139,8 +139,9 @@ const SidebarNav = ({
                         component={Link} 
                         to={item.path} 
                         selected={isActive}
+                        aria-current={isActive ? 'page' : undefined}
                         sx={{
-                          height: 40,
+                          minHeight: 44,
                           py: 0,
                           px: 1.5,
                           borderRadius: '8px',

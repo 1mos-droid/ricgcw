@@ -100,11 +100,10 @@ const SmartFilterBar = ({
         width: '100%', 
         mb: 4,
         p: 2.5,
-        borderRadius: 5,
-        bgcolor: alpha(theme.palette.background.paper, 0.8),
-        backdropFilter: 'blur(20px)',
-        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-        boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.02)}`
+        borderRadius: '10px',
+        bgcolor: 'background.paper',
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: 'none'
       }}
     >
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: hasActiveFilters ? 2 : 0 }}>
@@ -135,7 +134,7 @@ const SmartFilterBar = ({
                 </InputAdornment>
               ),
               sx: { 
-                borderRadius: 3.5, 
+                borderRadius: '7px',
                 height: 56,
                 bgcolor: theme.palette.mode === 'light' ? '#fff' : alpha(theme.palette.background.default, 0.4)
               }

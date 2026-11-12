@@ -34,7 +34,7 @@ import {
   ArrowRight,
   Heart
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../firebase';
 import { collection, getDocs, doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';

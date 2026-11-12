@@ -2,7 +2,7 @@
 
 /* 1. Welcome Banner Styles (Admin & Member) */
 .dashboard-welcome-banner {
-  padding: 20px 24px;
+  padding: 32px;
   margin-bottom: 24px;
   border-radius: 12px;
   position: relative;
@@ -14,6 +14,7 @@
   gap: 16px;
   border: 1px solid var(--border-color) !important;
   background: var(--bg-paper) !important;
+  border-top: 3px solid var(--system-blue) !important;
   box-shadow: var(--neo-shadow-out) !important;
   transition: border-color 0.2s ease;
 }

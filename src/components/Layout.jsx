@@ -20,7 +20,7 @@ import {
   Avatar,
   Toolbar
 } from '@mui/material';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 import { useColorMode } from '../theme';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -347,7 +347,7 @@ const AppLayout = ({ children }) => {
           <Paper 
             sx={{ 
                 position: 'fixed', 
-                bottom: 12, 
+                bottom: 'max(12px, env(safe-area-inset-bottom))',
                 left: 12, 
                 right: 12, 
                 zIndex: theme.zIndex.drawer + 2,
@@ -371,7 +371,6 @@ const AppLayout = ({ children }) => {
                 sx={{
                   borderRadius: '16px',
                   background: 'var(--bg-paper)',
-                  backdropFilter: 'blur(30px) saturate(180%)',
                   border: '1px solid var(--border-color)',
                   boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.08)',
                   height: 60,
@@ -416,8 +415,8 @@ const AppLayout = ({ children }) => {
           </>
       )}
 
-      <Main open={open}>
-        <Toolbar sx={{ height: { xs: 70, md: 90 } }} /> {/* Spacer */}
+      <Main open={open} sx={{ '--workspace-header-height': isMobile ? (userRole === 'admin' || userRole === 'developer' ? '112px' : '64px') : '72px' }}>
+        <Toolbar sx={{ height: isMobile ? `calc(${userRole === 'admin' || userRole === 'developer' ? 112 : 64}px + env(safe-area-inset-top))` : 90 }} /> {/* Match the actual fixed header. */}
         {children}
       </Main>
     </Box>

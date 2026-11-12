@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
-import { Snackbar, Alert } from '@mui/material';
-import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { sileo, Toaster } from 'sileo';
+import 'sileo/styles.css';
+import { MotionConfig } from 'motion/react';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
@@ -79,12 +80,12 @@ export const WorkspaceProvider = ({ children }) => {
   const userRole = useMemo(() => mimicData?.role || user?.role || 'guest', [user, mimicData]);
 
   // --- Global Notification State ---
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info', duration: 5000 });
   const [confirmation, setConfirmation] = useState({ open: false, title: '', message: '', onConfirm: () => {}, severity: 'error' });
 
   const showNotification = useCallback((message, severity = 'info', duration = 5000) => {
-    setNotification({ open: true, message, severity, duration });
-  }, [setNotification]);
+    const notify = { success: sileo.success, error: sileo.error, warning: sileo.warning, info: sileo.info }[severity] || sileo.info;
+    return notify({ title: message, duration, fill: 'var(--bg-paper)', styles: { title: 'workspace-toast-title' } });
+  }, []);
 
   const showConfirmation = useCallback(({ title, message, onConfirm, severity = 'error' }) => {
     setConfirmation({ open: true, title, message, onConfirm, severity });
@@ -168,99 +169,7 @@ export const WorkspaceProvider = ({ children }) => {
     <WorkspaceContext.Provider value={value}>
       {children}
       
-      {/* Global Notification Component */}
-      <Snackbar 
-        open={notification.open} 
-        autoHideDuration={notification.duration || 5000} 
-        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        sx={{
-          zIndex: 99999,
-          '&.MuiSnackbar-root': {
-            bottom: { xs: 96, sm: 24 },
-            right: { xs: 16, sm: 24 },
-            left: { xs: 16, sm: 'auto' }
-          }
-        }}
-      >
-        <Alert 
-          onClose={() => setNotification({ ...notification, open: false })} 
-          severity={notification.severity} 
-          iconMapping={{
-            error: <AlertCircle size={20} color="var(--system-red)" />,
-            warning: <AlertTriangle size={20} color="var(--system-orange)" />,
-            success: <CheckCircle2 size={20} color="var(--system-green)" />,
-            info: <Info size={20} color="var(--system-blue)" />,
-          }}
-          sx={{
-            width: '100%',
-            maxWidth: { xs: '100%', sm: 420 },
-            borderRadius: '20px',
-            background: 'var(--bg-paper)',
-            backdropFilter: 'blur(30px) saturate(180%)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--neo-shadow-out), var(--glass-glow)',
-            color: 'var(--text-primary)',
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            alignItems: 'center',
-            py: 1.5,
-            px: 2.5,
-            position: 'relative',
-            overflow: 'hidden',
-            fontFamily: 'var(--font-stack)',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: '6px',
-              backgroundColor: 
-                notification.severity === 'error' ? 'var(--system-red)' :
-                notification.severity === 'warning' ? 'var(--system-orange)' :
-                notification.severity === 'success' ? 'var(--system-green)' :
-                'var(--system-blue)',
-              boxShadow: 
-                notification.severity === 'error' ? '0 0 12px var(--system-red)' :
-                notification.severity === 'warning' ? '0 0 12px var(--system-orange)' :
-                notification.severity === 'success' ? '0 0 12px var(--system-green)' :
-                '0 0 12px var(--system-blue)',
-            },
-            '& .MuiAlert-icon': {
-              marginRight: 2,
-              fontSize: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 
-                notification.severity === 'error' ? 'rgba(255, 59, 48, 0.12)' :
-                notification.severity === 'warning' ? 'rgba(255, 149, 0, 0.12)' :
-                notification.severity === 'success' ? 'rgba(52, 199, 89, 0.12)' :
-                'rgba(0, 122, 255, 0.12)',
-              borderRadius: '50%',
-              p: 0.75,
-            },
-            '& .MuiAlert-message': {
-              padding: '6px 0',
-              lineHeight: 1.4,
-            },
-            '& .MuiAlert-action': {
-              paddingLeft: 2,
-              '& .MuiIconButton-root': {
-                color: 'var(--text-secondary)',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  color: 'var(--text-primary)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                }
-              }
-            }
-          }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
+      <MotionConfig reducedMotion="user"><Toaster position="top-center" offset={{ top: 'max(20px, env(safe-area-inset-top))' }} options={{ roundness: 14 }} /></MotionConfig>
 
       {/* Global Confirmation Dialog */}
       <ConfirmationDialog 
