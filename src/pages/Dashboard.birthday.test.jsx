@@ -30,6 +30,8 @@ const mockAddDoc = vi.fn();
 vi.mock('firebase/firestore', () => {
   return {
     collection: vi.fn((db, path) => ({ path })),
+    query: vi.fn((colRef) => colRef),
+    where: vi.fn(),
     getDocs: vi.fn((colRef) => {
       let data = [];
       if (colRef.path === 'members') data = mockMembers;

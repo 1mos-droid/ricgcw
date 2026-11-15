@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged, 
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendEmailVerification
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, provisioningAuth, db } from '../firebase';
@@ -20,6 +21,9 @@ const LEGACY_FALLBACK_CODES = [
   'auth/user-not-found',
   'auth/wrong-password',
 ];
+
+// Roles that unlock staff data. Mirrors isStaff() in firestore.rules.
+const STAFF_ROLES = ['developer', 'admin', 'branch_admin'];
 
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
 
@@ -71,78 +75,76 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const email = firebaseUser.email;
-      const cleanEmail = (email || '').toLowerCase();
+      const now = new Date().toISOString();
 
-      // Priority 1: Check Firestore for detailed profile
       const userDoc = await getDoc(doc(db, 'users', email));
       let userData;
 
-      const firebaseMetadata = {
-        firebaseUid: firebaseUser.uid,
+      // Only fields a user is allowed to change on their own profile
+      // (see users/{email} in firestore.rules). Roles are never written here.
+      const activity = {
         verified: firebaseUser.emailVerified || false,
-        accessedAt: new Date().toISOString(),
-        lastActive: new Date().toISOString()
+        accessedAt: now,
+        lastActive: now
       };
 
       if (userDoc.exists()) {
         const fireData = userDoc.data();
-        let role = fireData.role || 'guest';
-        const labels = fireData.labels || [];
-        const isDev = labels.includes('developer') || cleanEmail === 'isemuk8@gmail.com';
-        const isAdminLabel = labels.includes('admin') || cleanEmail === 'innercourtch@gmail.com';
-        
-        // Developer / Admin overrides
-        if (isDev) role = 'developer';
-        else if (isAdminLabel && role !== 'developer') role = 'admin';
+        const grantedRole = fireData.role || 'guest';
+
+        // A staff role only applies once this login is tied to the profile:
+        // linked before the rules were tightened, or email verified since.
+        // Until then the security rules treat the account as a guest too.
+        const trusted = firebaseUser.emailVerified || fireData.firebaseUid === firebaseUser.uid;
+        const needsEmailVerification = STAFF_ROLES.includes(grantedRole) && !trusted;
 
         userData = {
-          email: email,
-          role: role,
+          registration: fireData.createdAt || now,
+          appwriteId: '',
+          ...fireData,
+          email,
+          role: needsEmailVerification ? 'guest' : grantedRole,
+          pendingRole: needsEmailVerification ? grantedRole : null,
+          needsEmailVerification,
           branch: fireData.branch || 'all',
           name: fireData.name || firebaseUser.displayName || '',
-          labels: labels,
+          labels: fireData.labels || [],
           status: fireData.status || 'Active',
-          registration: fireData.registration || fireData.createdAt || new Date().toISOString(),
-          appwriteId: fireData.appwriteId || '',
-          ...fireData,
-          ...firebaseMetadata
+          firebaseUid: firebaseUser.uid,
+          ...activity
         };
 
-        // Sync back to Firestore with fresh metadata
-        await setDoc(doc(db, 'users', email), { 
-          role: userData.role,
-          name: userData.name,
-          ...firebaseMetadata,
-          status: userData.status
-        }, { merge: true });
+        try {
+          await setDoc(doc(db, 'users', email), activity, { merge: true });
+        } catch (activityErr) {
+          console.warn('Profile activity sync note:', activityErr?.code || activityErr?.message);
+        }
       } else {
-        // Priority 2: Use defaults if Firestore entry missing
-        userData = {
-          email: email,
-          role: cleanEmail === 'isemuk8@gmail.com' ? 'developer' : (cleanEmail === 'innercourtch@gmail.com' ? 'admin' : 'guest'),
+        // No registry entry yet: seed an unprivileged one. An administrator
+        // grants roles from User Management.
+        const seed = {
+          email,
+          role: 'guest',
           branch: 'all',
           name: firebaseUser.displayName || '',
-          labels: cleanEmail === 'isemuk8@gmail.com' ? ['developer'] : [],
-          status: 'Active',
-          registration: new Date().toISOString(),
-          ...firebaseMetadata
+          labels: [],
+          status: 'Pending',
+          registration: now,
+          createdAt: now,
+          ...activity
         };
-        
-        // Seed Firestore
-        await setDoc(doc(db, 'users', email), {
-          ...userData,
-          createdAt: new Date().toISOString()
-        }, { merge: true });
+        await setDoc(doc(db, 'users', email), seed, { merge: true });
+        userData = { ...seed, firebaseUid: firebaseUser.uid, needsEmailVerification: false, pendingRole: null };
       }
 
       setUser(userData);
       saveToLocal(userData);
       return userData;
     } catch (err) {
-      console.error("Profile Sync Error:", err);
+      console.error('Profile Sync Error:', err?.code || err?.message);
       const fallbackUser = {
         email: firebaseUser.email,
-        role: firebaseUser.email?.toLowerCase() === 'isemuk8@gmail.com' ? 'developer' : 'guest',
+        role: 'guest',
         branch: 'all',
         name: firebaseUser.displayName || '',
         firebaseUid: firebaseUser.uid
@@ -153,10 +155,16 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // login/signup sync the profile themselves; the auth listener must not race
+  // them (it would seed a blank profile before signup writes the real one).
+  const authFlowActive = useRef(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        await syncUserProfile(firebaseUser);
+        if (!authFlowActive.current) {
+          await syncUserProfile(firebaseUser);
+        }
       } else {
         if (localStorage.getItem('isAuthenticated') === 'true') {
           clearLocal();
@@ -168,6 +176,14 @@ export const AuthProvider = ({ children }) => {
 
     return () => unsubscribe();
   }, [syncUserProfile]);
+
+  const sendVerificationQuietly = async (firebaseUser) => {
+    try {
+      await sendEmailVerification(firebaseUser);
+    } catch (verifyErr) {
+      console.warn('Verification email note:', verifyErr?.code || verifyErr?.message);
+    }
+  };
 
   /**
    * Verifies the password against Appwrite and, if it is correct, creates the
@@ -208,15 +224,17 @@ export const AuthProvider = ({ children }) => {
       if (displayName) {
         await updateProfile(firebaseUser, { displayName });
       }
-      await setDoc(doc(db, 'users', cleanEmail), {
-        firebaseUid: firebaseUser.uid,
-        migratedToFirebase: true,
-        migratedAt: new Date().toISOString(),
-        lastActive: new Date().toISOString()
-      }, { merge: true });
+      if (existingDoc.exists()) {
+        await setDoc(doc(db, 'users', cleanEmail), {
+          migratedToFirebase: true,
+          migratedAt: new Date().toISOString(),
+          lastActive: new Date().toISOString()
+        }, { merge: true });
+      }
     } catch (syncErr) {
       console.warn('Legacy migration profile sync note:', syncErr?.message);
     }
+    await sendVerificationQuietly(firebaseUser);
 
     return firebaseUser;
   };
@@ -236,6 +254,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(message);
     }
 
+    authFlowActive.current = true;
     try {
       let firebaseUser = null;
 
@@ -257,6 +276,7 @@ export const AuthProvider = ({ children }) => {
       setError(message);
       throw new Error(message);
     } finally {
+      authFlowActive.current = false;
       setLoading(false);
     }
   };
@@ -276,40 +296,53 @@ export const AuthProvider = ({ children }) => {
       throw new Error(message);
     }
 
+    authFlowActive.current = true;
     try {
-      const role = branch === 'Overseer' ? 'admin' : 'branch_admin';
+      // Self-registration never grants staff access: the chosen branch is
+      // recorded as a request for an administrator to approve.
+      const requestedRole = branch === 'Overseer' ? 'admin' : 'branch_admin';
       const actualBranch = branch === 'Overseer' ? 'all' : branch;
+      const now = new Date().toISOString();
 
       // 1. Create Firebase Auth Account
       const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
       await updateProfile(userCred.user, { displayName: name });
+      await sendVerificationQuietly(userCred.user);
 
-      // 2. Seed into Firestore
-      await setDoc(doc(db, 'users', cleanEmail), {
-        name,
-        email: cleanEmail,
-        role,
-        branch: actualBranch,
-        status: 'Active',
-        firebaseUid: userCred.user.uid,
-        migratedToFirebase: true,
-        lastActive: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      });
+      // 2. Seed the registry entry, unless an administrator (or the legacy
+      //    system) already created one for this email. That entry keeps its
+      //    role and takes effect once the email address is verified.
+      const existing = await getDoc(doc(db, 'users', cleanEmail));
+      if (!existing.exists()) {
+        await setDoc(doc(db, 'users', cleanEmail), {
+          name,
+          email: cleanEmail,
+          role: 'guest',
+          labels: [],
+          branch: actualBranch,
+          requestedRole,
+          requestedBranch: actualBranch,
+          status: 'Pending',
+          migratedToFirebase: true,
+          lastActive: now,
+          createdAt: now
+        });
+      }
 
       const profile = await syncUserProfile(userCred.user);
       return profile;
     } catch (err) {
-      console.error("Signup Error:", err);
+      console.error('Signup Error:', err?.code || err?.message);
       let message = err.message;
       if (err.code === 'auth/email-already-in-use') {
-        message = 'An account with this email already exists. Please sign in instead.';
+        message = 'An account with this email already exists. Please sign in instead, or use "Forgot password?" to set a new password.';
       } else if (err.code === 'auth/weak-password') {
         message = 'Password should be at least 6 characters.';
       }
       setError(message);
       throw new Error(message);
     } finally {
+      authFlowActive.current = false;
       setLoading(false);
     }
   };
@@ -336,31 +369,19 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      // 1. Check if user exists in the church Firestore registry
-      const userDoc = await getDoc(doc(db, 'users', cleanEmail));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        // If user is not yet provisioned in Firebase Auth, provision them first
-        // so sendPasswordResetEmail actually sends the email despite email enumeration protection
-        if (!userData.firebaseUid || !userData.migratedToFirebase) {
-          try {
-            const tempPassword = Math.random().toString(36).slice(-8) + 'Aa1!' + Math.random().toString(36).slice(-8);
-            const userCred = await createUserWithEmailAndPassword(provisioningAuth, cleanEmail, tempPassword);
-            
-            if (userData.name) {
-              await updateProfile(userCred.user, { displayName: userData.name });
-            }
-
-            await setDoc(doc(db, 'users', cleanEmail), {
-              firebaseUid: userCred.user.uid,
-              migratedToFirebase: true,
-              migratedAt: new Date().toISOString()
-            }, { merge: true });
-
-            await signOut(provisioningAuth);
-          } catch (provisionErr) {
-            console.warn("User provision check note:", provisionErr?.message);
-          }
+      // 1. Make sure a Firebase account exists, otherwise no email is sent for
+      //    people who have not signed in since the move from Appwrite. The
+      //    placeholder gets a random password nobody knows and is created on
+      //    the separate provisioning instance so this browser is never signed
+      //    in as that person. Completing the reset link also verifies the
+      //    email address, which is what activates their existing role.
+      try {
+        const tempPassword = `${crypto.randomUUID()}Aa1!`;
+        await createUserWithEmailAndPassword(provisioningAuth, cleanEmail, tempPassword);
+        await signOut(provisioningAuth);
+      } catch (provisionErr) {
+        if (provisionErr?.code !== 'auth/email-already-in-use') {
+          console.warn('User provision check note:', provisionErr?.code || provisionErr?.message);
         }
       }
 
@@ -375,6 +396,27 @@ export const AuthProvider = ({ children }) => {
       }
       throw new Error(message);
     }
+  };
+
+  /** Re-sends the email verification link to the signed-in account. */
+  const resendVerification = async () => {
+    if (!auth.currentUser) throw new Error('Please sign in again.');
+    try {
+      await sendEmailVerification(auth.currentUser);
+      return { success: true };
+    } catch (err) {
+      console.error('Verification Email Error:', err?.code || err?.message);
+      throw new Error(FIREBASE_AUTH_MESSAGES[err.code] || 'Could not send the verification email. Please try again in a few minutes.');
+    }
+  };
+
+  /** Reloads the account and its token (e.g. after the email was verified). */
+  const refreshSession = async () => {
+    const current = auth.currentUser;
+    if (!current) return null;
+    await current.reload();
+    await current.getIdToken(true);
+    return syncUserProfile(auth.currentUser);
   };
 
   const hasRole = useCallback((roles) => {
@@ -393,6 +435,8 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     resetPassword,
+    resendVerification,
+    refreshSession,
     hasRole,
     isAdmin: user?.role === 'admin',
     isDeveloper: user?.role === 'developer',

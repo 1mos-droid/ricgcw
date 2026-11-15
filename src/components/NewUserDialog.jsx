@@ -56,16 +56,19 @@ const NewUserDialog = ({ open, onClose, onUserAdded }) => {
 
     try {
       // Use email as document ID for users collection
-      const userRef = doc(db, "users", formData.email);
+      // Profiles are looked up by the lower-case sign-in email
+      const email = formData.email.trim().toLowerCase();
+      const userRef = doc(db, "users", email);
       const userData = {
         ...formData,
+        email,
         createdAt: new Date().toISOString(),
         lastActive: 'Never'
       };
 
       await setDoc(userRef, userData);
       
-      onUserAdded({ id: formData.email, ...userData });
+      onUserAdded({ id: email, ...userData });
       handleClose();
     } catch (err) {
       console.error('Firestore save error:', err);

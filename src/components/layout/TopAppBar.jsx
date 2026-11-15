@@ -138,7 +138,7 @@ const TopAppBar = ({
         console.error("TopAppBar members fetch error:", err);
       }
     };
-    if (user) {
+    if (user && ['admin', 'branch_admin', 'developer'].includes(user.role)) {
       fetchMembers();
     }
   }, [user]);

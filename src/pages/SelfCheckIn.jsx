@@ -36,7 +36,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, updateDoc, where, arrayUnion } from 'firebase/firestore';
+import { fetchCheckInDirectory } from '../utils/checkInDirectory';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { format } from 'date-fns';
@@ -66,8 +67,8 @@ const SelfCheckIn = () => {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "members"));
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Names-only roster published by staff; member records are private
+        const { data } = await fetchCheckInDirectory();
         
         // Filter by branch if specified and not 'All'
         const filtered = branchParam !== 'All' 
@@ -76,9 +77,11 @@ const SelfCheckIn = () => {
         
         setMembers(filtered);
 
-        // Auto check-in if logged in
+        // Auto check-in if logged in: a signed-in member may read the one
+        // registry record that carries their own email.
         if (isAuthenticated && user?.email) {
-            const matched = filtered.find(m => m.email?.toLowerCase() === user.email.toLowerCase());
+            const own = await getDocs(query(collection(db, "members"), where("email", "==", user.email)));
+            const matched = filtered.find(m => own.docs.some(d => d.id === m.id));
             if (matched) {
                 handleCheckIn(matched, true);
             }
@@ -107,8 +110,6 @@ const SelfCheckIn = () => {
       const recordId = `${dateParam}_${branchParam}`;
       const recordRef = doc(db, "attendance", recordId);
       
-      const recordSnap = await getDoc(recordRef);
-      
       const isChild = String(member.department || '').toLowerCase().includes('child');
       const pickupTag = isChild ? Math.random().toString(36).substring(2, 8).toUpperCase() : null;
 
@@ -121,22 +122,25 @@ const SelfCheckIn = () => {
         pickupTag: pickupTag || null
       };
 
-      if (!recordSnap.exists()) {
-        // Create new record for the day
+      // Attendance records are not publicly readable, so this page cannot look
+      // first. Append to today's record; if there is none yet, start it. If
+      // someone else started it in between, append again.
+      const appendAttendee = () => updateDoc(recordRef, { attendees: arrayUnion(memberObj) });
+      try {
+        await appendAttendee();
+      } catch {
         const [year, month, day] = dateParam.split('-').map(Number);
         const recordDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-        
-        await setDoc(recordRef, {
-          date: recordDate.toISOString(),
-          attendees: [memberObj],
-          branch: branchParam,
-          createdAt: new Date().toISOString()
-        });
-      } else {
-        // Update existing record using arrayUnion to avoid overwrites
-        await updateDoc(recordRef, {
-          attendees: arrayUnion(memberObj)
-        });
+        try {
+          await setDoc(recordRef, {
+            date: recordDate.toISOString(),
+            attendees: [memberObj],
+            branch: branchParam,
+            createdAt: new Date().toISOString()
+          });
+        } catch {
+          await appendAttendee();
+        }
       }
 
       setCheckedIn(pickupTag || true);

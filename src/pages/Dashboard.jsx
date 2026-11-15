@@ -40,7 +40,7 @@ import {
   ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis, BarChart, Bar, Legend
 } from 'recharts';
 import { db } from '../firebase';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
 import { safeParseDate, getISOStringDate } from '../utils/dateUtils';
 import { syncMemberDepartments } from '../utils/syncDepartments';
 import { autoAssignVolunteers } from '../utils/autoRoster';
@@ -205,6 +205,28 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // Member view: only shared events and the gifts recorded under this
+        // login are readable; the registry, ledger and attendance are staff-only.
+        if (userRole !== 'admin' && userRole !== 'branch_admin' && userRole !== 'developer') {
+          const [memberEvents, ownGifts] = await Promise.all([
+            getDocs(collection(db, "events")),
+            user?.email
+              ? getDocs(query(collection(db, "transactions"), where("giverEmail", "==", user.email)))
+              : Promise.resolve({ docs: [] })
+          ]);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          setData({
+            members: [],
+            transactions: ownGifts.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+            events: memberEvents.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(event => event.date && safeParseDate(event.date) >= today),
+            attendance: []
+          });
+          return;
+        }
         
         const [membersSnapshot, txSnapshot, eventsSnapshot, attendanceSnapshot] = await Promise.all([
           getDocs(collection(db, "members")),
@@ -256,7 +278,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, [checkUpcomingBirthdays, userRole]);
+  }, [checkUpcomingBirthdays, userRole, user?.email]);
 
   const filteredData = useMemo(() => {
     return {

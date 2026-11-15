@@ -1,8 +1,213 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // ---------------------------------------------------------------------
+    // Identity
+    // ---------------------------------------------------------------------
+    // A role lives in users/{email}. Email/password accounts can be created
+    // by anyone for any address, so a role is only honoured once the account
+    // is tied to that profile: either the profile already carries this
+    // account's uid (accounts linked before these rules existed) or the email
+    // address has been verified (verification link or password-reset link).
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
     }
+    function myEmail() {
+      return request.auth.token.email;
+    }
+    function profilePath() {
+      return /databases/$(database)/documents/users/$(myEmail());
+    }
+    function profile() {
+      return get(profilePath()).data;
+    }
+    function trusted() {
+      return request.auth.token.email_verified == true
+        || profile().get('firebaseUid', '') == request.auth.uid;
+    }
+    function role() {
+      return (signedIn() && exists(profilePath()) && trusted())
+        ? profile().get('role', 'guest')
+        : 'guest';
+    }
+    function isStaff() {
+      return role() in ['developer', 'admin', 'branch_admin'];
+    }
+    function isSuperAdmin() {
+      return role() in ['developer', 'admin'];
+    }
+
+    // ---------------------------------------------------------------------
+    // users/{email}
+    // ---------------------------------------------------------------------
+    // Branch admins may manage accounts up to their own level only.
+    function belowSuperAdmin(data) {
+      return !(data.get('role', 'guest') in ['developer', 'admin'])
+        && !data.get('labels', []).hasAny(['developer', 'admin']);
+    }
+    function isSelf(email) {
+      return signedIn() && myEmail() == email;
+    }
+
+    match /users/{email} {
+      allow get: if isSelf(email) || isStaff();
+      allow list: if isStaff();
+
+      allow create: if isSuperAdmin()
+        || (isStaff() && belowSuperAdmin(request.resource.data))
+        // Self-registration never carries privileges.
+        || (isSelf(email)
+            && request.resource.data.get('role', 'guest') == 'guest'
+            && request.resource.data.get('labels', []).size() == 0
+            // A later role grant must wait for email verification, so a
+            // self-made profile may not pre-link itself to this login.
+            && !('firebaseUid' in request.resource.data));
+
+      allow update: if isSuperAdmin()
+        || (isStaff() && belowSuperAdmin(resource.data) && belowSuperAdmin(request.resource.data))
+        // Users may only touch their own activity/display fields.
+        || (isSelf(email)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                 ['name', 'verified', 'accessedAt', 'lastActive', 'migratedToFirebase', 'migratedAt']));
+
+      allow delete: if isSuperAdmin() || (isStaff() && belowSuperAdmin(resource.data));
+    }
+
+    // ---------------------------------------------------------------------
+    // members
+    // ---------------------------------------------------------------------
+    // Public /join form: a visitor may add themselves, nothing else.
+    function validJoinRequest(data) {
+      return data.keys().hasOnly([
+          'name', 'email', 'phone', 'address', 'country', 'dob', 'branch',
+          'department', 'position', 'membershipType', 'baptismDate',
+          'confirmationDate', 'occupation', 'spouseName', 'childrenNames',
+          'cellGroup', 'status', 'createdAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.status == 'active';
+    }
+
+    match /members/{memberId} {
+      // A signed-in member can read the record carrying their own email.
+      allow read: if isStaff() || (signedIn() && resource.data.email == myEmail());
+      allow create: if isStaff() || validJoinRequest(request.resource.data);
+      allow update, delete: if isStaff();
+    }
+
+    // ---------------------------------------------------------------------
+    // attendance
+    // ---------------------------------------------------------------------
+    // Public QR self check-in may append one attendee to a record for the
+    // current day (one day of slack either side for time zones). It can never
+    // read records, remove attendees or touch another day.
+    function pad2(n) {
+      return n < 10 ? '0' + string(n) : string(n);
+    }
+    function ymd(t) {
+      return string(t.year()) + '-' + pad2(t.month()) + '-' + pad2(t.day());
+    }
+    function isCheckInDay(recordId) {
+      return recordId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}_.{1,80}$')
+        && recordId.split('_')[0] in [
+             ymd(request.time),
+             ymd(request.time + duration.value(1, 'd')),
+             ymd(request.time - duration.value(1, 'd'))];
+    }
+    function validAttendee(a) {
+      return a is map
+        && a.keys().hasOnly(['id', 'name', 'branch', 'memberId', 'pickupTag'])
+        && a.id is string && a.id.size() <= 100
+        && a.name is string && a.name.size() <= 200;
+    }
+    function validCheckInCreate(data) {
+      return data.keys().hasOnly(['date', 'attendees', 'branch', 'createdAt'])
+        && data.attendees is list
+        && data.attendees.size() == 1
+        && validAttendee(data.attendees[0]);
+    }
+    function validCheckInAppend(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['attendees'])
+        && after.attendees is list
+        && after.attendees.hasAll(before.attendees)
+        && (after.attendees.size() == before.attendees.size()
+            || (after.attendees.size() == before.attendees.size() + 1
+                && validAttendee(after.attendees[after.attendees.size() - 1])));
+    }
+
+    match /attendance/{recordId} {
+      allow read, delete: if isStaff();
+      allow create: if isStaff()
+        || (isCheckInDay(recordId) && validCheckInCreate(request.resource.data));
+      allow update: if isStaff()
+        || (isCheckInDay(recordId) && validCheckInAppend(resource.data, request.resource.data));
+    }
+
+    // Names-only roster published by staff for the public check-in search.
+    match /checkin_directory/{docId} {
+      allow get: if true;
+      allow list: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ---------------------------------------------------------------------
+    // transactions
+    // ---------------------------------------------------------------------
+    match /transactions/{transactionId} {
+      // Members see only the digital gifts recorded under their own login.
+      allow read: if isStaff() || (signedIn() && resource.data.giverEmail == myEmail());
+      allow create: if isStaff()
+        || (signedIn()
+            && request.resource.data.giverEmail == myEmail()
+            && request.resource.data.isDigital == true
+            && request.resource.data.type == 'contribution'
+            && request.resource.data.amount is number
+            && request.resource.data.amount > 0);
+      allow update, delete: if isStaff();
+    }
+
+    // ---------------------------------------------------------------------
+    // Shared content: any signed-in account reads, staff maintain.
+    // ---------------------------------------------------------------------
+    match /events/{eventId} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+    match /gallery/{imageId} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+    match /resources/{resourceId} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+    match /bible-studies/{studyId} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    // ---------------------------------------------------------------------
+    // settings
+    // ---------------------------------------------------------------------
+    match /settings/{settingId} {
+      // The maintenance flag is read before login.
+      allow get: if settingId == 'maintenance' || signedIn();
+      allow list: if isStaff();
+      allow write: if isSuperAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // Public account-deletion requests (write-only for the public).
+    // ---------------------------------------------------------------------
+    match /account_deletion_requests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['email', 'name', 'phone', 'reason', 'status', 'platform', 'createdAt'])
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() <= 320
+                    && request.resource.data.status == 'pending';
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // Everything else is denied.
   }
 }

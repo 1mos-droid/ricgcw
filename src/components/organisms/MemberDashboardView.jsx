@@ -21,7 +21,7 @@ import {
 import { Plus, HeartHandshake, Send, History, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { db } from '../../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { safeParseDate } from '../../utils/dateUtils';
 import emailjs from '@emailjs/browser';
 import { sendSMS } from '../../utils/communicationApi';
@@ -42,10 +42,10 @@ export default function MemberDashboardView({ user, transactions, events }) {
   useEffect(() => {
     const fetchMemberProfile = async () => {
       try {
-        const membersSnap = await getDocs(collection(db, "members"));
-        const membersData = membersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const matched = membersData.find(m => m.email?.toLowerCase() === user?.email?.toLowerCase());
-        setMemberProfile(matched);
+        // Members can only read the registry record that carries their own email
+        const membersSnap = await getDocs(query(collection(db, "members"), where("email", "==", user.email)));
+        const matched = membersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))[0];
+        setMemberProfile(matched || null);
       } catch (err) {
         console.error("Error matching member profile:", err);
       } finally {
@@ -56,8 +56,8 @@ export default function MemberDashboardView({ user, transactions, events }) {
   }, [user]);
 
   const personalTransactions = useMemo(() => {
-    if (!memberProfile) return [];
-    return transactions.filter(t => String(t.memberId) === String(memberProfile.id));
+    // `transactions` already holds only the gifts recorded under this login
+    return transactions.filter(t => !memberProfile || !t.memberId || String(t.memberId) === String(memberProfile.id));
   }, [memberProfile, transactions]);
 
   const totalPersonalGiving = useMemo(() => {

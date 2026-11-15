@@ -4,6 +4,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import BrandLoader from '../components/BrandLoader';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
+import VerifyEmailGate from '../components/VerifyEmailGate';
+
+// Roles allowed to open pages backed by staff-only data (see firestore.rules).
+const STAFF_ROLES = ['admin', 'branch_admin', 'developer'];
 
 // --- PAGE IMPORTS (Lazy Loaded) ---
 const Dashboard = lazy(() => import('../pages/Dashboard'));
@@ -77,6 +81,9 @@ const RequireAuth = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
+  // A staff role stays locked until the email address behind it is verified
+  if (originalUser?.needsEmailVerification) return <VerifyEmailGate />;
+
   return children;
 };
 
@@ -110,11 +117,11 @@ const AppRouter = () => {
         
         {/* Protected Routes (Authenticated) */}
         <Route path="/" element={<RequireAuth><MotionWrap><Dashboard /></MotionWrap></RequireAuth>} />
-        <Route path="/members" element={<RequireAuth><MotionWrap><Members /></MotionWrap></RequireAuth>} />
-        <Route path="/attendance" element={<RequireAuth><MotionWrap><Attendance /></MotionWrap></RequireAuth>} />
-        <Route path="/financials" element={<RequireAuth><MotionWrap><Financials /></MotionWrap></RequireAuth>} />
+        <Route path="/members" element={<RequireAuth><RequireRole roles={STAFF_ROLES}><MotionWrap><Members /></MotionWrap></RequireRole></RequireAuth>} />
+        <Route path="/attendance" element={<RequireAuth><RequireRole roles={STAFF_ROLES}><MotionWrap><Attendance /></MotionWrap></RequireRole></RequireAuth>} />
+        <Route path="/financials" element={<RequireAuth><RequireRole roles={STAFF_ROLES}><MotionWrap><Financials /></MotionWrap></RequireRole></RequireAuth>} />
         <Route path="/events" element={<RequireAuth><MotionWrap><Events /></MotionWrap></RequireAuth>} />
-        <Route path="/reports" element={<RequireAuth><MotionWrap><Reports /></MotionWrap></RequireAuth>} />
+        <Route path="/reports" element={<RequireAuth><RequireRole roles={STAFF_ROLES}><MotionWrap><Reports /></MotionWrap></RequireRole></RequireAuth>} />
         <Route path="/bible-studies" element={<RequireAuth><MotionWrap><BibleStudies /></MotionWrap></RequireAuth>} />
         <Route path="/live-bible" element={<RequireAuth><MotionWrap><LiveBible /></MotionWrap></RequireAuth>} />
         <Route path="/gallery" element={<RequireAuth><MotionWrap><Gallery /></MotionWrap></RequireAuth>} />
@@ -126,7 +133,7 @@ const AppRouter = () => {
           path="/user-management" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin', 'branch_admin', 'developer']}>
+              <RequireRole roles={STAFF_ROLES}>
                 <MotionWrap><UserManagement /></MotionWrap>
               </RequireRole>
             </RequireAuth>
@@ -146,7 +153,7 @@ const AppRouter = () => {
           path="/quick-switch" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin', 'branch_admin', 'developer']}>
+              <RequireRole roles={STAFF_ROLES}>
                 <MotionWrap><QuickSwitch /></MotionWrap>
               </RequireRole>
             </RequireAuth>
@@ -156,7 +163,7 @@ const AppRouter = () => {
           path="/graph" 
           element={
             <RequireAuth>
-              <RequireRole roles={['admin', 'branch_admin', 'developer']}>
+              <RequireRole roles={STAFF_ROLES}>
                 <MotionWrap><Graph /></MotionWrap>
               </RequireRole>
             </RequireAuth>

@@ -56,6 +56,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { publishCheckInDirectory } from '../utils/checkInDirectory';
 import QRCode from 'react-qr-code';
 
 import { getMembers } from '../services/memberService';
@@ -172,6 +173,11 @@ const Attendance = () => {
       const attendanceData = attendanceRes.data || [];
       
       setMembers(membersData); 
+
+      // Keep the public check-in roster (names only) in step with the registry
+      if (membersRes.success && membersData.length > 0) {
+        publishCheckInDirectory(membersData);
+      }
       
       const sortedRecords = [...attendanceData].sort((a, b) => 
         safeParseDate(b.date) - safeParseDate(a.date)

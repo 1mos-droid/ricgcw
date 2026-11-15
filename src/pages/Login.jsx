@@ -15,7 +15,7 @@ const BRANCHES = ['Mallam', 'Langma', 'Kokrobitey', 'Diaspora', 'Overseer'];
 export default function Login() {
   const navigate = useNavigate();
   const { login, signup, resetPassword, isAuthenticated } = useAuth();
-  const { refreshUserContext } = useWorkspace();
+  const { refreshUserContext, showNotification } = useWorkspace();
   const { mode, toggleColorMode } = useColorMode();
   const [view, setView] = useState('signin');
   const [loading, setLoading] = useState(false);
@@ -41,8 +41,10 @@ export default function Login() {
         if (result?.success === false) throw new Error(result.error || 'Unable to send a reset link.');
         setSuccess(result?.message || 'Password reset link sent! Check your inbox.');
       } else {
-        if (isSignup) await signup(form.email.trim(), form.password, form.name.trim(), form.branch);
-        else await login(form.email.trim(), form.password);
+        if (isSignup) {
+          await signup(form.email.trim(), form.password, form.name.trim(), form.branch);
+          showNotification('Account created. Check your inbox to verify your email. An administrator will approve staff access.', 'info', 10000);
+        } else await login(form.email.trim(), form.password);
         refreshUserContext();
         navigate('/');
       }

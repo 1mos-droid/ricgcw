@@ -10,6 +10,7 @@ const mockSignOut = vi.fn();
 const mockOnAuthStateChanged = vi.fn();
 const mockUpdateProfile = vi.fn();
 const mockSendPasswordResetEmail = vi.fn();
+const mockSendEmailVerification = vi.fn();
 
 vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: (...args) => mockSignInWithEmailAndPassword(...args),
@@ -18,6 +19,7 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: (...args) => mockOnAuthStateChanged(...args),
   updateProfile: (...args) => mockUpdateProfile(...args),
   sendPasswordResetEmail: (...args) => mockSendPasswordResetEmail(...args),
+  sendEmailVerification: (...args) => mockSendEmailVerification(...args),
 }));
 
 const mockGetDoc = vi.fn();
@@ -66,7 +68,8 @@ const Consumer = ({ onReady }) => {
 
 describe('AuthContext with Firebase Authentication and Appwrite Migration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    mockDoc.mockImplementation((db, col, id) => ({ path: `${col}/${id}`, id }));
     localStorage.clear();
     mockOnAuthStateChanged.mockImplementation((auth, callback) => {
       callback(null);
@@ -190,15 +193,16 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
     );
     // Verify Appwrite session cleared
     expect(mockAccountDeleteSession).toHaveBeenCalledWith('current');
-    // Verify Firestore updated
+    // Verify Firestore updated, without touching fields the rules reserve for admins
     expect(mockSetDoc).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        firebaseUid: 'new-firebase-uid-789',
-        migratedToFirebase: true,
-      }),
+      expect.objectContaining({ migratedToFirebase: true }),
       { merge: true }
     );
+    mockSetDoc.mock.calls.forEach(([, data]) => {
+      expect(data).not.toHaveProperty('firebaseUid');
+      expect(data).not.toHaveProperty('role');
+    });
     expect(result.email).toBe('legacy@ricgcw.com');
   });
 
@@ -268,16 +272,6 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
   it('provisions unmigrated user in Firebase and sends password reset link', async () => {
     mockSendPasswordResetEmail.mockResolvedValueOnce();
 
-    // User exists in Firestore registry
-    mockGetDoc.mockResolvedValueOnce({
-      exists: () => true,
-      data: () => ({
-        name: 'Pastor Scola',
-        email: 'scolaboakye897@gmail.com',
-        role: 'branch_admin',
-      })
-    });
-
     mockCreateUserWithEmailAndPassword.mockResolvedValueOnce({
       user: {
         uid: 'provisioned-uid-111',
@@ -310,6 +304,122 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
     expect(mockSendPasswordResetEmail).toHaveBeenCalledTimes(1);
     expect(mockSignOut).toHaveBeenCalledWith(expect.objectContaining({ name: 'provisioning' }));
     expect(mockSignOut).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'primary' }));
+  });
+
+  describe('roles and self-registration', () => {
+    const renderProvider = async () => {
+      let authContext;
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <Consumer onReady={(val) => { authContext = val; }} />
+          </AuthProvider>
+        );
+      });
+      return () => authContext;
+    };
+
+    const signInAs = (user, profile) => {
+      mockSignInWithEmailAndPassword.mockResolvedValueOnce({ user });
+      mockGetDoc.mockResolvedValue({ exists: () => !!profile, data: () => profile });
+    };
+
+    it('never grants staff access on self-registration, even for Overseer', async () => {
+      mockCreateUserWithEmailAndPassword.mockResolvedValueOnce({
+        user: { uid: 'new-uid', email: 'new@example.com', displayName: 'New Person', emailVerified: false }
+      });
+      mockGetDoc.mockResolvedValueOnce({ exists: () => false });
+      mockGetDoc.mockResolvedValue({
+        exists: () => true,
+        data: () => ({ name: 'New Person', role: 'guest', branch: 'all', status: 'Pending' })
+      });
+
+      const getAuth = await renderProvider();
+      let profile;
+      await act(async () => {
+        profile = await getAuth().signup('New@Example.com', 'Secret123!', 'New Person', 'Overseer');
+      });
+
+      const seeded = mockSetDoc.mock.calls.find(([ref]) => ref.path === 'users/new@example.com')[1];
+      expect(seeded.role).toBe('guest');
+      expect(seeded.requestedRole).toBe('admin');
+      expect(seeded.status).toBe('Pending');
+      expect(seeded).not.toHaveProperty('firebaseUid');
+      expect(profile.role).toBe('guest');
+      expect(mockSendEmailVerification).toHaveBeenCalled();
+    });
+
+    it('does not overwrite a registry entry that already exists for the email', async () => {
+      mockCreateUserWithEmailAndPassword.mockResolvedValueOnce({
+        user: { uid: 'new-uid', email: 'invited@example.com', displayName: 'Invited', emailVerified: false }
+      });
+      mockGetDoc.mockResolvedValue({
+        exists: () => true,
+        data: () => ({ name: 'Invited', role: 'branch_admin', branch: 'Mallam' })
+      });
+
+      const getAuth = await renderProvider();
+      let profile;
+      await act(async () => {
+        profile = await getAuth().signup('invited@example.com', 'Secret123!', 'Invited', 'Overseer');
+      });
+
+      mockSetDoc.mock.calls.forEach(([, data]) => expect(data).not.toHaveProperty('role'));
+      // The pre-assigned role stays locked until the email is verified
+      expect(profile.role).toBe('guest');
+      expect(profile.needsEmailVerification).toBe(true);
+      expect(profile.pendingRole).toBe('branch_admin');
+    });
+
+    it('activates a staff role for accounts linked before the rules were tightened', async () => {
+      signInAs(
+        { uid: 'uid-1', email: 'staff@example.com', displayName: 'Staff', emailVerified: false },
+        { name: 'Staff', role: 'branch_admin', branch: 'Mallam', firebaseUid: 'uid-1' }
+      );
+      const getAuth = await renderProvider();
+      let profile;
+      await act(async () => { profile = await getAuth().login('staff@example.com', 'pw-123456'); });
+
+      expect(profile.role).toBe('branch_admin');
+      expect(profile.needsEmailVerification).toBe(false);
+    });
+
+    it('activates a staff role once the email is verified', async () => {
+      signInAs(
+        { uid: 'uid-2', email: 'staff@example.com', displayName: 'Staff', emailVerified: true },
+        { name: 'Staff', role: 'admin', branch: 'all' }
+      );
+      const getAuth = await renderProvider();
+      let profile;
+      await act(async () => { profile = await getAuth().login('staff@example.com', 'pw-123456'); });
+
+      expect(profile.role).toBe('admin');
+    });
+
+    it('holds a staff role back for an unverified login that is not linked to the profile', async () => {
+      signInAs(
+        { uid: 'someone-else', email: 'staff@example.com', displayName: '', emailVerified: false },
+        { name: 'Staff', role: 'admin', branch: 'all', firebaseUid: 'uid-original' }
+      );
+      const getAuth = await renderProvider();
+      let profile;
+      await act(async () => { profile = await getAuth().login('staff@example.com', 'pw-123456'); });
+
+      expect(profile.role).toBe('guest');
+      expect(profile.needsEmailVerification).toBe(true);
+    });
+
+    it('only writes activity fields back to the profile on sign-in', async () => {
+      signInAs(
+        { uid: 'uid-1', email: 'staff@example.com', displayName: 'Staff', emailVerified: true },
+        { name: 'Staff', role: 'branch_admin', branch: 'Mallam', firebaseUid: 'uid-1' }
+      );
+      const getAuth = await renderProvider();
+      await act(async () => { await getAuth().login('staff@example.com', 'pw-123456'); });
+
+      expect(mockSetDoc).toHaveBeenCalledTimes(1);
+      expect(Object.keys(mockSetDoc.mock.calls[0][1]).sort()).toEqual(['accessedAt', 'lastActive', 'verified']);
+    });
   });
 
   describe('legacy Appwrite fallback edge cases', () => {
@@ -370,7 +480,10 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
       expect(caught).toBeUndefined();
       expect(mockAccountCreateSession).toHaveBeenCalledTimes(2);
       expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'legacy@ricgcw.com', 'LegacyPassword123!');
-      expect(result.role).toBe('branch_admin');
+      // Signed in, with the staff role waiting on email verification
+      expect(result.pendingRole).toBe('branch_admin');
+      expect(result.needsEmailVerification).toBe(true);
+      expect(mockSendEmailVerification).toHaveBeenCalled();
     });
 
     it('still migrates when the Appwrite profile lookup fails after the password is verified', async () => {

@@ -22,6 +22,7 @@ vi.mock('../context/AuthContext', () => ({
 vi.mock('../context/WorkspaceContext', () => ({
   useWorkspace: () => ({
     refreshUserContext: mockRefreshUserContext,
+    showNotification: vi.fn(),
   }),
 }));
 

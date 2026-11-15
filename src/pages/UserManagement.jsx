@@ -39,11 +39,14 @@ import {
 import NewUserDialog from '../components/NewUserDialog';
 
 import { db } from '../firebase';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 const UserManagement = () => {
   const theme = useTheme();
   const { showNotification, showConfirmation } = useWorkspace();
+  const { user: currentUser } = useAuth();
+  const canGrantAdmin = currentUser?.role === 'admin' || currentUser?.role === 'developer';
   
   // --- STATE ---
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,6 +92,26 @@ const UserManagement = () => {
   const onUserAdded = (newUser) => {
     setUsers(prev => [newUser, ...prev]);
     showNotification("System access granted successfully!", "success");
+  };
+
+  // Grants or removes staff access. Self-registered accounts arrive as
+  // 'guest' with the branch they asked for in `requestedBranch`.
+  const handleSetRole = async (role) => {
+    if (!selectedUser) return;
+    const target = selectedUser;
+    handleMenuClose();
+    try {
+      const changes = { role, status: 'Active' };
+      if (role !== 'guest' && target.requestedBranch && (!target.branch || target.status === 'Pending')) {
+        changes.branch = target.requestedBranch;
+      }
+      await updateDoc(doc(db, "users", target.id), changes);
+      setUsers(prev => prev.map(u => (u.id === target.id ? { ...u, ...changes } : u)));
+      showNotification(`${target.name || target.id} is now ${role.replace('_', ' ')}.`, "success");
+    } catch (err) {
+      console.error("Role Update Error:", err?.code || err?.message);
+      showNotification("Failed to update access. You may not have permission to change this account.", "error");
+    }
   };
 
   const handleDelete = async () => {
@@ -309,11 +332,21 @@ const UserManagement = () => {
       </Grid>
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-          <MenuItem onClick={handleMenuClose} sx={{ fontWeight: 600, gap: 1.5 }}>
-            <Shield size={16} /> Edit Permissions
+          {selectedUser?.requestedRole && selectedUser?.status === 'Pending' && (
+            <MenuItem disabled sx={{ fontSize: '0.75rem', opacity: '1 !important' }}>
+              Requested: {String(selectedUser.requestedRole).replace('_', ' ')} · {selectedUser.requestedBranch || 'all'}
+            </MenuItem>
+          )}
+          <MenuItem onClick={() => handleSetRole('branch_admin')} disabled={selectedUser?.role === 'branch_admin'} sx={{ fontWeight: 600, gap: 1.5 }}>
+            <Shield size={16} /> Make Branch Admin
           </MenuItem>
-          <MenuItem onClick={handleMenuClose} sx={{ fontWeight: 600, gap: 1.5 }}>
-            <Tag size={16} /> Manage Labels
+          {canGrantAdmin && (
+            <MenuItem onClick={() => handleSetRole('admin')} disabled={selectedUser?.role === 'admin'} sx={{ fontWeight: 600, gap: 1.5 }}>
+              <Shield size={16} /> Make System Admin
+            </MenuItem>
+          )}
+          <MenuItem onClick={() => handleSetRole('guest')} disabled={(selectedUser?.role || 'guest') === 'guest'} sx={{ fontWeight: 600, gap: 1.5 }}>
+            <Tag size={16} /> Remove Staff Access
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleDelete} sx={{ fontWeight: 700, color: 'error.main', gap: 1.5 }}>
