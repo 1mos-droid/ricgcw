@@ -31,7 +31,8 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 vi.mock('../firebase', () => ({
-  auth: { currentUser: null },
+  auth: { currentUser: null, name: 'primary' },
+  provisioningAuth: { currentUser: null, name: 'provisioning' },
   db: {},
 }));
 
@@ -299,9 +300,141 @@ describe('AuthContext with Firebase Authentication and Appwrite Migration', () =
     });
 
     expect(res.success).toBe(true);
-    expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalled();
+    // Provisioning must never touch the primary auth instance, otherwise the
+    // visitor is briefly signed in as the account being reset.
+    expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'provisioning' }),
+      'scolaboakye897@gmail.com',
+      expect.any(String)
+    );
     expect(mockSendPasswordResetEmail).toHaveBeenCalledTimes(1);
-    expect(mockSignOut).toHaveBeenCalled();
+    expect(mockSignOut).toHaveBeenCalledWith(expect.objectContaining({ name: 'provisioning' }));
+    expect(mockSignOut).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'primary' }));
+  });
+
+  describe('legacy Appwrite fallback edge cases', () => {
+    const renderProvider = async () => {
+      let authContext;
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <Consumer onReady={(val) => { authContext = val; }} />
+          </AuthProvider>
+        );
+      });
+      return () => authContext;
+    };
+
+    const rejectFirebaseSignIn = (code = 'auth/invalid-credential') => {
+      const err = new Error(code);
+      err.code = code;
+      mockSignInWithEmailAndPassword.mockRejectedValueOnce(err);
+    };
+
+    const appwriteError = (code, type, message = type) => {
+      const err = new Error(message);
+      err.code = code;
+      err.type = type;
+      return err;
+    };
+
+    const attemptLogin = async (getAuth, email, password) => {
+      let result;
+      let caught;
+      await act(async () => {
+        try {
+          result = await getAuth().login(email, password);
+        } catch (err) {
+          caught = err;
+        }
+      });
+      return { result, caught };
+    };
+
+    const legacyFirebaseUser = { uid: 'new-uid', email: 'legacy@ricgcw.com', displayName: '', emailVerified: false };
+    const legacyProfileDoc = { exists: () => true, data: () => ({ name: 'Legacy Deacon', role: 'branch_admin', branch: 'Langma' }) };
+
+    it('clears a stale pre-migration Appwrite session and retries instead of rejecting', async () => {
+      rejectFirebaseSignIn();
+      mockAccountCreateSession
+        .mockRejectedValueOnce(appwriteError(401, 'user_session_already_exists'))
+        .mockResolvedValueOnce({ $id: 'session-2' });
+      mockAccountDeleteSession.mockResolvedValue({});
+      mockAccountGet.mockResolvedValueOnce({ name: 'Legacy Deacon' });
+      mockCreateUserWithEmailAndPassword.mockResolvedValueOnce({ user: legacyFirebaseUser });
+      mockGetDoc.mockResolvedValue(legacyProfileDoc);
+
+      const getAuth = await renderProvider();
+      const { result, caught } = await attemptLogin(getAuth, 'legacy@ricgcw.com', 'LegacyPassword123!');
+
+      expect(caught).toBeUndefined();
+      expect(mockAccountCreateSession).toHaveBeenCalledTimes(2);
+      expect(mockCreateUserWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'legacy@ricgcw.com', 'LegacyPassword123!');
+      expect(result.role).toBe('branch_admin');
+    });
+
+    it('still migrates when the Appwrite profile lookup fails after the password is verified', async () => {
+      rejectFirebaseSignIn();
+      mockAccountCreateSession.mockResolvedValueOnce({ $id: 'session-1' });
+      mockAccountGet.mockRejectedValueOnce(appwriteError(401, 'general_unauthorized_scope'));
+      mockCreateUserWithEmailAndPassword.mockResolvedValueOnce({ user: legacyFirebaseUser });
+      mockGetDoc.mockResolvedValue(legacyProfileDoc);
+
+      const getAuth = await renderProvider();
+      const { result, caught } = await attemptLogin(getAuth, 'legacy@ricgcw.com', 'LegacyPassword123!');
+
+      expect(caught).toBeUndefined();
+      expect(result.email).toBe('legacy@ricgcw.com');
+    });
+
+    it('falls back to Appwrite when Firebase reports auth/wrong-password', async () => {
+      rejectFirebaseSignIn('auth/wrong-password');
+      mockAccountCreateSession.mockRejectedValueOnce(appwriteError(401, 'user_invalid_credentials'));
+
+      const getAuth = await renderProvider();
+      const { caught } = await attemptLogin(getAuth, 'legacy@ricgcw.com', 'WrongPass');
+
+      expect(mockAccountCreateSession).toHaveBeenCalledTimes(1);
+      expect(caught.message).toBe('Invalid email or password.');
+    });
+
+    it('emails a reset link when the old password is right but a Firebase account already exists', async () => {
+      rejectFirebaseSignIn();
+      mockAccountCreateSession.mockResolvedValueOnce({ $id: 'session-1' });
+      mockAccountGet.mockResolvedValueOnce({ name: 'Legacy Deacon' });
+      const inUse = new Error('Firebase: Error (auth/email-already-in-use).');
+      inUse.code = 'auth/email-already-in-use';
+      mockCreateUserWithEmailAndPassword.mockRejectedValueOnce(inUse);
+      mockSendPasswordResetEmail.mockResolvedValueOnce();
+
+      const getAuth = await renderProvider();
+      const { caught } = await attemptLogin(getAuth, 'legacy@ricgcw.com', 'LegacyPassword123!');
+
+      expect(mockSendPasswordResetEmail).toHaveBeenCalledWith(expect.anything(), 'legacy@ricgcw.com');
+      expect(caught.message).toMatch(/emailed a reset link to legacy@ricgcw.com/);
+      expect(screen.getByTestId('user-email').textContent).toBe('no-user');
+    });
+
+    it('does not report a wrong password when Appwrite is unreachable', async () => {
+      rejectFirebaseSignIn();
+      mockAccountCreateSession.mockRejectedValueOnce(appwriteError(403, 'general_unknown_origin'));
+
+      const getAuth = await renderProvider();
+      const { caught } = await attemptLogin(getAuth, 'legacy@ricgcw.com', 'LegacyPassword123!');
+
+      expect(caught.message).toMatch(/could not verify your existing password/);
+      expect(mockCreateUserWithEmailAndPassword).not.toHaveBeenCalled();
+    });
+
+    it('shows a readable message for Firebase lockouts instead of a raw error code', async () => {
+      rejectFirebaseSignIn('auth/too-many-requests');
+
+      const getAuth = await renderProvider();
+      const { caught } = await attemptLogin(getAuth, 'legacy@ricgcw.com', 'LegacyPassword123!');
+
+      expect(mockAccountCreateSession).not.toHaveBeenCalled();
+      expect(caught.message).toMatch(/Too many sign-in attempts/);
+    });
   });
 
   it('signs out user cleanly', async () => {

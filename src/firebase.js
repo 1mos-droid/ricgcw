@@ -19,5 +19,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { auth, db, storage };
+// Separate Auth instance for creating accounts on someone's behalf (password
+// reset provisioning). Creating a user signs that user in on the instance used,
+// so doing it on the primary `auth` would briefly log the visitor in as them.
+const provisioningAuth = getAuth(initializeApp(firebaseConfig, 'provisioning'));
+
+export { auth, provisioningAuth, db, storage };
 export default app;

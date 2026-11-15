@@ -8,8 +8,34 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, provisioningAuth, db } from '../firebase';
 import { account } from '../appwrite';
+import { verifyLegacyCredentials, LEGACY_AUTH_REASONS } from '../utils/legacyAuth';
+
+// Firebase sign-in failures that can mean "this account has not been moved over
+// from Appwrite yet" (the exact code depends on email-enumeration protection).
+const LEGACY_FALLBACK_CODES = [
+  'auth/invalid-credential',
+  'auth/invalid-login-credentials',
+  'auth/user-not-found',
+  'auth/wrong-password',
+];
+
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
+
+const LEGACY_FAILURE_MESSAGES = {
+  [LEGACY_AUTH_REASONS.INVALID]: INVALID_CREDENTIALS_MESSAGE,
+  [LEGACY_AUTH_REASONS.BLOCKED]: 'This account has been disabled. Please contact your church administrator.',
+  [LEGACY_AUTH_REASONS.RATE_LIMITED]: 'Too many sign-in attempts. Please wait a while and try again, or use "Forgot password?" to set a new password.',
+  [LEGACY_AUTH_REASONS.UNAVAILABLE]: 'We could not verify your existing password right now. Please try again in a moment, or use "Forgot password?" to set a new password.',
+};
+
+const FIREBASE_AUTH_MESSAGES = {
+  'auth/too-many-requests': 'Too many sign-in attempts. Please wait a few minutes and try again, or use "Forgot password?" to set a new password.',
+  'auth/network-request-failed': 'Network error. Please check your connection and try again.',
+  'auth/user-disabled': 'This account has been disabled. Please contact your church administrator.',
+  'auth/invalid-email': 'Please enter a valid email address.',
+};
 
 const AuthContext = createContext();
 
@@ -143,6 +169,58 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, [syncUserProfile]);
 
+  /**
+   * Verifies the password against Appwrite and, if it is correct, creates the
+   * matching Firebase Auth account so every later sign-in is native.
+   */
+  const migrateLegacyUser = async (cleanEmail, password) => {
+    const legacy = await verifyLegacyCredentials(cleanEmail, password);
+    if (!legacy.success) {
+      throw new Error(LEGACY_FAILURE_MESSAGES[legacy.reason] || INVALID_CREDENTIALS_MESSAGE);
+    }
+
+    let firebaseUser;
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      firebaseUser = userCred.user;
+    } catch (createErr) {
+      if (createErr.code !== 'auth/email-already-in-use') throw createErr;
+      // A Firebase account already exists with a different password (typically
+      // created by a "Forgot password?" request that was never completed). The
+      // old password is correct but cannot be attached from the browser, so
+      // finish the move with a reset link instead of a bare rejection.
+      let sent = true;
+      try {
+        await sendPasswordResetEmail(auth, cleanEmail);
+      } catch (resetErr) {
+        sent = false;
+        console.warn('Legacy migration reset email note:', resetErr?.code || resetErr?.message);
+      }
+      throw new Error(sent
+        ? `Your account has moved to our new sign-in system and needs a new password. We have emailed a reset link to ${cleanEmail}. Open it to choose a password, then sign in here.`
+        : 'Your account has moved to our new sign-in system and needs a new password. Please use "Forgot password?" below to set one.');
+    }
+
+    // The account now exists; nothing below may block the sign-in.
+    try {
+      const existingDoc = await getDoc(doc(db, 'users', cleanEmail));
+      const displayName = (existingDoc.exists() ? existingDoc.data().name : '') || legacy.name;
+      if (displayName) {
+        await updateProfile(firebaseUser, { displayName });
+      }
+      await setDoc(doc(db, 'users', cleanEmail), {
+        firebaseUid: firebaseUser.uid,
+        migratedToFirebase: true,
+        migratedAt: new Date().toISOString(),
+        lastActive: new Date().toISOString()
+      }, { merge: true });
+    } catch (syncErr) {
+      console.warn('Legacy migration profile sync note:', syncErr?.message);
+    }
+
+    return firebaseUser;
+  };
+
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
@@ -166,69 +244,16 @@ export const AuthProvider = ({ children }) => {
         const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
         firebaseUser = userCredential.user;
       } catch (fbErr) {
-        // 2. If user is not yet migrated to Firebase Auth (invalid-credential or user-not-found)
-        if (fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/user-not-found') {
-          let appwriteUser = null;
-
-          try {
-            await account.createEmailPasswordSession(cleanEmail, password);
-            appwriteUser = await account.get();
-          } catch (appwriteErr) {
-            console.warn("Appwrite legacy migration check failed:", appwriteErr);
-            if (appwriteErr.code === 401 || appwriteErr.type === 'user_invalid_credentials') {
-              throw new Error('Invalid email or password.');
-            }
-            if (
-              appwriteErr.code === 403 ||
-              appwriteErr.code === 503 ||
-              appwriteErr.type === 'project_paused' ||
-              appwriteErr.message?.includes('paused') ||
-              appwriteErr.message?.includes('Network') ||
-              appwriteErr.message?.includes('Failed to fetch')
-            ) {
-              throw new Error('The legacy Appwrite server is currently paused. Please unpause the project at cloud.appwrite.io, or click "Forgot password?" below to access your account.');
-            }
-            throw new Error('Invalid email or password.');
-          }
-
-          if (appwriteUser) {
-            // Credentials verified via Appwrite! Seamlessly migrate to Firebase Auth
-            const existingDoc = await getDoc(doc(db, 'users', cleanEmail));
-            const existingData = existingDoc.exists() ? existingDoc.data() : {};
-            const displayName = existingData.name || appwriteUser.name || '';
-
-            const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-            firebaseUser = userCred.user;
-
-            if (displayName) {
-              await updateProfile(firebaseUser, { displayName });
-            }
-
-            // Sync migration status to Firestore
-            await setDoc(doc(db, 'users', cleanEmail), {
-              firebaseUid: firebaseUser.uid,
-              migratedToFirebase: true,
-              migratedAt: new Date().toISOString(),
-              lastActive: new Date().toISOString()
-            }, { merge: true });
-
-            // Clean up temporary Appwrite session
-            try {
-              await account.deleteSession('current');
-            } catch (cleanErr) {
-              console.warn("Appwrite session cleanup note:", cleanErr?.message);
-            }
-          }
-        } else {
-          throw fbErr;
-        }
+        if (!LEGACY_FALLBACK_CODES.includes(fbErr.code)) throw fbErr;
+        // 2. Not (yet) valid in Firebase Auth: check the legacy Appwrite directory
+        firebaseUser = await migrateLegacyUser(cleanEmail, password);
       }
 
       const profile = await syncUserProfile(firebaseUser);
       return profile;
     } catch (err) {
-      console.error("Login Error:", err);
-      let message = err.message || 'Invalid email or password.';
+      console.error('Login Error:', err?.code || err?.message);
+      const message = FIREBASE_AUTH_MESSAGES[err.code] || err.message || INVALID_CREDENTIALS_MESSAGE;
       setError(message);
       throw new Error(message);
     } finally {
@@ -320,7 +345,7 @@ export const AuthProvider = ({ children }) => {
         if (!userData.firebaseUid || !userData.migratedToFirebase) {
           try {
             const tempPassword = Math.random().toString(36).slice(-8) + 'Aa1!' + Math.random().toString(36).slice(-8);
-            const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, tempPassword);
+            const userCred = await createUserWithEmailAndPassword(provisioningAuth, cleanEmail, tempPassword);
             
             if (userData.name) {
               await updateProfile(userCred.user, { displayName: userData.name });
@@ -332,7 +357,7 @@ export const AuthProvider = ({ children }) => {
               migratedAt: new Date().toISOString()
             }, { merge: true });
 
-            await signOut(auth);
+            await signOut(provisioningAuth);
           } catch (provisionErr) {
             console.warn("User provision check note:", provisionErr?.message);
           }
